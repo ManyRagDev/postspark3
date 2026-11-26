@@ -1,5 +1,0 @@
-- [ ] [Deps] Instalar `postgres` e remover `mysql2` <!-- id: 0 -->
-- [ ] [Config] Atualizar `drizzle.config.ts` <!-- id: 1 -->
-- [ ] [Schema] Migrar `drizzle/schema.ts` para PostgreSQL (`pgSchema("postspark")`) <!-- id: 2 -->
-- [ ] [DB] Atualizar conexão em `server/db.ts` <!-- id: 3 -->
-- [ ] [Verify] Validar conexão com Supabase <!-- id: 4 -->

@@ -53,6 +53,8 @@ import {
   getEditorElementState,
   getArsenalElementStateInheritance,
   patchEditorElementState,
+  moveLayerInStack,
+  type LayerMove,
   resolveEditorElementOrder,
   COMPOSITION_BACKGROUND_ID,
   COMPOSITION_LOGO_ID,
@@ -113,7 +115,7 @@ export type EditorCommand =
   | { type: "list"; action: "text"; itemId: string; text: string }
   | { type: "duplicate"; geometry?: EditorGeometry }
   | { type: "remove" }
-  | { type: "reorder"; direction: "front" | "back" | "forward" | "backward" }
+  | { type: "reorder"; direction: LayerMove }
   | {
       type: "align";
       alignment: "left" | "center" | "right" | "top" | "middle" | "bottom";
@@ -603,33 +605,15 @@ export function executeEditorCommand(
       );
     }
     if (command.type === "reorder") {
-      if (c)
-        return success(
-          storeComposition(
-            post,
-            index,
-            reorderArsenalLayer(c, id, command.direction)
-          )
-        );
-      const order = projectEditorLayers(post, slide.id)
+      if (c) {
+        const reordered = reorderArsenalLayer(c, id, command.direction);
+        return success(reordered === c ? post : storeComposition(post, index, reordered));
+      }
+      const siblings = projectEditorLayers(post, slide.id)
         .map(l => l.id)
         .filter(key => key !== "background");
-      const from = order.indexOf(id),
-        to =
-          command.direction === "front"
-            ? order.length - 1
-            : command.direction === "back"
-              ? 0
-              : Math.max(
-                  0,
-                  Math.min(
-                    order.length - 1,
-                    from + (command.direction === "forward" ? 1 : -1)
-                  )
-                );
-      order.splice(from, 1);
-      order.splice(to, 0, id);
-      return success(updateSlideById(post, slide.id, { elementOrder: order }));
+      const order = moveLayerInStack(siblings, id, command.direction);
+      return success(order === siblings ? post : updateSlideById(post, slide.id, { elementOrder: order }));
     }
     if (command.type === "remove") {
       if (c) {
@@ -761,7 +745,9 @@ export function executeEditorCommand(
           },
           data
         );
-        return success(storeComposition(post, index, next), {
+        const duplicated = storeComposition(post, index, next);
+        const temporal = slide.temporalMedia?.[id];
+        return success(temporal ? updateSlideById(duplicated,slide.id,{temporalMedia:{...slide.temporalMedia,[newId]:structuredClone(temporal)}}) : duplicated, {
           slideId: slide.id,
           elementId: newId,
         });

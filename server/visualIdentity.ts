@@ -9,6 +9,8 @@ import {
   type VisualIdentityRules,
 } from "@shared/visualIdentity";
 import { invokeLLM } from "./_core/llm";
+import type { BrandProjectRecord } from "@shared/brandProjects";
+import { capturedProjectPalette } from "@shared/projectIdentityExtraction";
 
 export async function interpretVisualIdentity(
   description: string,
@@ -84,6 +86,28 @@ function identityWithRules(description: string, logoUrl: string | undefined, rul
     warnings: identityFontWarnings(fonts),
   };
   return visualIdentitySchema.parse({ ...body, revision: arsenalHash(body) });
+}
+
+export function markExtractedIdentity(identity: VisualIdentity, postIds: number[]) {
+  const { revision: _previous, ...fields } = identity;
+  const body = { ...fields, extractedFrom: { postIds } };
+  return visualIdentitySchema.parse({ ...body, revision: arsenalHash(body) });
+}
+
+export function identityFromDesignKit(preferences: NonNullable<BrandProjectRecord["visualPreferences"]>,
+  kit: NonNullable<ReturnType<typeof capturedProjectPalette>>, previous?: VisualIdentity) {
+  const { palette, postIds } = kit;
+  const style = preferences.personality.filter(Boolean).join(". ");
+  const description = previous?.description || style || "Identidade visual dos modelos do projeto.";
+  const rules = previous?.rules ?? manualIdentityRules("");
+  return markExtractedIdentity(identityWithRules(description, previous?.logoUrl, {
+    ...rules,
+    colors: Object.values(palette),
+    background: palette.background, text: palette.text, accent: palette.accent,
+    headingFont: rules.headingFont ?? preferences.fonts[0] ?? null,
+    bodyFont: rules.bodyFont ?? preferences.fonts[1] ?? preferences.fonts[0] ?? null,
+    style: rules.style || style,
+  }), postIds);
 }
 
 /** Concurrent submits share interpretation; a failed DB save can retry without another call. */

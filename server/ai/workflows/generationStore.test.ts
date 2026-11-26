@@ -297,6 +297,7 @@ it.each(["ok", "db_error", "network_error"])(
     );
     expect(requests[0].searchParams.get("owner_id")).toBe(`eq.${ownerId}`);
     expect(requests[0].searchParams.get("id")).toBe(`neq.${requestId}`);
+    expect(requests[0].searchParams.get("input->>selectionStrategy")).toBe("is.null");
     expect(trace.events).toHaveLength(1);
     expect(trace.events[0]).toMatchObject({
       stage: "recent_selections",
@@ -420,6 +421,10 @@ it("bounds recent delivered selections to the owner and excludes the active requ
       calls.push(["contains", ...a]);
       return query;
     },
+    is: (...a: unknown[]) => {
+      calls.push(["is", ...a]);
+      return query;
+    },
     order: (...a: unknown[]) => {
       calls.push(["order", ...a]);
       return query;
@@ -467,4 +472,6 @@ it("bounds recent delivered selections to the owner and excludes the active requ
   expect(JSON.stringify(recent)).not.toMatch(
     /private|experimental|pieces|composition/
   );
+  await store.recentSelections(ownerId, requestId, "editorial_v1");
+  expect(calls).toContainEqual(["eq", "input->>selectionStrategy", "editorial_v1"]);
 });

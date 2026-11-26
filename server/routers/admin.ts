@@ -55,6 +55,16 @@ export const adminRouter = router({
             return getGenerationOperationalMetrics(input?.windowDays ?? 7);
         }),
 
+    getMareMetrics: adminProcedure.query(async () => {
+        const db=getSupabase();
+        const [ops,storage]=await Promise.all([db.rpc("mare_operational_summary",{p_days:7}),db.rpc("mare_media_summary")]);
+        if(ops.error || storage.error) throw new TRPCError({code:"INTERNAL_SERVER_ERROR",message:"Métricas Maré indisponíveis."});
+        return {
+            operations: ops.data as Array<{operation:string; jobs:number; delivered:number; pending:number; failed:number; charged_sparks:number; provider_cost_usd:number|null; measured_jobs:number; p95_seconds:number|null}>,
+            storage:storage.data[0] as {asset_bytes:number;proxied_bytes:number;signed_reads:number}
+        };
+    }),
+
     getAiRollout: adminProcedure.query(() => ({
         siteIntelligence: ENV.aiSiteIntelligenceEnabled,
         llmJudge: ENV.aiLlmJudgeEnabled,

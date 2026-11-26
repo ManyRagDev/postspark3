@@ -41,7 +41,7 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
 
         try {
             if (!isSupabaseConfigured || !supabase) {
-                throw new Error('Login indisponivel: configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel.');
+                throw new Error('Login indisponível neste ambiente.');
             }
 
             let result;
@@ -90,7 +90,7 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
 
         try {
             if (!isSupabaseConfigured || !supabase) {
-                throw new Error('Login com Google indisponivel: configure as variaveis publicas do Supabase na Vercel.');
+                throw new Error('Login com Google indisponível neste ambiente.');
             }
 
             const { error } = await supabase.auth.signInWithOAuth({
@@ -263,7 +263,7 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
                                         className="text-xs px-3 py-2 rounded-lg"
                                         style={{ background: 'oklch(0.4 0.2 25 / 15%)', color: 'oklch(0.85 0.08 85)', border: '1px solid oklch(0.55 0.12 85 / 30%)' }}
                                     >
-                                        Login desabilitado ate configurar VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.
+                                        Login indisponível neste ambiente.
                                     </p>
                                 )}
 

@@ -27,6 +27,7 @@ export interface MediaTarget {
   slotId: string;
 }
 export type MediaOperation =
+  | { kind: "temporal"; source: import("@shared/canvasTemporalMedia").CanvasTemporalSource }
   | { kind: "apply"; url: string }
   | { kind: "remove" }
   | { kind: "background_mode"; mode: "original" | "photo" }
@@ -143,6 +144,15 @@ export function applyMediaOperation(
     ).locked
   )
     return null;
+  if (operation.kind === "temporal") {
+    return updateSlideById(post, target.slideId, { temporalMedia: { ...slide.temporalMedia, [target.slotId]: operation.source } });
+  }
+  if (slide.temporalMedia?.[target.slotId] && (operation.kind === "apply" || operation.kind === "remove")) {
+    const temporalMedia = { ...slide.temporalMedia };
+    delete temporalMedia[target.slotId];
+    const cleared = updateSlideById(post, target.slideId, { temporalMedia });
+    return operation.kind === "remove" ? cleared : applyMediaOperation(cleared, target, operation);
+  }
   if (operation.kind === "background_mode") {
     if (!c?.elements.some(e => e.id === target.slotId && e.imageReplacement)) return null;
     const photo = c.media[target.slotId];
@@ -319,7 +329,7 @@ export function pendingMediaCount(
           e.kind === "media" &&
           e.opacity > 0 &&
           getEditorElementState(post, slide.id, e.id).visible &&
-          e.mediaSlot?.deferred &&
+          e.mediaSlot?.deferred && !slide.temporalMedia?.[e.id] &&
           !slide.composition?.media[e.id]?.url
       ).length ?? 0)
     );

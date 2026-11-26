@@ -317,7 +317,7 @@ describe("curated real catalog → preparation → canonical bundle → PostgreS
     expect(s.snapshot.proposals.every(p=>p.reviews?.at(-1)?.policyVersion===7)).toBe(true);
     const journal = await query("select operation_key,state,result from postspark.generation_v5_operations where request_id=$1",[s.id]);
     expect(journal.rows.every((r:any)=>r.state==="completed")).toBe(true);
-    const providerOperations = journal.rows.filter((r:any)=>r.operation_key.startsWith("p-")&&!r.operation_key.includes(":image:"));
+    const providerOperations = journal.rows.filter((r:any)=>/^p-[^:]+:(?:copy$|review:initial:)/.test(r.operation_key));
     expect(providerOperations).toHaveLength(6);
     expect(providerOperations.every((r:any)=>r.result.id&&r.result.model)).toBe(true);
     for (const delivery of s.snapshot.proposals) {

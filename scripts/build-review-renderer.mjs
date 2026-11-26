@@ -11,3 +11,9 @@ await build({
   define: { "process.env.NODE_ENV": '"production"', "import.meta.env": "{}" },
   logLevel: "info",
 });
+await build({
+  entryPoints: ["client/src/review-renderer/video.tsx"],
+  outfile: "dist/review-renderer/video.js",
+  bundle: true, platform:"browser",format:"iife",target:"chrome120",jsx:"automatic",minify:true,
+  define: { "process.env.NODE_ENV": '"production"', "import.meta.env": "{}" },
+});

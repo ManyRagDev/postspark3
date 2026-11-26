@@ -64,7 +64,7 @@ const layerFields = [
   "text",
   "width",
   "height",
-  "fontSize",
+  "fontSize","fontFamily","fontWeight","italic","align",
   "color",
   "start",
   "end",
@@ -200,7 +200,7 @@ define(
     source(p, a).document = assertComposition(a.document);
   }
 );
-define("composition.background", "Cor de fundo", { ...comp, color: "#RRGGBB" }, (p, a) => {
+define("composition.background", "Cor de fundo", { ...comp, color: "#RRGGBB ou transparent" }, (p, a) => {
   documentOf(p, a).background = a.color;
 });
 define(
@@ -378,13 +378,13 @@ define(
 define(
   "clip.set",
   "Ajustar clipe",
-  { ...clip, ...optionalTrack, fields: "name, trim, duration e, em pistas adicionais, start e volume" },
+  { ...clip, ...optionalTrack, fields: "name, trim, duration, volume para vídeo/áudio e start nas pistas adicionais" },
   (p, a) => {
     const c = clipOf(p, a);
     assignFields(
       c,
       a.fields,
-      a.trackId ? ["name", "trim", "duration", "start", "volume"] : ["name", "trim", "duration"]
+      a.trackId ? ["name", "trim", "duration", "start", "volume"] : c.kind === "video" ? ["name", "trim", "duration", "volume"] : ["name", "trim", "duration"]
     );
     if (c.narration && c.start + c.duration > 60.000001) error("A narração ultrapassa 60 segundos.");
     if (c.sourceDuration && c.trim + c.duration > c.sourceDuration + 1e-6)

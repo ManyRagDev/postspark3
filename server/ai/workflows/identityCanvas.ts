@@ -27,6 +27,9 @@ import {
 } from "../../../client/src/pages/CanvasLab/components/types";
 import { putArsenalComposition } from "../../../client/src/pages/CanvasLab/lib/arsenalComposition";
 import { createComponentTextMeasurer } from "../componentTextMeasurer";
+import { editorialModelOptions } from "../editorialTeam";
+import { generationTaskModelCallOptions } from "../generationModel";
+import type { GenerationModelConfig } from "@shared/generationModel";
 import { invokeLLM } from "../../_core/llm";
 import { renderReviewScenes } from "./proposalRenderer";
 import type { RenderReviewScenes } from "./proposalReview";
@@ -67,6 +70,7 @@ export async function generateIdentityCanvas(args: {
   signal: AbortSignal;
   deadline: number;
   model?: string;
+  generationConfig?: GenerationModelConfig;
   generate?: typeof invokeLLM;
   render?: RenderReviewScenes;
 }) {
@@ -118,6 +122,9 @@ export async function generateIdentityCanvas(args: {
     operation(key, async () => {
       const json = z.toJSONSchema(schema);
       delete json.$schema;
+      const team = args.generationConfig?.editorialTeam;
+      const images = key === "identity_plan" ? visualReferences :
+        (key === "identity_copy" && team?.writer === "z-ai/glm-5.3" ? [] : contentReferences);
       const result = await generate({
         taskRoute: key.includes("review")
           ? "post_evaluation"
@@ -129,20 +136,16 @@ export async function generateIdentityCanvas(args: {
         deadlineMs: deadline,
         maxCompletionTokens: 10000,
         forceTextSchema: true,
+        ...(team ? key === "identity_copy" ? editorialModelOptions(team.writer)
+          : generationTaskModelCallOptions(args.generationConfig, "copy") : {}),
         messages: [
           { role: "system", content: instruction },
           {
             role: "user",
-            content: (key === "identity_plan"
-              ? visualReferences
-              : contentReferences
-            ).length
+            content: images.length
               ? [
                   { type: "text", text: JSON.stringify(data) },
-                  ...(key === "identity_plan"
-                    ? visualReferences
-                    : contentReferences
-                  ).map(ref => ({
+                  ...images.map(ref => ({
                     type: "image_url" as const,
                     image_url: { url: ref.dataUri },
                   })),

@@ -1,3 +1,5 @@
+import { projectColorMap, colorProjectFragment } from "./projectPalette";
+import type { VisualIdentityRules } from "./visualIdentity";
 import { z } from "zod";
 import {
   arsenalCompositionSchema,
@@ -113,6 +115,7 @@ export function instantiateCompleteDesign(input: {
   slide: number;
   planHash: string;
   experimental: boolean;
+  projectPalette?: VisualIdentityRules;
   nativeGlyphProjection?: 1;
 }): ArsenalComposition {
   const { definition: d } = input;
@@ -155,7 +158,7 @@ export function instantiateCompleteDesign(input: {
     hashtags: [],
   };
   const base = structuredClone(d.fragment);
-  const pieces = structuredClone(d.pieces);
+  let pieces = structuredClone(d.pieces);
   if (glyphs) {
     const bindingIds = new Set(glyphs.bindings.map(binding => binding.id));
     const glyphTargets = new Set(glyphs.bindings.flatMap(binding => binding.targets.map(target => target.id)));
@@ -188,6 +191,8 @@ export function instantiateCompleteDesign(input: {
     ...s,
     prompt: media.get(s.id) ?? s.prompt,
   }));
+  const colors = input.projectPalette && projectColorMap(input.projectPalette, base.artboard.background);
+  if (colors) pieces = colorProjectFragment(base, pieces, colors);
   const versionId = assemblyIdentity([
       input.runId,
       input.slot,

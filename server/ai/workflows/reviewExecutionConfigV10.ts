@@ -4,7 +4,7 @@ import { affirmativeCopyInstructionsV2 } from "@shared/affirmativeSocialPlaybook
 import { referenceContextInstructions } from "./editorialContextV8";
 import { z } from "zod";
 import { historicalReviewSchema } from "./historicalReviewSchema";
-import { AUTOMATIC_REVIEW_PROTOCOL, AUTOMATIC_REVIEW_PROTOCOL_V3, AUTOMATIC_REVIEW_PROTOCOL_V4, compactAutomaticReviewInstructionsV4, compactAutomaticReviewInstructions, compactAutomaticReviewInstructionsV3 } from "./automaticReviewProtocol";
+import { AUTOMATIC_REVIEW_PROTOCOL, AUTOMATIC_REVIEW_PROTOCOL_V3, AUTOMATIC_REVIEW_PROTOCOL_V4, compactAutomaticReviewInstructionsV4, compactAutomaticReviewInstructions, compactAutomaticReviewInstructionsV3, objectiveArtworkReviewInstructions } from "./automaticReviewProtocol";
 import type { GenerationTaskModelConfig } from "@shared/generationModel";
 import { generationIntentLegacySchema as generationIntentSchema } from "@shared/generationPlan";
 import { arsenalHash } from "@shared/arsenalContent";
@@ -61,14 +61,15 @@ export function reviewInstructionsV10(
     .join("\n");
 }
 export const automaticReviewInstructionsV10 = "Na política automática, preferências de estilo visual, composição, ritmo e escolha de design são orientações consultivas. Não crie achado bloqueante por afastamento dessas preferências. Preserve a revisão material de fatos, condições, requisitos de conteúdo, contagens, destinos arte/legenda, legibilidade e mídia obrigatória. O plano é apenas uma distribuição sugerida, nunca evidência factual nem nova obrigação.";
-export function reviewContractHashV10(includeExecutionKind = false, automatic = false, nativeInventoryVersion?: 1, automaticReviewVersion?: 2 | 3 | 4, historical = true, copyInstructionsVersion?: 2) {
+export function reviewContractHashV10(includeExecutionKind = false, automatic = false, nativeInventoryVersion?: 1, automaticReviewVersion?: 2 | 3 | 4, historical = true, copyInstructionsVersion?: 2, artworkBriefPolicyVersion?: 1, promptRevision: 1 | 2 = 1) {
   if (automaticReviewVersion === 4) return arsenalHash({
     protocol:AUTOMATIC_REVIEW_PROTOCOL_V4,
     response:z.toJSONSchema(proposalReviewExceptionsResponseV10Schema),
     record:z.toJSONSchema(proposalReviewExceptionsRecordV10Schema),
     context:z.toJSONSchema(reviewDurableContextV5Schema),
     ...(copyInstructionsVersion === 2 ? { copyInstructions: affirmativeCopyInstructionsV2 } : {}),
-    instructions:[compactAutomaticReviewInstructionsV4(positiveEditorialInstructions),compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,["formal-reason"],"receipt-hash")],
+    ...(artworkBriefPolicyVersion === 1 ? { artworkBriefPolicyVersion, objectiveArtworkReviewInstructions } : {}),
+    instructions:[compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,undefined,undefined,promptRevision),compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,["formal-reason"],"receipt-hash",promptRevision)],
   });
   // V10 still reviews the historical material-content namespace. The reader
   // also accepts the additive schema emitted during the classification rollout.
@@ -99,23 +100,32 @@ export function reviewContractHashV10(includeExecutionKind = false, automatic = 
   };
   return arsenalHash(historical ? historicalReviewSchema(contract) : contract);
 }
-export function resolveReviewExecutionConfigV10(textModel?: string, taskModelConfig?: GenerationTaskModelConfig, options?: { copyInstructionsVersion?: 2 }) {
+export function resolveReviewExecutionConfigV10(textModel?: string, taskModelConfig?: GenerationTaskModelConfig, options?: { copyInstructionsVersion?: 2; artworkBriefPolicyVersion?: 1 }) {
   const { configurationHash: _hash, ...old } =
     resolveReviewExecutionConfigV9(textModel);
   const copyInstructionsVersion = options?.copyInstructionsVersion;
+  const artworkBriefPolicyVersion = taskModelConfig ? options?.artworkBriefPolicyVersion : undefined;
   const data = {
     ...old,
     version: 5,
     policyVersion: 10,
     editorialGuidanceVersion: 9,
-    contractHash: reviewContractHashV10(false, Boolean(taskModelConfig), taskModelConfig ? 1 : undefined, taskModelConfig ? 4 : undefined, true, copyInstructionsVersion),
+    contractHash: reviewContractHashV10(false, Boolean(taskModelConfig), taskModelConfig ? 1 : undefined, taskModelConfig ? 4 : undefined, true, copyInstructionsVersion, artworkBriefPolicyVersion, 2),
     ...(copyInstructionsVersion === 2 ? { copyInstructionsVersion: 2 as const } : {}),
+    ...(artworkBriefPolicyVersion ? { artworkBriefPolicyVersion } : {}),
     ...(taskModelConfig ? { taskModelConfig, resolvedModel: taskModelConfig.model, nativeInventoryVersion: 1, automaticReviewVersion: 4, localContrastPolicyVersion: 1, textFlexibilityVersion: 1, visualTextRepairVersion: 1, profileHandlePolicyVersion: 1, nativeGlyphProjection: 1, nativeGlyphManifestHash: NATIVE_GLYPH_MANIFEST_HASH } : {}),
   };
   return reviewExecutionConfigV5Schema.parse({
     ...data,
     configurationHash: arsenalHash(data),
   });
+}
+/** The stored digest pins the exact instruction pair, including jobs saved before editorial revision 2. */
+export function automaticReviewPromptRevision(config: {contractHash:string;copyInstructionsVersion?:2;artworkBriefPolicyVersion?:1}): 1 | 2 | undefined {
+  for (const revision of [1,2] as const) {
+    if(config.contractHash === reviewContractHashV10(false,true,1,4,true,config.copyInstructionsVersion,config.artworkBriefPolicyVersion,revision))return revision;
+  }
+  return undefined;
 }
 export function assertReviewExecutionConfigV10(value: unknown) {
   const r = reviewExecutionConfigV5Schema.safeParse(value);
@@ -132,8 +142,8 @@ export function assertReviewExecutionConfigV10(value: unknown) {
     (data.automaticReviewVersion && (!data.taskModelConfig || data.nativeInventoryVersion !== 1)) ||
     (data.visualTextRepairVersion && (data.automaticReviewVersion !== 4 || data.textFlexibilityVersion !== 1 || !data.taskModelConfig)) ||
     (data.nativeGlyphProjection ? data.nativeGlyphManifestHash !== NATIVE_GLYPH_MANIFEST_HASH : data.nativeGlyphManifestHash !== undefined) ||
-    ((data.localContrastPolicyVersion || data.textFlexibilityVersion || data.profileHandlePolicyVersion || data.nativeGlyphProjection) && data.automaticReviewVersion !== 4) ||
-    ![false, true].flatMap(include => [true, false].map(historical => reviewContractHashV10(include, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion, historical, data.copyInstructionsVersion))).includes(data.contractHash)
+    ((data.localContrastPolicyVersion || data.textFlexibilityVersion || data.profileHandlePolicyVersion || data.nativeGlyphProjection || data.artworkBriefPolicyVersion) && data.automaticReviewVersion !== 4) ||
+    (data.automaticReviewVersion === 4 ? !automaticReviewPromptRevision(data) : ![false, true].flatMap(include => [true, false].map(historical => reviewContractHashV10(include, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion, historical, data.copyInstructionsVersion, data.artworkBriefPolicyVersion))).includes(data.contractHash))
   )
     throw new GenerationFailureError(
       "preparation_contract_incompatible",

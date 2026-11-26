@@ -15,10 +15,13 @@ export async function createContext(
 ): Promise<TrpcContext> {
   try {
     const user = await sdk.authenticateRequest(opts.req, { allowStart: true, allowAgency: true });
+    // A long-lived editor may outlive a logout and a different person's login.
+    // The header only narrows access; the verified cookie establishes identity.
+    const editorOwner = opts.req.headers["x-postspark-editor-owner"];
     return {
       req: opts.req,
       res: opts.res,
-      user,
+      user: editorOwner === undefined || editorOwner === user.id ? user : null,
     };
   } catch {
     return { req: opts.req, res: opts.res, user: null };

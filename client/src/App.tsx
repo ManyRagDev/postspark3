@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch, useLocation, useSearch } from "wouter";
+import { isTheVoidLabSearch, THEVOID_LAB_PATH } from "@/lib/studioRoutes";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Pricing from "./pages/Pricing";
@@ -26,13 +27,14 @@ import PrivacySettings from "./pages/PrivacySettings";
 import ConsentModal from "./components/ConsentModal";
 import CookieBanner from "./components/CookieBanner";
 import { useAuth } from "./_core/hooks/useAuth";
+import StudioAuthModal from "./pages/StudioHome/components/StudioAuthModal";
+import { useSupabaseUserId } from "@/hooks/useSupabaseUserId";
 import { useIsMobile } from "@/hooks/useMobile";
-import { useEffect, lazy, Suspense, type ComponentType } from "react";
+import { useEffect, useState, lazy, Suspense, type ComponentType } from "react";
 
 // Lazy loading da vitrine de inspiração com isolamento total de bundle
 const InspiracaoShowcasePage = lazy(() => import("./pages/InspiracaoShowcase/InspiracaoShowcasePage"));
 const Admin2 = lazy(() => import("./pages/Admin2"));
-const DevPlanPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPlanPreview")) : null;
 
 /**
  * Rota Inicial Pública (Não Logados):
@@ -95,8 +97,8 @@ function RedirectToRoute({ to }: { to: string }) {
   return null;
 }
 
-function ProtectedRoute({ component: Component }: { component: ComponentType }) {
-  const { loading, isAuthenticated } = useAuth();
+function ProtectedRoute({ component: Component, personal = false }: { component: ComponentType; personal?: boolean }) {
+  const { loading, isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -117,6 +119,7 @@ function ProtectedRoute({ component: Component }: { component: ComponentType }) 
   }
 
   if (!isAuthenticated) return null;
+  if (personal && user?.access) return <RedirectToRoute to={user.access === "agency" ? "/agency" : "/thevoid"} />;
   return <Component />;
 }
 
@@ -126,12 +129,12 @@ function AdminRoute({ component: Component }: { component: ComponentType }) {
 
   useEffect(() => {
     if (loading) return;
-    if (!isAuthenticated || user?.role !== "admin") {
+    if (!isAuthenticated || user?.role !== "admin" || user.access || user.impersonatedPlan) {
       setLocation("/");
     }
   }, [isAuthenticated, loading, user, setLocation]);
 
-  if (loading || !isAuthenticated || user?.role !== "admin") return null;
+  if (loading || !isAuthenticated || user?.role !== "admin" || user.access || user.impersonatedPlan) return null;
   return <Component />;
 }
 
@@ -139,11 +142,18 @@ function AdminRoute({ component: Component }: { component: ComponentType }) {
 function TheVoidRoute() {
   return <ProtectedRoute component={MembershipStudio} />;
 }
-function MembershipStudio() {
+function TheVoidLabRoute() {
+  return <ProtectedRoute component={MembershipLabStudio} />;
+}
+function MembershipLabStudio() {
+  return <MembershipStudio lab />;
+}
+function MembershipStudio({ lab = false }: { lab?: boolean } = {}) {
   const { user } = useAuth();
-  if (user?.studioPlan === "START") return <StartStudio />;
+  if (user?.studioPlan === "START") return <StartStudio lab={lab} />;
   if (user?.access === "agency") return <RedirectToRoute to="/agency" />;
   return <StudioAppV2BPage studioPlan={user?.studioPlan}
+    lab={lab}
     debuggerOwnerId={user?.role === "admin" && !user.access ? user.id : undefined}
     teamShareUserId={user?.studioPlan === "AGENCY" ? user.id : undefined} />;
 }
@@ -157,14 +167,39 @@ function StartPieceArchive() {
 function BillingRoute() {
   return <ProtectedRoute component={Billing} />;
 }
+function StudioHistory() {
+  const lab = isTheVoidLabSearch(useSearch());
+  return <History lab={lab} />;
+}
 function HistoryRoute() {
-  return <ProtectedRoute component={History} />;
+  return <ProtectedRoute personal component={StudioHistory} />;
+}
+function StudioSavedPosts() {
+  const lab = isTheVoidLabSearch(useSearch());
+  return <SavedPosts lab={lab} />;
 }
 function SavedPostsRoute() {
-  return <ProtectedRoute component={SavedPosts} />;
+  return <ProtectedRoute personal component={StudioSavedPosts} />;
 }
 function PrivacySettingsRoute() {
   return <ProtectedRoute component={PrivacySettings} />;
+}
+function PaymentReturnRoute() {
+  const actor = useSupabaseUserId();
+  const mobile = useIsMobile();
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [location] = useLocation();
+  if (actor === undefined) return <p role="status" className="p-6">Verificando sessão…</p>;
+  if (!actor) return <main className="mx-auto max-w-lg space-y-4 px-6 py-12">
+    <h1 className="text-2xl font-semibold">Confirmação de pagamento</h1>
+    <p>Entre com a conta usada no checkout para conferir o pagamento.</p>
+    <button className="min-h-11 rounded-lg border px-4" onClick={() => setLoginOpen(true)}>Entrar na conta</button>
+    <StudioAuthModal isOpen={loginOpen} isMobile={mobile} resumePayment onClose={() => setLoginOpen(false)} />
+  </main>;
+  return location === "/billing/topup-success" ? <SparkRefillSuccess key={actor} /> : <MembershipSuccess key={actor} />;
+}
+function FamilyCatalogRoute() {
+  return <AdminRoute component={FamilyCatalog} />;
 }
 function AdminPageRoute() {
   return <AdminRoute component={Admin} />;
@@ -184,16 +219,11 @@ function Router() {
 
       {/* 3. Estúdio Oficial Logado (/thevoid) */}
       <Route path={"/thevoid"} component={TheVoidRoute} />
+      <Route path={THEVOID_LAB_PATH} component={TheVoidLabRoute} />
       <Route path={"/studio"} component={TheVoidRoute} />
       <Route path={"/studio-v2b"} component={TheVoidRoute} />
       <Route path={"/agency"} component={AgencyStudio} />
       <Route path={"/start/peca"} component={StartPieceRoute} />
-      {DevPlanPreview && (
-        <Route path="/dev/plan-preview">
-          <Suspense fallback={null}><DevPlanPreview /></Suspense>
-        </Route>
-      )}
-
       {/* 4. Redirecionamentos Canônicos de Rotas Experimentais e Legadas */}
       {/* 4.1 Experimentos de Landing Page ➔ /criar */}
       <Route path={"/criar-new"} component={() => <RedirectToRoute to="/criar" />} />
@@ -226,11 +256,11 @@ function Router() {
       <Route path={"/terms"} component={Terms} />
       <Route path={"/cookies"} component={Cookies} />
       <Route path={"/privacy-settings"} component={PrivacySettingsRoute} />
-      <Route path={"/billing/success"} component={MembershipSuccess} />
-      <Route path={"/billing/topup-success"} component={SparkRefillSuccess} />
+      <Route path={"/billing/success"} component={PaymentReturnRoute} />
+      <Route path={"/billing/topup-success"} component={PaymentReturnRoute} />
       <Route path={"/admin"} component={AdminPageRoute} />
       <Route path={"/admin2"} component={Admin2PageRoute} />
-      <Route path={"/familias"} component={FamilyCatalog} />
+      <Route path={"/familias"} component={FamilyCatalogRoute} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
@@ -246,7 +276,6 @@ function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   const isMobile = useIsMobile();
-  const isDevPlanPreview = import.meta.env.DEV && location === "/dev/plan-preview";
 
   // Nas rotas de estúdio (/thevoid, /studio, /studio-v2b), cada etapa (Criação, Galeria e CanvasLab)
   // renderiza o UserTopMenu de forma nativa e integrada ao seu respectivo layout/header.
@@ -254,9 +283,9 @@ function AppInner() {
   // (/history, /billing, /pricing, landing logada, etc.), o menu global permanece ativo.
   const isStudioRoute =
     location === "/thevoid" ||
+    location === THEVOID_LAB_PATH ||
     location === "/studio" ||
-    location === "/studio-v2b" ||
-    isDevPlanPreview;
+    location === "/studio-v2b";
 
   return (
     <>
@@ -278,8 +307,8 @@ function AppInner() {
       <Router />
       {isAuthenticated && !isStudioRoute && location !== "/saved-posts" ? <UserTopMenu /> : null}
       {/* Consentimento LGPD e Cookies - fora das páginas imersivas */}
-      {!isDevPlanPreview && location !== "/" && location !== "/criar" && <ConsentModal />}
-      {!isDevPlanPreview && location !== "/" && location !== "/criar" && <CookieBanner />}
+      {location !== "/" && location !== "/criar" && <ConsentModal />}
+      {location !== "/" && location !== "/criar" && <CookieBanner />}
     </>
   );
 }

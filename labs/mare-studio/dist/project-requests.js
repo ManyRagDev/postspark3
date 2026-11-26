@@ -27,7 +27,7 @@ function scopedSource(project, source, clip) {
     commands: [{ id: "composition.duplicate", compositionId: source.id, newId, clipId: clip.id }],
   };
 }
-function replaceText(project, before, after, extra, context) {
+export function replaceText(project, before, after, extra, context) {
   const candidates = project.compositions.flatMap(source =>
     (source.document?.layers ?? [])
       .filter(l => l.type === "text" && l.text === before)
@@ -133,7 +133,7 @@ function entrance(layer, at) {
   return { layer, start, end, segments };
 }
 
-function sequenceCards(project, context) {
+export function sequenceCards(project, context) {
   const groups = project.compositions
     .map(source => ({
       source,

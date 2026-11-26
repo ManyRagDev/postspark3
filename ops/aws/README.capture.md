@@ -1,9 +1,11 @@
 # Captura de sites na mesma máquina AWS
 
+> A captura atual usa [a rota da VPS](../hostinger/capture-route.caddy). Este guia registra a instalação Lightsail anterior.
+
 O serviço em `server/capture/` substitui o microserviço antigo da Railway. Mantém
 captura desktop/mobile, lote de até cinco páginas, recortes por seletor e
 descoberta de links. A API e o executor usam `server/screenshotService.ts`.
-O endpoint de produção é `https://capture.postspark.com.br`; o DNS aponta para o
+O endpoint da instalação Lightsail era `https://capture.postspark.com.br`; o DNS aponta para o
 IP estático `18.189.144.221` da instância existente. Caddy mantém HTTPS com os
 certificados persistidos nos volumes próprios. O segredo não aparece na URL.
 

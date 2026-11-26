@@ -1,3 +1,4 @@
+import {loadCompositionFont} from "./composition-fonts.js";
 import { activeOn, durationOf, FPS, needsCompanion, transitionAt, transitionFrames, transitionMediaKey, transitionPack, validateTracks, voiceKey } from "./montage-model.js";
 import { compositionImages, normalizeProject, validateProject } from "./project-model.js";
 import { loadTransitionOverlay } from "./transitions.js";
@@ -43,10 +44,15 @@ function* projectImages(project, usedOnly = false) {
   for (const clip of project.clips) if (clip.talk?.image) yield clip.talk.image;
 }
 let database;
+let databaseName = "mare-studio-laboratorio";
+export function setProjectCacheScope(actorId, projectId, editingId) {
+  if (database) throw Error("O armazenamento já foi aberto nesta sessão.");
+  databaseName = ["mare-postspark", actorId, projectId, editingId].join("/");
+}
 function openDatabase() {
   if (!database) {
     database = new Promise((resolve, reject) => {
-      const request = indexedDB.open("mare-studio-laboratorio", 1);
+      const request = indexedDB.open(databaseName, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore("projects");
         request.result.createObjectStore("assets");
@@ -67,8 +73,8 @@ function openDatabase() {
   }
   return database;
 }
-async function readRecord(store, key) {
-  const db = await openDatabase();
+async function readRecord(store,key,connection) {
+  const db=connection || await openDatabase();
   return new Promise((resolve, reject) => {
     const request = db.transaction(store).objectStore(store).get(key);
     request.onsuccess = () => resolve(request.result);
@@ -136,13 +142,13 @@ function toImageSource(blob) {
   });
 }
 
-export async function packProject(project) {
+export async function packProject(project,connection) {
   const snapshot = structuredClone(normalizeProject(project));
   const assets = [];
   const blobs = [];
   for (const id of new Set([...mediaIds(snapshot), ...maskIds(snapshot)])) {
     if (BUILT_INS.has(id)) continue;
-    const blob = await readRecord("assets", id);
+    const blob = await readRecord("assets",id,connection);
     if (!(blob instanceof Blob))
       throw new Error("Uma mídia do projeto não está mais neste dispositivo.");
     assets.push({ id, type: blob.type, size: blob.size });
@@ -336,6 +342,21 @@ function companion(active) {
   return clip.kind === "video" ? {key:transitionMediaKey(clip), id:clip.id,
     time:beforeCut ? mix.incomingTime : mix.outgoingTime} : null;
 }
+// Share trim, transition and track placement between preview and exact decoding.
+export function* visualPlacements(project, time) {
+  time = Math.min(time, Math.max(0, durationOf(project) - 1e-7));
+  const active = locate(project, time);
+  if (active?.clip.kind === "video")
+    yield {clip: active.clip, key: active.clip.assetId, time: active.sourceTime};
+  const picture = companion(active);
+  if (picture) yield {clip: active.clip === active.mix.from ? active.mix.to : active.mix.from,
+    key: picture.key, time: picture.time};
+  for (const track of project.extraTracks || []) {
+    const clip = activeOn(track, time);
+    if (clip && track.kind === "video")
+      yield {clip, key: voiceKey(track, clip), time: clip.trim + time - clip.start};
+  }
+}
 function mediaTime(el, time) {
   return clamp(time, 0, Math.max(0, el.duration - 0.001));
 }
@@ -419,7 +440,7 @@ export class MediaEngine {
       this.pending.delete(src);
     }
   }
-  async prepare(project) {
+  async preparePictures(project) {
     const images = new Set(
       Array.from(projectImages(project, true), layer => layer.src)
     );
@@ -433,9 +454,13 @@ export class MediaEngine {
       if (!images.has(old)) this.media.delete(old);
     this.imageSources = images;
     await Promise.all([
+      ...Array.from(new Set((project.compositions||[]).flatMap(c=>(c.document?.layers||[]).map(l=>l.fontFamily).filter(Boolean))),loadCompositionFont),
       ...Array.from(images, src => this.loadImage(src)),
       ...Array.from(overlays, loadTransitionOverlay),
     ]);
+  }
+  async prepare(project) {
+    await this.preparePictures(project);
     const sources = voices(project);
     for (const [key, el] of this.media) {
       if (typeof key !== "string" || !key.startsWith('["') || sources.has(key)) continue;
@@ -513,7 +538,7 @@ export class MediaEngine {
     this.version++;
     this.playing = false;
     cancelAnimationFrame(this.frame);
-    for (const el of this.media.values()) el.pause?.();
+    for (const el of this.media.values()) el?.pause?.();
   }
   async seek(project, time) {
     this.pause();
@@ -525,23 +550,10 @@ export class MediaEngine {
       this.drawFrame(this.canvas, project, time, this.media);
   }
   async seekVisuals(project, time) {
-    time = Math.min(time, Math.max(0, durationOf(project) - 1e-7));
-    const active = locate(project, time);
-    // Issue all seeks before yielding. An older scrub waiting on a matte must
-    // never move a companion or overlay back after a newer scrub has finished.
+    // Start all seeks before yielding so a superseded scrub cannot move a later track back.
     const pending = [];
-    if (active?.clip.kind === "video") {
-      pending.push(this.prepareMask(active.clip), seekMedia(this.media.get(active.clip.assetId), active.sourceTime, 1e-6));
-    }
-    const picture = companion(active);
-    if (picture) {
-      pending.push(this.prepareMask(active.clip === active.mix.from ? active.mix.to : active.mix.from),
-        seekMedia(this.media.get(picture.key), picture.time, 1e-6));
-    }
-    for (const track of project.extraTracks || []) {
-      const c = activeOn(track, time);
-      if (c && track.kind === "video") pending.push(seekMedia(this.media.get(voiceKey(track,c)), c.trim + time - c.start, 1e-6));
-    }
+    for (const picture of visualPlacements(project, time))
+      pending.push(this.prepareMask(picture.clip), seekMedia(this.media.get(picture.key), picture.time, 1e-6));
     await Promise.all(pending);
   }
   async openAudio() {
@@ -589,6 +601,8 @@ export class MediaEngine {
       prior = active?.clip;
       if (prior?.kind !== "video") return;
       const el = this.media.get(prior.assetId);
+      const gain=this.audioSources.get(prior.assetId);
+      if(gain)gain.gain.value=prior.volume??1;
       await Promise.all([this.prepareMask(prior), seekMedia(el, active.sourceTime)]);
       if (version === this.version && running) await el.play();
     };
@@ -684,20 +698,19 @@ export class MediaEngine {
   }
   async exportMP4(
     project,
-    { onProgress, signal, width = 1080, height = 1920 } = {}
+    { onProgress, signal, width = 1080, height = 1920, viewport } = {}
   ) {
     if (this.exporting) throw new Error("Uma exportação já está em andamento.");
     const hasAudio = [...voices(project).values()].some(voice => !voice.pictureOnly && voice.gain > 0);
-    const codecs = hasAudio
-      ? ["avc1.42E028,mp4a.40.2", "avc1,mp4a.40.2", "avc1,opus", "vp9,opus"]
-      : ["avc1.42E028", "avc1", "vp9"];
-    const formats = [...codecs.map(value => "video/mp4;codecs=" + value), "video/mp4"];
-    const mimeType = formats.find(type => window.MediaRecorder?.isTypeSupported(type));
-    if (!mimeType || !HTMLCanvasElement.prototype.captureStream) {
-      throw new Error(
-        "Este navegador não consegue preparar o MP4. Tente abrir o Maré em um navegador atualizado."
-      );
-    }
+    const mimeType = hasAudio
+      ? "video/mp4;codecs=avc1.42E028,mp4a.40.2"
+      : "video/mp4;codecs=avc1.42E028";
+    // Reuse frame-accurate export when captureStream cannot deliver this profile.
+    const precise = async () => (await import("./precise-export.js")).exportPreciseMP4(project, {
+      onProgress, signal, width, height, viewport,
+    });
+    if (viewport || !window.MediaRecorder?.isTypeSupported(mimeType) || !HTMLCanvasElement.prototype.captureStream)
+      return precise();
     const abortError = () =>
       new DOMException("Exportação cancelada.", "AbortError");
     if (signal?.aborted) throw abortError();
@@ -734,7 +747,7 @@ export class MediaEngine {
       });
       const parts = [];
       const total = durationOf(project);
-      return await new Promise((resolve, reject) => {
+      const recording = await new Promise((resolve, reject) => {
         onAbort = () => reject(abortError());
         this.cancelExport = onAbort;
         onHidden = () => {
@@ -778,6 +791,8 @@ export class MediaEngine {
           }
         ).catch(reject);
       });
+      const {finalizeRecordedMp4} = await import("./recorded-mp4.js");
+      return (await finalizeRecordedMp4(recording, hasAudio, signal)) ?? await precise();
     } finally {
       this.cancelExport = null;
       this.stopPlayback();
@@ -796,4 +811,24 @@ export class MediaEngine {
       }
     }
   }
+}
+
+
+// The shared lab cache is read only after an explicit import from this browser.
+export async function legacyProjectPresent(){
+  if(typeof indexedDB.databases!=="function")return true;
+  return (await indexedDB.databases()).some(db=>db.name==="mare-studio-laboratorio");
+}
+export async function importLegacyProject(){
+  const db=await new Promise((resolve,reject)=>{
+    const req=indexedDB.open("mare-studio-laboratorio");
+    req.onupgradeneeded=()=>req.transaction.abort();
+    req.onerror=()=>reject(Error("Nenhum projeto antigo encontrado neste navegador."));
+    req.onsuccess=()=>resolve(req.result);
+  });
+  try {
+    const current=await readRecord("projects","current",db);
+    if(!current)throw Error("Nenhum projeto antigo encontrado neste navegador.");
+    return unpackProject(await packProject(current,db));
+  }finally{db.close();}
 }

@@ -1,3 +1,4 @@
+import { PLAN_CHANGE_STORAGE_KEY, BEFORE_PLAN_CHANGE_EVENT } from "@/lib/sessionPlanEvents";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +15,19 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuPortal,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { clearCatalogCache } from "@/lib/catalogCache";
 import { refreshBridgeFromCurrentSession } from "@/lib/authBridge";
+import { isTheVoidLabSearch, studioLibraryPath, THEVOID_LAB_PATH } from "@/lib/studioRoutes";
 import { useMobileEditorUI } from "@/store/mobileEditorUI";
 import { supabase } from "@/lib/supabaseClient";
 import { trpc } from "@/lib/trpc";
@@ -26,7 +35,7 @@ import { Bookmark, Building2, ChevronDown, Clock, Crown, FlaskConical, Loader2, 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-import { PAID_PLAN_OFFERS } from "@shared/membership";
+import { PAID_PLAN_OFFERS, type PaidStudioPlan } from "@shared/membership";
 
 function getInitials(name: string | null, email: string | null) {
   const base = (name ?? email ?? "").trim();
@@ -49,12 +58,19 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
   const { user, isAuthenticated, logout } = useAuth();
   const immersiveEditor = useMobileEditorUI((s) => s.immersive);
   const utils = trpc.useUtils();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const impersonate = trpc.auth.impersonatePlan.useMutation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+
+  const openStudioLibrary = (path: "/history" | "/saved-posts") => {
+    const fromLab = location === THEVOID_LAB_PATH ||
+      ((location === "/history" || location === "/saved-posts") && isTheVoidLabSearch(window.location.search));
+    setLocation(studioLibraryPath(path, fromLab));
+  };
 
   const scopedAccess = Boolean(user?.access);
   const { data: billing } = trpc.billing.getProfile.useQuery(undefined, {
@@ -121,19 +137,34 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
     return null;
   }
 
+  const currentPlan = user.impersonatedPlan;
+  const testingLabel = currentPlan ? PAID_PLAN_OFFERS[currentPlan].name : undefined;
+  const switchPlan = async (plan: PaidStudioPlan | null) => {
+    if (impersonate.isPending || (currentPlan ?? null) === plan) return;
+    if (!window.dispatchEvent(new Event(BEFORE_PLAN_CHANGE_EVENT, { cancelable: true }))) return;
+    try {
+      await impersonate.mutateAsync({ plan });
+      await clearCatalogCache();
+      // Other tabs refresh their permissions while retaining their current document.
+      try { localStorage.setItem(PLAN_CHANGE_STORAGE_KEY, JSON.stringify([user.id, Date.now()])); } catch {}
+      window.location.reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível alterar o perfil desta sessão.");
+    }
+  };
+
   const isInline = variant === "inline";
   const lowBalance = billing?.plan === "PRO_PLUS" && billing.sparks <= PAID_PLAN_OFFERS.PRO_PLUS.sparksPerMonth * 0.2;
 
-  // O menu flutuante global some quando o editor mobile imersivo está ativo
-  // (o WorkbenchV2 renderiza sua própria instância inline no header).
+  // O editor mobile imersivo usa o menu inline no cabeçalho.
   if (!isInline && immersiveEditor) {
     return null;
   }
 
   const trigger = isInline ? (
     <button
-      aria-label="Conta do Usuário"
-      className="flex items-center justify-center gap-2 px-2 py-1 rounded-full border transition-all active:scale-95 cursor-pointer hover:bg-white/10 max-md:min-h-11 max-md:min-w-11 md:px-2.5 md:py-1"
+      aria-label={testingLabel ? `Conta do Usuário · Impersonando ${testingLabel}` : "Conta do Usuário"}
+      className="flex items-center justify-center gap-2 px-2 py-1 rounded-full border transition-all active:scale-95 cursor-pointer hover:bg-white/10 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 md:px-2.5 md:py-1"
       style={{
         background: "rgba(255, 255, 255, 0.06)",
         borderColor: "rgba(255, 255, 255, 0.12)",
@@ -146,11 +177,13 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
       <span className={`hidden sm:inline text-xs font-semibold ${lowBalance ? "text-amber-200" : "text-white/90"}`}>
         {billing ? `${billing.sparks.toLocaleString("pt-BR")} ✦` : "Conta"}
       </span>
+      {testingLabel && <span className="text-xs font-semibold text-amber-200">Teste · {testingLabel}</span>}
       <ChevronDown size={12} className={compactMobile ? "hidden opacity-60 sm:block" : "opacity-60"} />
     </button>
   ) : (
     <button
-      className="flex items-center gap-2.5 px-3 py-2 rounded-full border transition-all hover:scale-[1.02] cursor-pointer"
+      aria-label={testingLabel ? `Conta do Usuário · Impersonando ${testingLabel}` : "Conta do Usuário"}
+      className="flex min-h-11 min-w-11 items-center gap-2.5 px-3 py-2 rounded-full border transition-all hover:scale-[1.02] cursor-pointer"
       style={{
         background: "oklch(0.12 0.03 280 / 84%)",
         borderColor: "oklch(0.7 0.22 40 / 22%)",
@@ -172,18 +205,19 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
           {lowBalance && <span className="ml-1 text-amber-200">Saldo baixo</span>}
         </span>
       </div>
+      {testingLabel && <span className="text-xs font-semibold text-amber-200">Teste · {testingLabel}</span>}
       <ChevronDown size={14} className="opacity-80" />
     </button>
   );
 
   return (
     <>
-      <div className={isInline ? "relative shrink-0" : "fixed top-3.5 right-4 md:right-6 z-[80]"}>
+      <div className={isInline ? "relative shrink-0" : "fixed top-[max(0.875rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] md:right-[max(1.5rem,env(safe-area-inset-right))] z-[80]"}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {trigger}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-1rem)] overscroll-contain [@media(pointer:coarse)]:[&_[role=menuitem]]:min-h-11">
             <DropdownMenuLabel className="space-y-1">
               <p className="text-sm font-semibold truncate">{user.name ?? "Usuário"}</p>
               <p className="text-xs font-normal text-muted-foreground truncate">{user.email ?? "Sem e-mail"}</p>
@@ -209,14 +243,14 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
               Meu perfil
             </DropdownMenuItem>
             {!scopedAccess && <>
-            <DropdownMenuItem onClick={() => setLocation("/saved-posts")} className="flex items-center justify-between">
+            <DropdownMenuItem onClick={() => openStudioLibrary("/saved-posts")} className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Bookmark size={14} />
                 Posts salvos
               </span>
               <span className="text-xs font-semibold">{savedPosts?.total ?? 0}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation("/history")} className="flex items-center justify-between">
+            <DropdownMenuItem onClick={() => openStudioLibrary("/history")} className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Clock size={14} />
                 Histórico
@@ -234,11 +268,28 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
               <Settings size={14} />
               Configurações e plano
             </DropdownMenuItem>}
-            {import.meta.env.DEV && billing?.plan === "DEV" && (
-              <DropdownMenuItem onSelect={() => setLocation("/dev/plan-preview")}>
-                <FlaskConical size={14} />
-                Testar como…
-              </DropdownMenuItem>
+            {user.canImpersonate && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger disabled={impersonate.isPending}>
+                  <FlaskConical size={14} />
+                  Impersonar
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="min-w-40 [@media(pointer:coarse)]:[&_[role=menuitemradio]]:min-h-11">
+                    <DropdownMenuRadioGroup value={currentPlan ?? "real"}>
+                      <DropdownMenuRadioItem value="real" onSelect={() => void switchPlan(null)}>
+                        Meu perfil real
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuSeparator />
+                      {(Object.keys(PAID_PLAN_OFFERS) as PaidStudioPlan[]).map(plan => (
+                        <DropdownMenuRadioItem key={plan} value={plan} onSelect={() => void switchPlan(plan)}>
+                          {PAID_PLAN_OFFERS[plan].name}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setLocation("/privacy")}>

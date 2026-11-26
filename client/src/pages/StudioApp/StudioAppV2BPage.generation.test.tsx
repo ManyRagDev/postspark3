@@ -4,9 +4,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_POST } from "@/pages/CanvasLab/components/types";
 import { savedPostToCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
+import { STUDIO_SELECTION_STRATEGY } from "@shared/generationRequest";
 vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:(_id: unknown,enabled: boolean)=>{h.eventsEnabled=enabled;return {error:false,reconnect:vi.fn()};}}));
 import Studio, { getGalleryPermutation } from "./StudioAppV2BPage";
-import { saveBriefDraft } from "./lib/briefDraftStorage";
+import { loadBriefDraft, saveBriefDraft } from "./lib/briefDraftStorage";
 import { setSelectedProjectId } from "./lib/projectStorage";
 import { detectScriptStructure } from "./lib/scriptDetector";
 import { interpretRawBriefing } from "@shared/postspark";
@@ -28,6 +29,8 @@ const h = vi.hoisted(() => ({
   editor: null as any,
   failure: null as any,
   briefReview: null as any,
+  artworkCarouselQuote: { status: "ready", sparks: 0 } as
+    { status: "ready"; sparks: number } | { status: "price_pending" },
   formatConfirm: null as any,
   start: vi.fn(),
   getData: undefined as any,
@@ -56,6 +59,7 @@ vi.mock("@/lib/trpc", () => ({ trpc: {
   generationTelemetry: { record: { useMutation: () => ({ mutateAsync: h.telemetry }) } },
   useUtils: () => ({ post: { list: { invalidate: h.invalidatePosts },listSummary:{invalidate:vi.fn()} }, billing: { getProfile: { invalidate: h.invalidateBilling } } }),
   generation: {
+    artworkCarouselQuote: { useQuery: () => ({ data: h.artworkCarouselQuote, isFetching: false }) },
     reconcile:{useMutation:()=>({mutate:vi.fn(),isPending:false})},
     resume:{useMutation:()=>({mutate:vi.fn(),isPending:false})},
     progress: { useQuery: (_input: unknown, options: unknown) => { h.progressOptions = options; return { data: h.progressData, error: h.progressError, refetch: h.progressRefetch }; } },
@@ -149,7 +153,9 @@ function materializedResult(posts: any[], failures: any[] = []) {
 
 let host: HTMLDivElement;
 let root: Root;
-function mount() { act(() => root.render(<Studio />)); }
+function mount(lab = false) {
+  act(() => root.render(<Studio lab={lab} />));
+}
 async function flush() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
 async function explicitlyResumeStored(input: any) {
   sessionStorage.setItem(PENDING_GENERATION_START_SESSION_KEY,JSON.stringify({input:{ownerId:h.ownerId,idempotencyKey:"explicit-resume-key",...input},source:"create",promptText:input.executionBrief?.rawInput??input.content,mode:input.postMode,inputType:input.inputType}));
@@ -164,6 +170,7 @@ beforeEach(() => {
   h.readiness=undefined;
   h.brandKitData=undefined;
   h.projects = [];
+  h.artworkCarouselQuote = { status: "ready", sparks: 0 };
   h.ownerId="00000000-0000-4000-8000-000000000001";
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
@@ -268,6 +275,28 @@ describe("Studio Generation progressive flow", () => {
     expect(h.start).not.toHaveBeenCalled();
   });
 
+  it("shows the catalog blocker and retries the same brief after a publication becomes available", async () => {
+    const brief = "Compare dois planos de jardinagem.";
+    h.capabilities = { selectable: true, enabled: false, reason: "catalog_publication_required" };
+    mount(true);
+    await act(async () => { h.create.onSubmit(brief, "static"); });
+    expect(h.failure).toMatchObject({
+      reason: "generation_unavailable",
+      userMessage: expect.stringContaining("O catálogo está aguardando uma publicação válida"),
+      retryable: true,
+    });
+    expect(h.start).not.toHaveBeenCalled();
+
+    h.capabilities = { selectable: true, enabled: true, reason: "ready" };
+    h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: true });
+    await act(async () => { h.failure.onRetry(); });
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.start).toHaveBeenCalledWith(expect.objectContaining({
+      content: brief,
+      selectionStrategy: STUDIO_SELECTION_STRATEGY,
+    }));
+  });
+
   it("opens the selected history run without resuming or mixing an unrelated session generation", async () => {
     sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY, requestId);
     sessionStorage.setItem("postspark.restore_generation", JSON.stringify({
@@ -335,6 +364,90 @@ describe("Studio Generation progressive flow", () => {
     expect(h.editor.initialPost).toEqual(canvas);
   });
 
+  it("opens the exact library model in the briefing even when a different project was active", () => {
+    const artwork = { projectId: secondRequestId, postId: 34, name: "Cartaz", aspectRatio: "4:5", slideCount: 1 };
+    setSelectedProjectId(runId);
+    saveBriefDraft(interpretRawBriefing("Texto do briefing em andamento"));
+    window.history.replaceState({ briefingArtwork: artwork, another: true }, "");
+    mount();
+    expect(h.create).toMatchObject({ selectedProjectId: secondRequestId, projectArtwork: artwork, initialPrompt: "Texto do briefing em andamento" });
+    expect(window.history.state).toEqual({ another: true });
+    expect(h.start).not.toHaveBeenCalled();
+    window.history.replaceState(null, "");
+  });
+
+  it("reviews a saved artwork briefing before generating a new editable post", async () => {
+    const project = {
+      id: secondRequestId,
+      name: "PostSpark",
+      niche: "Criação de posts",
+      compiledDocument: "Posts editáveis para redes sociais.",
+      visualPreferences: { colors: [], fonts: [], personality: [], composition: '{"source":"design-extraction","postIds":[31,32]}' },
+    };
+    const artwork = { projectId: project.id, postId: 31, name: "Cursor aceso", aspectRatio: "9:16", slideCount: 1 };
+    const canvas = { ...post(`design-${runId}-0`), familyName: artwork.name };
+    const delivery = { ...running("proposal-fixed", 0), status: "ready", fixedCanvas: canvas };
+    h.projects = [project];
+    setSelectedProjectId(project.id);
+    h.start.mockResolvedValue({ snapshot: snapshot([delivery], "completed"), created: true });
+    mount();
+    act(() => h.create.onUseSavedArtwork(artwork));
+    expect(h.create.projectArtwork).toEqual(artwork);
+    const prompt = "Apresente o editor de posts para pequenas agências";
+    act(() => h.create.onSubmit(prompt, "static", {
+      platform: "instagram",
+      imagePurpose: "content",
+      aspectRatio: artwork.aspectRatio,
+      fixedDesign: { kind: "project", id: project.id, postId: artwork.postId },
+    }));
+    expect(h.start).not.toHaveBeenCalled();
+    expect(loadBriefDraft()?.projectArtwork).toEqual(artwork);
+    expect(h.briefReview).toMatchObject({ projectArtwork: artwork, brief: { rawInput: prompt, format: "static" } });
+    act(() => h.briefReview.onUpdateBrief({ ...h.briefReview.brief, tone: "Direto e acolhedor" }));
+    await act(async () => h.briefReview.onConfirmGenerate());
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.start.mock.calls[0][0]).toMatchObject({
+      projectId: project.id,
+      fixedDesign: { kind: "project", id: project.id, postId: 31 },
+      aspectRatio: "9:16",
+      postMode: "static",
+      creationMode: "execution",
+      executionBrief: { rawInput: prompt, tone: "Direto e acolhedor" },
+    });
+    expect(h.gallery.variations[0]).toMatchObject({ id: canvas.id, familyName: artwork.name });
+  });
+
+  it("uses the reviewed count and approved Sparks to expand an artwork cover", async () => {
+    const projectId = secondRequestId;
+    h.projects = [{ id: projectId, name: "Estúdio", niche: "Design", visualPreferences: {
+      colors: [], fonts: [], personality: [], composition: '{"source":"design-extraction","postIds":[31]}',
+    } }];
+    setSelectedProjectId(projectId);
+    h.artworkCarouselQuote = { status: "price_pending" };
+    h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-fixed", 0)]), created: true });
+    mount();
+    act(() => h.create.onUseSavedArtwork({ projectId, postId: 31, name: "Cursor aceso", aspectRatio: "4:5", slideCount: 1 }));
+    act(() => h.create.onSubmit("Crie um carrossel de 6 slides sobre desenho", "carousel", {
+      platform: "instagram", imagePurpose: "content", aspectRatio: "4:5",
+      fixedDesign: { kind: "project", id: projectId, postId: 31 },
+    }));
+    expect(h.briefReview.brief.slideCount).toBe(6);
+    expect(h.briefReview.artworkCarouselQuote).toEqual({ status: "price_pending" });
+    act(() => h.briefReview.onConfirmGenerate());
+    expect(h.start).not.toHaveBeenCalled();
+    h.artworkCarouselQuote = { status: "ready", sparks: 21 };
+    mount();
+    act(() => h.briefReview.onUpdateBrief({ ...h.briefReview.brief, slideCount: 4 }));
+    expect(h.start).not.toHaveBeenCalled();
+    await act(async () => h.briefReview.onConfirmGenerate());
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.start.mock.calls[0][0]).toMatchObject({
+      artworkCarousel: { confirmedSparks: 21 }, slideCount: 4, postMode: "carousel",
+      aspectRatio: "4:5", fixedDesign: { kind: "project", id: projectId, postId: 31 },
+      executionBrief: { format: "carousel" },
+    });
+  });
+
   it("keeps project art direction out of content so palette hex and fonts do not become user facts", async () => {
     const project = {
       id: secondRequestId,
@@ -386,11 +499,12 @@ describe("Studio Generation progressive flow", () => {
     expect(host.textContent).toContain("atualizada automaticamente");
     expect(host.textContent).not.toMatch(/V[45]|piloto|DEV/);
   });
-  it("generates more through the same API while keeping ready documents and their saved binding", async () => {
+  it.each([false, true] as const)("generates more through the same API while keeping saved documents and editorial selection (lab=%s)", async lab => {
     h.materialize.mockResolvedValue(materializedResult([post("post-a")]));
     h.start.mockResolvedValueOnce({ snapshot: snapshot([ready("proposal-a", 0)], "completed"), created: true })
       .mockResolvedValueOnce({ snapshot: { ...snapshot([running("proposal-new", 0)]), requestId: secondRequestId, runId: "new-run" }, created: true });
-    mount();
+    mount(lab);
+    expect(h.create.savedPostsPath).toBe(lab ? "/saved-posts?studio=lab" : "/saved-posts");
     await act(async () => { h.create.onSubmit("Café artesanal", "static", { platform: "instagram", imagePurpose: "content", generationModel: "gpt" }); await Promise.resolve(); });
     await flush();
     act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
@@ -398,6 +512,9 @@ describe("Studio Generation progressive flow", () => {
     act(() => h.editor.onBackToGallery(h.editor.initialPost));
     await act(async () => { h.gallery.onGenerateMore(); await Promise.resolve(); });
     expect(h.start).toHaveBeenCalledTimes(2);
+    for (const [input] of h.start.mock.calls) {
+      expect(input.selectionStrategy).toBe(STUDIO_SELECTION_STRATEGY);
+    }
     expect(h.start.mock.calls[1][0]).toMatchObject({ generationModel: "gpt", generationParentRequestId: requestId, inputType: "text", content: "Crie 3 novos ganchos criativos e direções de arte alternativas sobre: Café artesanal", executionBrief: h.start.mock.calls[0][0].executionBrief });
     expect(h.gallery.variations.map((item: any) => item.id)).toEqual(["post-a"]);
     act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
@@ -457,13 +574,44 @@ describe("Studio Generation progressive flow", () => {
     expect(original).not.toHaveProperty("model");
     expect(original.inputType).toBe("url");
     expect(original.content).toBe("https://cafe.example/about");
-    expect(original.executionBrief.brandInput.websiteUrl).toBe("https://cafe.example/about");
+    expect(original.executionBrief).not.toHaveProperty("brandInput");
+    expect(original.sources).toEqual([{ id: "page-1", kind: "url", purpose: "content", value: original.content }]);
     expect(JSON.parse(sessionStorage.getItem(PENDING_GENERATION_START_SESSION_KEY)!).input).toEqual(JSON.parse(JSON.stringify(original)));
     await act(async () => { h.failure.onRetry(); await Promise.resolve(); });
     await flush();
     expect(h.start).toHaveBeenCalledTimes(2);
     expect(h.start.mock.calls[1][0]).toEqual(original);
     expect(h.legacyGenerate).not.toHaveBeenCalled();
+  });
+
+  it("keeps lab drafts and retries separate from the official Studio", async () => {
+    saveBriefDraft(interpretRawBriefing("Brief oficial", { selectedFormat: "static" }));
+    const officialPending = JSON.stringify({ input: { ownerId: h.ownerId, idempotencyKey: "official-key" }, promptText: "Pedido oficial" });
+    sessionStorage.setItem(PENDING_GENERATION_START_SESSION_KEY, officialPending);
+    h.start.mockRejectedValueOnce(new Error("network timeout"))
+      .mockResolvedValueOnce({ snapshot: snapshot([running("lab-proposal", 0)]), created: false });
+
+    mount(true);
+    expect(host.textContent).not.toContain("Seleção editorial experimental");
+    expect(host.textContent).not.toContain("Retomar solicitação");
+    await act(async () => { h.create.onSubmit("Brief do laboratório", "static"); });
+    await flush();
+    const labInput = h.start.mock.calls[0][0];
+    const labPendingKey = `${PENDING_GENERATION_START_SESSION_KEY}.${STUDIO_SELECTION_STRATEGY}`;
+    expect(labInput.selectionStrategy).toBe(STUDIO_SELECTION_STRATEGY);
+    expect(JSON.parse(sessionStorage.getItem(labPendingKey)!).input.idempotencyKey).toBe(labInput.idempotencyKey);
+
+    await act(async () => { h.failure.onRetry(); });
+    await flush();
+    expect(h.start.mock.calls[1][0]).toEqual(labInput);
+    expect(sessionStorage.getItem(labPendingKey)).toBeNull();
+    expect(sessionStorage.getItem(PENDING_GENERATION_START_SESSION_KEY)).toBe(officialPending);
+
+    act(() => root.render(null));
+    mount();
+    expect(h.create.initialPrompt).toBe("Brief oficial");
+    expect(host.textContent).toContain("Retomar solicitação");
+    expect(host.textContent).not.toContain("Seleção editorial experimental");
   });
 
   it("reviews a carousel before admission, keeps the edited execution brief and delivers the whole sequence for saving", async () => {

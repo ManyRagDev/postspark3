@@ -46,12 +46,13 @@ type MeasurableFont = {
   ascent: number;
   descent: number;
   layout: (text: string) => { advanceWidth: number;
-    glyphs: Array<{bbox:{minX:number;maxX:number;minY:number;maxY:number}}>;
+    glyphs: Array<{id:number;bbox:{minX:number;maxX:number;minY:number;maxY:number}}>;
     positions: Array<{xAdvance:number;yAdvance:number;xOffset:number;yOffset:number}> };
   variationAxes?: Record<string, { min: number; max: number }>;
   getVariation?: (axes: Record<string, number>) => MeasurableFont;
 };
 // Cache only completed fonts: one request's cancellation must never poison another.
+const pictographicGlyph = new RegExp("\\p{Extended_Pictographic}", "u");
 const cachedFonts = new Map<string, MeasurableFont>();
 export async function loadComponentFontBytes(
   asset: ArsenalAsset,
@@ -191,7 +192,15 @@ export async function createComponentTextMeasurer(
       ...measurementText(input),
       measureGlyph: (text, family, size, style) => {
         const font=fontFor(family,style);
-        return font.layout(text).advanceWidth/font.unitsPerEm*size;
+        const run = font.layout(text);
+        let advance = run.advanceWidth / font.unitsPerEm * size;
+        // Canvas substitutes a system color emoji when the catalog face has no
+        // glyph. Fontkit only returns the often narrower .notdef advance.
+        if (pictographicGlyph.test(text) && run.glyphs.some(glyph => glyph.id === 0))
+          advance = Math.max(advance, size * 1.25);
+        // Chromium can hint each glyph to an integer pixel. Near a wrap
+        // threshold this can add a line that has to fit inside the surface.
+        return input.roundGlyphAdvances ? Math.ceil(advance) : advance;
       },
       measureInk: (text,family,size,style) => {
         const font=fontFor(family,style),scale=size/font.unitsPerEm;

@@ -1,0 +1,11 @@
+{
+  "model": "google/gemini-4-hydrogen",
+  "jobs": [
+    {"id":"geometria-corte","operation":"firstCut","status":"ready","durationSeconds":4,"resolution":"1080x1920","receipts":[{"stage":"script","usage":{"cost":0.0073335}},{"stage":"direction","usage":{"cost":0.0224355}}]},
+    {"id":"geometria-edicao","operation":"edit","status":"ready","receipts":[{"stage":"edit","usage":{"cost":0.0019575}}]},
+    {"id":"controle-revisao","operation":"review","status":"ready","durationSeconds":4,"resolution":"270x480","receipts":[{"stage":"review","usage":{"cost":0.004149}}]},
+    {"id":"cafe-corte","operation":"firstCut","status":"ready","durationSeconds":18,"resolution":"1080x1920","receipts":[{"stage":"script","usage":{"cost":0.024582}},{"stage":"direction","usage":{"cost":0.019863}}]},
+    {"id":"cafe-revisao","operation":"review","status":"ready","durationSeconds":18,"resolution":"1080x1920","receipts":[{"stage":"review","usage":{"cost":0.0186975}}]},
+    {"id":"fala-pt-revisao","operation":"review","status":"ready","durationSeconds":5,"resolution":"270x480","receipts":[{"stage":"review","usage":{"cost":0.0173415}}]}
+  ]
+}

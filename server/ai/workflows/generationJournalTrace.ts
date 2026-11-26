@@ -16,10 +16,11 @@ export const isPaidGenerationOperation = (key: string) =>
   key === "prepare:intent" ||
   key.startsWith("prepare:template_replan:") ||
   key.startsWith("prepare:design-shortlist:") ||
-  /:(?:copy(?:_recovery)?$|repair$|review(?:_repair)?$|template_replan:|review:|review_correction:|review_evidence_repair:|image:)/.test(key);
+  /:(?:copy(?:_recovery|_final_fit(?:_residual)?)?$|repair$|review(?:_repair)?$|template_replan:|review:|review_correction:|review_evidence_repair:|image:)/.test(key);
 
 /** Only an explicit durable receipt can prove that a potentially paid branch stayed local. */
 export function journalOperationWasLocal(result: unknown) {
+  if (object(result)?.localFailure === "llm_request_invalid") return true;
   const metadata = object(result)?.[field];
   return (
     metadata?.version === 1 &&
@@ -118,6 +119,7 @@ export function summarizeGenerationJournal(
       metadata?.version === 1 && Array.isArray(metadata.calls)
         ? metadata.calls
         : [];
+    if (object(operation.result)?.localFailure === "llm_request_invalid") continue;
     const inferred = savedCalls.length
       ? savedCalls
       : [legacyCall(operation)].filter((call): call is LlmTraceCall =>

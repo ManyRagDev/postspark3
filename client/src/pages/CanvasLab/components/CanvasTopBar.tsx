@@ -45,6 +45,8 @@ interface CanvasTopBarProps {
   isSnapEnabled?: boolean;
   onToggleSnap?: () => void;
   isExportingZip?: boolean;
+  temporalSlide?: boolean;
+  onExportFrame?: () => void;
   slideCount?: number;
   onAddSlide?: () => void;
   onRestart?: () => void;
@@ -80,6 +82,8 @@ export default function CanvasTopBar({
   onExportHdZip,
   onBackToGallery,
   isExportingZip = false,
+  temporalSlide = false,
+  onExportFrame,
   slideCount = 1,
   onAddSlide,
   onRestart,
@@ -209,9 +213,10 @@ export default function CanvasTopBar({
             <DropdownMenuLabel>Baixar a arte</DropdownMenuLabel>
             <DropdownMenuItem onSelect={onExportPng}>
               <ArrowDownToLine />
-              Imagem do slide atual · PNG {exportQuality.toUpperCase()}
+              {temporalSlide ? "Vídeo do slide atual · MP4" : "Imagem do slide atual · PNG " + exportQuality.toUpperCase()}
             </DropdownMenuItem>
-            {onExportHdPng && <DropdownMenuItem onSelect={onExportHdPng}>
+            {temporalSlide && onExportFrame && <DropdownMenuItem onSelect={onExportFrame}><ArrowDownToLine />Quadro do slide atual · PNG</DropdownMenuItem>}
+            {!temporalSlide && onExportHdPng && <DropdownMenuItem onSelect={onExportHdPng}>
               <ArrowDownToLine />
               Imagem do slide atual · PNG HD
             </DropdownMenuItem>}

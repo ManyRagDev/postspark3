@@ -112,7 +112,7 @@ export function compactDiagnosticEvents(events: any[]) {
     status,
     detail,
     at,
-    ...((DECISION_TRACE_STAGES.includes(stage) || stage === "scene_inspection" || stage === "proposal_checkpoint") ? { data } : stage === "preparation_request" && data ? { data: Object.fromEntries(
+    ...((DECISION_TRACE_STAGES.includes(stage) || stage === "scene_inspection" || stage === "proposal_checkpoint" || stage === "proposal_failure" || stage === "proposal_copy_validation_failed") ? { data } : stage === "preparation_request" && data ? { data: Object.fromEntries(
       Object.entries(data).filter(([key, value]) =>
         ["requestHash", "model", "requestCharacters", "requestBytes", "estimatedInputTokens", "tokenCountIsEstimate", "transportTimeoutMs", "deadlineAt", "remainingMs", "maxCompletionTokens"].includes(key) &&
         (typeof value === "string" || typeof value === "number" || typeof value === "boolean"))

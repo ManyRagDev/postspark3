@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { editorialContextV9 } from "./editorialContextV9";
 import { mediaPostContext } from "./proposalGraph";
-import { resolveReviewExecutionConfigV10, reviewContractHashV10, assertReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
+import { arsenalHash } from "@shared/arsenalContent";
+import { automaticReviewPromptRevision, resolveReviewExecutionConfigV10, reviewContractHashV10, assertReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
 import { resolveGenerationModelConfig } from "../generationModel";
 import { familyVisualQuery } from "../../designCatalog/familyRetrieval";
 
@@ -88,8 +89,15 @@ describe("Phase 1 — art direction is guidance, never factual user content", ()
     const genCfg = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" });
     const revCfg = resolveReviewExecutionConfigV10(genCfg.model, genCfg.taskRouting?.copy);
     expect(assertReviewExecutionConfigV10(revCfg)).toEqual(revCfg);
-    expect(reviewContractHashV10(false, true, 1, 4, false)).toBe(
-      "2f7c80e7f68f9085025f9a5602c5bf8a8e50be352c8b02e30e2b36b3115e0b98"
-    );
+    const original = "2f7c80e7f68f9085025f9a5602c5bf8a8e50be352c8b02e30e2b36b3115e0b98";
+    expect(reviewContractHashV10(false, true, 1, 4, false)).toBe(original);
+    expect(revCfg.contractHash).toBe("efa382bb025838f3c53cf0d10c9d8787ed3674b8c3da3ede2b6a69dc1667cf4c");
+    const {configurationHash: _, ...fields} = revCfg;
+    for (const [contractHash, revision] of [[original,1], [revCfg.contractHash,2]] as const) {
+      const pinned = {...fields,contractHash};
+      const persisted = JSON.stringify({...pinned, configurationHash:arsenalHash(pinned)});
+      const reopened = assertReviewExecutionConfigV10(JSON.parse(persisted));
+      expect(automaticReviewPromptRevision(reopened)).toBe(revision);
+    }
   });
 });

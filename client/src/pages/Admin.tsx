@@ -1,4 +1,5 @@
 import { trpc as trpcHooks } from "@/lib/trpc";
+import { MareMetricsPanel } from "./Admin/MareMetricsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -36,9 +37,9 @@ export default function Admin() {
     ] : [];
 
     return (
-        <div className="min-h-screen p-8 pt-24" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
+        <div className="min-h-screen px-4 pt-24 pb-8 sm:px-8" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
             <div className="max-w-6xl mx-auto space-y-8">
-                <header className="flex justify-between items-end">
+                <header className="flex flex-wrap justify-between items-end gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">Painel Admin</h1>
                         <p className="text-muted-foreground mt-2">Curadoria visual, telemetria e gerenciamento da plataforma.</p>
@@ -53,7 +54,7 @@ export default function Admin() {
                 </header>
 
                 <Tabs defaultValue="design-dna" className="gap-6">
-                    <TabsList className="h-11 border border-white/10 bg-white/5 p-1">
+                    <TabsList className="h-auto w-full max-w-fit flex-wrap border border-white/10 bg-white/5 p-1 [&>button]:min-h-11">
                         <TabsTrigger value="design-dna" className="px-4">DNA de composição</TabsTrigger>
                         <TabsTrigger value="operation" className="px-4">Operação e usuários</TabsTrigger>
                     </TabsList>
@@ -63,6 +64,7 @@ export default function Admin() {
                     </TabsContent>
 
                     <TabsContent value="operation" className="space-y-8">
+                      <MareMetricsPanel />
                 <Card className="border-white/10 bg-white/5 backdrop-blur-lg">
                     <CardHeader>
                         <div className="flex flex-wrap items-center justify-between gap-3">

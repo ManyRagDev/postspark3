@@ -8,7 +8,9 @@ import { publicUrl } from "../publicUrl";
 import { searchOpenFontCatalog } from "../fontCatalog";
 import { createPost, getBrandProjectById, upsertBrandProject } from "../db";
 import {
-  designExtractionSchema,
+  CREATIVE_DESIGN_EXTRACTION_VERSION,
+  designExtractionModelSchema,
+  designExtractionResultSchema,
   dnaToVisualPreferences,
   sanitizeForCatalog,
 } from "@shared/designExtraction";
@@ -198,6 +200,8 @@ export const templateIngestionRouter = router({
             .refine(v => /^data:image\/(png|jpeg|webp);base64,/i.test(v), "Envie PNG, JPEG ou WebP.")
             .optional(),
           viewport: z.enum(["desktop", "mobile"]).default("desktop"),
+          model: designExtractionModelSchema.optional(),
+          version: z.literal(CREATIVE_DESIGN_EXTRACTION_VERSION).optional(),
         })
         .refine(v => Boolean(v.url) !== Boolean(v.imageDataUrl), "Informe uma URL ou uma imagem.")
     )
@@ -216,7 +220,7 @@ export const templateIngestionRouter = router({
               message: `URL inacessível ou restrita: ${error instanceof Error ? error.message : "endereço inválido"}`,
             });
           }
-          const result = await extractDesignFromUrl(input.url, input.viewport);
+          const result = await extractDesignFromUrl(input.url, input.viewport, input.model, input.version);
           return {
             extraction: result.extraction,
             previewDataUrl: result.previewDataUrl,
@@ -229,15 +233,19 @@ export const templateIngestionRouter = router({
           imageDataUrl: input.imageDataUrl!,
           sourceUrl: null,
           evidence: { fonts: [], colors: [] },
+          model: input.model,
+          version: input.version,
         });
         return { extraction, previewDataUrl: input.imageDataUrl!, sourceUrl: null, fontsDetected: [] as string[] };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         console.error("[templateIngestion.extractDesign] Error:", error);
-        if (error instanceof StructuredOutputError) {
+        if (error instanceof StructuredOutputError || error instanceof z.ZodError) {
           throw new TRPCError({
             code: "BAD_GATEWAY",
-            message: "A IA não conseguiu interpretar o design desta referência. Tente novamente.",
+            message: input.version
+              ? "A IA não conseguiu concluir as cinco propostas de arte desta referência. Tente novamente."
+              : "A IA não conseguiu interpretar o design desta referência. Tente novamente.",
             cause: error,
           });
         }
@@ -256,7 +264,7 @@ export const templateIngestionRouter = router({
     .input(
       z.object({
         projectId: z.string().uuid(),
-        extraction: designExtractionSchema,
+        extraction: designExtractionResultSchema,
         posts: z.array(saveTemplateInput).max(5),
       })
     )
@@ -299,6 +307,6 @@ export const templateIngestionRouter = router({
    * (marca removida, textos viram slots). Não publica nada.
    */
   previewOriginalFamilyDraft: adminProcedure
-    .input(z.object({ extraction: designExtractionSchema }))
+    .input(z.object({ extraction: designExtractionResultSchema }))
     .mutation(({ input }) => ({ sanitized: sanitizeForCatalog(input.extraction) })),
 });

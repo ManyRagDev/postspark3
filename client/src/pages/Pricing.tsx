@@ -1,8 +1,9 @@
+import { useIsMobile } from "@/hooks/useMobile";
 /**
  * Pricing - pagina de planos e precos do PostSpark.
  * Rota: /pricing
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Building2, Check, Crown, Sparkles, UserRound, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -71,10 +72,12 @@ const cardVariants = {
 };
 
 export default function Pricing() {
+  const mobile = useIsMobile();
   const [cycle, setCycle] = useState<MembershipCycle>(
     () => new URLSearchParams(window.location.search).get("cycle") === "annual" ? "annual" : "monthly"
   );
   const [, setLocation] = useLocation();
+  const checkoutTrigger = useRef<HTMLButtonElement>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [selection, setSelection] = useState<PaidStudioPlan | "START">("PRO");
   const [offers, setOffers] = useState<Awaited<ReturnType<typeof readEnrollmentOffers>>>();
@@ -93,7 +96,8 @@ export default function Pricing() {
     return () => { active = false; };
   }, []);
 
-  async function handleCTA(plan: PaidStudioPlan | "START") {
+  async function handleCTA(plan: PaidStudioPlan | "START", trigger: HTMLButtonElement) {
+    checkoutTrigger.current = trigger;
     setSelection(plan);
     setBusy(true);
     try {
@@ -124,7 +128,7 @@ export default function Pricing() {
     <div className="min-h-screen flex flex-col items-center justify-start py-16 px-4 bg-soul-deep">
       <button
         onClick={() => setLocation("/")}
-        className="self-start mb-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="self-start mb-8 flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar
@@ -178,7 +182,7 @@ export default function Pricing() {
           <p className="mt-2 text-sm text-muted-foreground">Crie sua primeira peça. Escolha entre até três propostas, revise o texto e a legenda e baixe em HD sem marca d’água.</p>
         </div>
         {startAvailable ? (
-          <button type="button" onClick={() => void handleCTA("START")} disabled={busy || member?.active} className="rounded-xl bg-thermal-orange px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-50">Criar minha primeira peça</button>
+          <button type="button" onClick={event => void handleCTA("START", event.currentTarget)} disabled={busy || member?.active} className="rounded-xl bg-thermal-orange px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-50">Criar minha primeira peça</button>
         ) : (
           <span className="rounded-full border border-border px-3 py-1 text-sm text-muted-foreground">Em breve</span>
         )}
@@ -274,7 +278,7 @@ export default function Pricing() {
 
               <button
                 type="button"
-                onClick={() => void handleCTA(plan)}
+                onClick={event => void handleCTA(plan, event.currentTarget)}
                 disabled={(!isCurrentPlan && !enrollmentOpen) || switchUnavailable || busy}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
@@ -323,7 +327,7 @@ export default function Pricing() {
           </button>
         </div>
       )}
-      <StudioAuthModal key={selection} isOpen={authOpen} isMobile={false} onClose={() => setAuthOpen(false)}
+      <StudioAuthModal key={selection} returnFocusRef={checkoutTrigger} isOpen={authOpen} isMobile={mobile} onClose={() => setAuthOpen(false)}
         startPilot={selection === "START"} checkoutPlan={selection === "START" ? undefined : selection}
         checkoutCycle={selection === "START" ? undefined : cycle} />
       <Footer />

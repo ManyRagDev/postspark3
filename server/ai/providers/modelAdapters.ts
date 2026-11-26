@@ -32,6 +32,10 @@ export interface AdaptedProviderRequest {
   normalizeResponseContent?: (content: string) => string;
 }
 
+export function isOpenRouterSolModel(model?: string): boolean {
+  return Boolean(model?.startsWith("openai/gpt-6.1-sol") || model?.startsWith("openai/gpt-6.2-sol"));
+}
+
 /** OpenAI strict objects encode an absent optional value as null on the wire. */
 function strictNativeSchema(node: Record<string, unknown>): Record<string, unknown> {
   const result = { ...node };
@@ -150,7 +154,7 @@ export function adaptRequestForProvider(input: {
       structuredOutputMode: schema ? "native_schema" : undefined,
     };
   }
-  if (input.provider === "openrouter" && input.effectiveModel?.startsWith("openai/gpt-6.1-sol") &&
+  if (input.provider === "openrouter" && isOpenRouterSolModel(input.effectiveModel) &&
       !input.forceTextSchema && input.responseFormat?.type === "json_schema") {
     const schema = input.responseFormat.json_schema;
     return {

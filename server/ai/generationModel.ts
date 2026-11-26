@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { generationModelConfigSchema, type GenerationModel, type GenerationModelConfig, type GenerationTaskModelConfig, type GenerationTaskStage } from "../../shared/generationModel";
+import { chooseEditorialWriter, type EditorialBrief } from "./editorialTeam";
 import { ENV } from "../_core/env";
 
 export const GPT_GENERATION_MODEL = "openai/gpt-6.1-sol";
@@ -28,7 +29,7 @@ export function resolveGenerationModelConfig(input: {
   generationModel?: GenerationModel;
   postMode: "static" | "carousel";
   slideCount?: number;
-}): GenerationModelConfig {
+} & EditorialBrief, supportsTextRecovery = true, supportsFinalFitRepair = supportsTextRecovery, supportsTrioDelivery = false, supportsEditorialTeam = false): GenerationModelConfig {
   const choice = input.generationModel ?? "auto";
   const generationStrategyVersion = choice === "auto" ? 2 : ENV.generationStrategyVersion;
   // Immutable stage policy; environment overrides remain available for manual choices.
@@ -71,7 +72,17 @@ export function resolveGenerationModelConfig(input: {
       temperature: input.postMode === "carousel" ? 0.45 : 0.4,
       topP: 0.85,
     }),
+    ...(taskRouting && supportsEditorialTeam ? { editorialTeam: {
+      version: 1 as const,
+      writer: chooseEditorialWriter(input),
+      sourceReader: "moonshotai/kimi-k3.1-pro" as const,
+      factualCorrection: "openai/gpt-6.2-sol" as const,
+      commercialAdaptation: "z-ai/glm-5.3" as const,
+    } } : {}),
     // Persist the policy before admission; historical jobs retain their original fit.
+    ...(taskRouting && supportsTextRecovery ? { textRecoveryVersion: 1 as const } : {}),
+    ...(taskRouting && supportsTextRecovery && supportsFinalFitRepair ? { finalFitRepairVersion: 1 as const } : {}),
+    ...(taskRouting && supportsTextRecovery && supportsFinalFitRepair && supportsTrioDelivery ? { trioDeliveryVersion: 1 as const } : {}),
     layoutFitPolicy: choice === "auto" ? "adaptive_v2" as const : "subpixel_v1" as const,
     ...(generationStrategyVersion === 2 ? { editorialIntentVersion: 1 as const, preparationBudget: {
       version: 1 as const,

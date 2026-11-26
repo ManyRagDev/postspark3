@@ -157,6 +157,33 @@ describe("single-document editor intentions", () => {
       result.post.slides[0].elementOrder
     );
   });
+  it("drops relative to an anchor and keeps the exact native stack on reopen", () => {
+    const post = duplicateSlide(native(), 0);
+    const moved = command(post, "photo", {
+      type: "reorder", direction: { anchorId: "headline", side: "below" },
+    }).post;
+    const ids = projectEditorLayers(roundtrip(moved), "first").map(layer => layer.id);
+    expect(ids.indexOf("photo")).toBe(ids.indexOf("headline") - 1);
+    expect(moved.slides[1]).toBe(post.slides[1]);
+    for (const anchorId of ["headline", "missing", "background"]) {
+      expect(command(moved, "photo", {
+        type: "reorder", direction: { anchorId, side: "below" },
+      }).post).toBe(moved);
+    }
+  });
+  it("drops Arsenal siblings in one command and preserves group boundaries on reopen", () => {
+    const post = composed();
+    const c = post.slides[0].composition!;
+    const group = c.groups.find(g => c.elements.filter(e => e.parentId === g.id).length >= 2)!;
+    const [lower, upper] = resolveEditorSelection(post, { slideId: post.slides[0].id, elementId: group.id })!.children;
+    const move = (anchorId: string) => command(post, lower.id, {
+      type: "reorder", direction: { anchorId, side: "above" },
+    });
+    expect(move(group.id).post).toBe(post);
+    const restored = roundtrip(move(upper.id).post);
+    const siblings = resolveEditorSelection(restored, { slideId: restored.slides[0].id, elementId: group.id })!.children;
+    expect(siblings.findIndex(l => l.id === lower.id)).toBe(siblings.findIndex(l => l.id === upper.id) + 1);
+  });
   it("aligns conventional objects using canonical geometry independent of zoom", () => {
     const result = command(native(), "free", {
       type: "align",

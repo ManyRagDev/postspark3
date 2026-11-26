@@ -20,7 +20,7 @@ export function FormatConfirmModal({
   intent: FormatIntent;
   selectedMode: "static" | "carousel";
   onKeepSelected: () => void;
-  onSwitchToDetected: () => void;
+  onSwitchToDetected?: () => void;
   onDismiss: () => void;
 }) {
   const detectedLabel = intent.detectedFormat === "carousel" ? "carrossel" : "post único";
@@ -53,6 +53,7 @@ export function FormatConfirmModal({
               <div style={{ ...MONO, fontSize: 11, fontWeight: 700 }}>Confirmar formato</div>
               <div className="text-[12.5px] leading-snug" style={{ color: STUDIO.ink60 }}>
                 {formatMismatchMessage(intent, selectedMode)}
+                {!onSwitchToDetected && " A arte escolhida define o formato."}
               </div>
             </div>
           </div>
@@ -71,14 +72,14 @@ export function FormatConfirmModal({
             <span>Continuar com {selectedLabel}</span>
             <ArrowRight size={16} />
           </button>
-          <button
+          {onSwitchToDetected && <button
             type="button"
             onClick={onSwitchToDetected}
             className="flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold"
             style={{ borderColor: STUDIO.hairline, color: STUDIO.ink }}
           >
             Mudar para {detectedLabel}
-          </button>
+          </button>}
           <button type="button" onClick={onDismiss} className="min-h-11 py-1 text-xs md:min-h-0" style={{ color: STUDIO.ink60 }}>Editar briefing</button>
         </div>
         <p className="mt-3 text-center text-[10.5px]" style={{ color: STUDIO.ink40 }}>

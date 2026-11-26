@@ -18,13 +18,16 @@ import {
 } from "@shared/contentRequirements";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
 import { aspectRatioHeight } from "@shared/aspectRatios";
-import type { CanvasPostModel } from "../../../client/src/pages/CanvasLab/components/types";
+import { customTextFontStyle, type CanvasPostModel } from "../../../client/src/pages/CanvasLab/components/types";
 import {
   editArsenalContent,
   putArsenalComposition,
 } from "../../../client/src/pages/CanvasLab/lib/arsenalComposition";
 import { createComponentTextMeasurer } from "../componentTextMeasurer";
 import { GenerationFailureError } from "@shared/generationFailure";
+import { editorialModelOptions } from "../editorialTeam";
+import { generationTaskModelCallOptions } from "../generationModel";
+import type { GenerationModelConfig } from "@shared/generationModel";
 import { invokeLLM } from "../../_core/llm";
 import type { PinnedDesign } from "./fixedDesignSource";
 
@@ -116,10 +119,9 @@ export function fixedDesignFields(model: CanvasPostModel): Field[] {
       .sort((a, b) => (b.fontSize ?? 0) - (a.fontSize ?? 0))
       .find(t => t.text.length > 2);
     return texts.flatMap((text, position) => {
-      if (
-        (position === 0 && text.id === "text-0" && text.y === 20) ||
-        /^(\d{1,2}|[+×“])$/.test(text.text)
-      )
+      const structural = text.contentRole ? ["brand", "marker"].includes(text.contentRole) :
+        (position === 0 && text.id === "text-0" && text.y === 20) || /^(\d{1,2}|[+×“])$/.test(text.text);
+      if (structural)
         return [];
       const { x = 0, y = 0, width = 320, fontSize = 12 } = text;
       const rowBottom = Math.min(
@@ -144,19 +146,20 @@ export function fixedDesignFields(model: CanvasPostModel): Field[] {
           )
           .map(shape => shape.y + shape.height - 3)
       );
+      const lineHeight = text.lineHeight ?? 1.3;
       const height = Math.max(
-        fontSize * 1.3,
+        fontSize * lineHeight,
         Math.min(rowBottom, shapeBottom) - y
       );
       const pageHeight = aspectRatioHeight(model.aspectRatio, 360);
-      const role =
+      const role = text.contentRole ?? (
         text.id === headline?.id
           ? "headline"
           : y > pageHeight - 32
             ? "rodapé"
             : y > pageHeight - 74
               ? "callToAction"
-              : "apoio ou etiqueta";
+              : "apoio ou etiqueta");
       return [
         {
           id: `${index}:${text.id}`,
@@ -168,7 +171,7 @@ export function fixedDesignFields(model: CanvasPostModel): Field[] {
             5,
             Math.floor(
               (width / (fontSize * 0.62)) *
-                Math.max(1, Math.floor(height / (fontSize * 1.3)))
+                Math.max(1, Math.floor(height / (fontSize * lineHeight)))
             )
           ),
           height,
@@ -205,9 +208,10 @@ function legacyMetrics(
     width: text.width ?? 320,
     fontSize: text.fontSize ?? 12,
     fontFamily: text.fontFamily ?? "Inter",
-    fontStyle: String(text.fontWeight ?? "normal"),
+    fontStyle: customTextFontStyle(text),
     fill: text.color ?? "#000",
-    lineHeight: 1.3,
+    lineHeight: text.lineHeight ?? 1.3,
+    letterSpacing: text.letterSpacing,
     measureGlyph(value, family, size, style) {
       ctx.font = `${style} ${size}px "${family.split(",")[0].replace(/["']/g, "")}"`;
       return ctx.measureText(value).width;
@@ -367,6 +371,7 @@ export async function generateFixedCopy(args: {
   signal: AbortSignal;
   deadline: number;
   model?: string;
+  generationConfig?: GenerationModelConfig;
   operation: Operation;
   generate?: typeof invokeLLM;
 }) {
@@ -426,6 +431,9 @@ export async function generateFixedCopy(args: {
           },
         },
         forceTextSchema: true,
+        ...(args.generationConfig?.editorialTeam ? key === "copy"
+          ? editorialModelOptions(args.generationConfig.editorialTeam.writer)
+          : generationTaskModelCallOptions(args.generationConfig, key === "repair" ? "repair" : "copy") : {}),
         maxCompletionTokens: 4500,
       });
       const raw = result.choices[0]?.message.content;

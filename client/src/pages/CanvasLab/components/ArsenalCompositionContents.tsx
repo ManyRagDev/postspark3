@@ -1,3 +1,4 @@
+import { mediaWidth, mediaHeight } from "../lib/temporalPlayback";
 import { useEffect, useState } from "react";
 import { displayMediaSlotLabel } from "../lib/mediaPresentation";
 import { Group, Rect, Line, Text, Image as KonvaImage } from "react-konva";
@@ -40,17 +41,20 @@ function SlotImage({
   e,
   c,
   onSelect,
+  video,
   interactive,
 }: {
   e: ArsenalElement;
+  video?: HTMLCanvasElement;
   c: ArsenalComposition;
   onSelect: (id: string, event?: Event) => void;
   interactive: boolean;
 }) {
   const slot = activeArsenalMedia(c, e);
-  const replacement = slot ? e.imageReplacement : undefined;
+  const replacement = slot || video ? e.imageReplacement : undefined;
   const asset = e.imageAssetId ? c.assets.find(a=>a.id===e.imageAssetId) : undefined;
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [still, setImage] = useState<HTMLImageElement | null>(null);
+  const image = video ?? still;
   useEffect(() => {
     let active = true;
     setImage(null);
@@ -67,14 +71,14 @@ function SlotImage({
     };
   }, [slot?.url, asset?.id, asset?.sha256]);
   const scale = image
-    ? Math.max(e.width / image.naturalWidth, e.height / image.naturalHeight)
+    ? Math.max(e.width / mediaWidth(image), e.height / mediaHeight(image))
     : 1;
   const contain = e.mediaSlot?.policy === 'contain';
-  const containScale = image ? Math.min(e.width / image.naturalWidth, e.height / image.naturalHeight) : 1;
+  const containScale = image ? Math.min(e.width / mediaWidth(image), e.height / mediaHeight(image)) : 1;
   const crop = image && !contain
     ? {
-        x: (image.naturalWidth - e.width / scale) * (slot?.focalX ?? 0.5),
-        y: (image.naturalHeight - e.height / scale) * (slot?.focalY ?? 0.5),
+        x: (mediaWidth(image) - e.width / scale) * (slot?.focalX ?? 0.5),
+        y: (mediaHeight(image) - e.height / scale) * (slot?.focalY ?? 0.5),
         width: e.width / scale,
         height: e.height / scale,
       }
@@ -108,10 +112,10 @@ function SlotImage({
       {image && (
         <KonvaImage
           image={image}
-          x={contain && image ? (e.width - image.naturalWidth * containScale) / 2 : 0}
-          y={contain && image ? (e.height - image.naturalHeight * containScale) / 2 : 0}
-          width={contain && image ? image.naturalWidth * containScale : e.width}
-          height={contain && image ? image.naturalHeight * containScale : e.height}
+          x={contain && image ? (e.width - mediaWidth(image) * containScale) / 2 : 0}
+          y={contain && image ? (e.height - mediaHeight(image) * containScale) / 2 : 0}
+          width={contain && image ? mediaWidth(image) * containScale : e.width}
+          height={contain && image ? mediaHeight(image) * containScale : e.height}
           crop={crop}
           listening={interactive}
           onClick={event => onSelect(e.id, event)}
@@ -122,7 +126,7 @@ function SlotImage({
         <Rect width={e.width} height={e.height} fill="#0E091C"
           opacity={replacement.scrimOpacity} listening={false} />
       )}
-      {!slot && e.mediaSlot?.deferred && (
+      {!video && !slot && e.mediaSlot?.deferred && (
         <Group name="editor-media-guide" listening={false}>
           <Rect x={3} y={3} width={Math.max(1, e.width - 6)} height={Math.max(1, e.height - 6)} stroke="#94a3b8" dash={[8, 6]} strokeWidth={2} />
           <Text x={12} y={Math.max(8, e.height / 2 - 20)} width={Math.max(1, e.width - 24)} text={`${displayMediaSlotLabel(e.mediaSlot.label)}\nInserir imagem na aba Mídia`} fontSize={Math.min(22, e.width / 12)} align="center" fill="#64748b" />
@@ -144,14 +148,17 @@ function SlotImage({
 
 function CompositionCustomBackground({
   bg,
+  video,
   stageWidth,
   stageHeight,
 }: {
   bg: ArsenalCustomBackground;
+  video?: HTMLCanvasElement;
   stageWidth: number;
   stageHeight: number;
 }) {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [still, setImage] = useState<HTMLImageElement | null>(null);
+  const image = video ?? still;
   useEffect(() => {
     let active = true;
     setImage(null);
@@ -171,14 +178,14 @@ function CompositionCustomBackground({
 
   const contain = bg.fitMode === "contain";
   const scale = (contain ? Math.min : Math.max)(
-    stageWidth / image.naturalWidth,
-    stageHeight / image.naturalHeight
+    stageWidth / mediaWidth(image),
+    stageHeight / mediaHeight(image)
   );
-  const imageWidth = contain ? image.naturalWidth * scale : stageWidth;
-  const imageHeight = contain ? image.naturalHeight * scale : stageHeight;
+  const imageWidth = contain ? mediaWidth(image) * scale : stageWidth;
+  const imageHeight = contain ? mediaHeight(image) * scale : stageHeight;
   const crop = contain ? undefined : {
-    x: (image.naturalWidth - stageWidth / scale) * (bg.focalX ?? 0.5),
-    y: (image.naturalHeight - stageHeight / scale) * (bg.focalY ?? 0.5),
+    x: (mediaWidth(image) - stageWidth / scale) * (bg.focalX ?? 0.5),
+    y: (mediaHeight(image) - stageHeight / scale) * (bg.focalY ?? 0.5),
     width: stageWidth / scale,
     height: stageHeight / scale,
   };
@@ -357,6 +364,7 @@ function CompositionLogo({
 /** Official elements inside CanvasPostStage's existing Layer; no diagnostic scene or second renderer. */
 export function ArsenalCompositionContents({
   composition: c,
+  videos = {},
   interactive,
   bridge,
   register,
@@ -367,6 +375,7 @@ export function ArsenalCompositionContents({
   onDragEnd,
 }: {
   composition: ArsenalComposition;
+  videos?: Record<string, HTMLCanvasElement>;
   interactive: boolean;
   bridge: ArsenalTextBridge;
   register: (id: string, node: any, isText: boolean) => void;
@@ -601,7 +610,7 @@ export function ArsenalCompositionContents({
             {editing && bridge.selectionHandles?.(node.id, layout)}
           </>
         ) : e.kind === "media" ? (
-          <SlotImage
+          <SlotImage video={videos[e.id]}
             e={e}
             c={c}
             onSelect={onSelect}
@@ -643,9 +652,9 @@ export function ArsenalCompositionContents({
         fill={c.artboard.background}
         listening={false}
       />}
-      {c.version === 3 && getArsenalElementState(c, COMPOSITION_BACKGROUND_ID).visible && c.customBackground?.imageUrl && (
+      {getArsenalElementState(c, COMPOSITION_BACKGROUND_ID).visible && (videos.__background__ || (c.version === 3 && c.customBackground?.imageUrl)) && (
         <CompositionCustomBackground
-          bg={c.customBackground}
+          bg={(c.version === 3 && c.customBackground) || {overlayOpacity:0}} video={videos.__background__}
           stageWidth={360}
           stageHeight={stageHeight}
         />

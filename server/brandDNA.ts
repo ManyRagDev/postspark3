@@ -2,13 +2,13 @@
  * BrandDNA: Unified brand identity extraction pipeline
  *
  * Implements the "Tom & Matiz" synesthetic architecture:
- * 1. Discover — find key internal pages from homepage (Railway /discover)
+ * 1. Discover — find key internal pages from the homepage
  * 2. Parallel capture — multi-page screenshots + element screenshots + HTML fetch
  * 3. Vision synthesis — send all screenshots to Gemini Vision for holistic brand analysis
  * 4. LLM synthesis — merge HTML data + Vision into a structured BrandDNA object
  * 5. Composition mapping — deterministic translation of personality into musical metaphors
  *
- * Graceful degradation at every step — if Railway is down or LLM fails,
+ * Graceful degradation at every step — if capture is unavailable or the LLM fails,
  * falls back to HTML-only extraction (existing pipeline).
  */
 
@@ -360,7 +360,7 @@ function buildFallbackEmotional(): BrandDNA['emotionalProfile'] {
  * Extract the complete Brand DNA from a website URL.
  *
  * Pipeline:
- * 1. Discover internal pages (Railway /discover)
+ * 1. Discover internal pages
  * 2. In parallel: multi-page screenshots + element screenshots + HTML extraction
  * 3. Vision analysis (Gemini multi-image)
  * 4. Merge HTML data + Vision into final BrandDNA

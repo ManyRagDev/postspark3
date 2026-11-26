@@ -18,6 +18,7 @@ import {
 import { reconcile82Data } from "../../../scripts/reconcile82Catalog";
 import { resolveGenerationModelConfig } from "../generationModel";
 import { ENV } from "../../_core/env";
+import { structuralIntentFixture } from "./generationIntent.fixture";
 import {
   batches,
   criteriaV2,
@@ -140,12 +141,12 @@ describe("Auditoria IA — Regressões ponta a ponta (Gaps 2, 3, 4, 5 e 7)", () 
           {
             message: {
               role: "assistant",
-              content: JSON.stringify({
+              content: JSON.stringify(structuralIntentFixture({
                 objective: "Explicar benefícios do café moído na hora",
                 tone: "Didático",
                 ideas: [{ meaning: "3 benefícios práticos", sourceIds: [] }],
                 semanticQuery: "café moído benefícios didático",
-              }),
+              })),
             },
             finish_reason: "stop",
           },
@@ -372,6 +373,7 @@ describe("Auditoria IA — Regressões ponta a ponta (Gaps 2, 3, 4, 5 e 7)", () 
             // Emula receipt histórico gravado ANTES da introdução dos pinos v2
             if (key === "selection_input" && val && typeof val === "object") {
               const v = val as Record<string, unknown>;
+              v.compactIntentVersion = 1;
               delete v.shortlistBatchVersion;
               delete v.shortlistRankingVersion;
               delete v.familyProfileVersion;

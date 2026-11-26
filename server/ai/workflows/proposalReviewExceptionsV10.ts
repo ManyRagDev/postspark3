@@ -3,6 +3,7 @@ import { arsenalHash } from "@shared/arsenalContent";
 import { positiveEditorialInstructions } from "@shared/compactEditorialContract";
 import { proposalReviewExceptionsResponseV10Schema, proposalReviewExceptionsRecordV10Schema, type ProposalReviewExceptionsRecordV10, type ProposalReviewDurableContextV5 } from "@shared/proposalReviewV10";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
+import { completeDesignFields } from "@shared/completeDesignGeneration";
 import type { ArsenalComposition } from "@shared/designArsenal";
 import { failureFromError, GenerationFailureError } from "@shared/generationFailure";
 import { isFormalReviewFailure } from "@shared/proposalReviewFailure";
@@ -12,11 +13,18 @@ import { knownProviderRejectionReceipt } from "../../_core/llm";
 import { recordGenerationEvent } from "../generationTrace";
 import type { ProposalExecutionInput, ProposalGraphDeps } from "./proposalGraph";
 import type { ReviewCopy } from "./proposalReview";
-import { assertReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
-import { compactAutomaticReviewInstructionsV4 } from "./automaticReviewProtocol";
+import { assertReviewExecutionConfigV10, automaticReviewPromptRevision } from "./reviewExecutionConfigV10";
+import { compactAutomaticReviewInstructionsV4, objectiveArtworkReviewInstructions } from "./automaticReviewProtocol";
 import { buildCompactEditorialContract } from "./compactEditorialContract";
+import { editorialDesignReviewContext } from "./compactProposalCopy";
 import { validatedEditorialContextV9 } from "./editorialContextV9";
 import { reviewEvidenceAnchors, buildReviewEvidenceAliases } from "./reviewEvidence";
+
+const visualLossEvidence = [
+  "Use visible_text_loss quando um caractere ou trecho estiver cortado, encoberto ou ilegível no render. Identifique o trecho afetado e o que o encobre ou corta.",
+  "Linhas curtas, palavras isoladas e texto integralmente legível em mais de uma linha são questões de composição. Registre como aesthetic se forem relevantes.",
+  "Reserve factual_contradiction para uma divergência demonstrável de valor, moeda, quantidade, periodicidade ou associação ao plano. R$ 69/mês, R$ 69 por mês e R$ 69,00 mensais expressam exatamente o mesmo preço. Espaços, separadores, centavos zero e abreviações padrão são equivalentes quando preservam valor e unidade.",
+].join("\n");
 import { buildSourceEvidenceV10, reviewTextUnitsV10 } from "./reviewEvidenceV10";
 import { readReviewOperations, initialReviewContext, executeReviewOperation, readReviewContext } from "./proposalReviewJournal";
 import { decodeReviewExceptionsV10, normalizeReviewExceptionsV10 } from "./proposalReviewExceptionsPolicyV10";
@@ -25,6 +33,8 @@ import { decodeReviewExceptionsV10, normalizeReviewExceptionsV10 } from "./propo
 export async function reviewProposalExceptionsV10(input:ProposalExecutionInput,deps:ProposalGraphDeps,definitions:ComponentDefinitionV1[],compositions:ArsenalComposition[],copy:ReviewCopy,round:"initial"|"recheck"):Promise<ProposalReviewExceptionsRecordV10>{
   const config=assertReviewExecutionConfigV10(input.reviewExecutionConfig);
   if(config.automaticReviewVersion!==4||!config.taskModelConfig)throw new GenerationFailureError("preparation_contract_incompatible","review");
+  const promptRevision=automaticReviewPromptRevision(config);
+  const structuralIntent=Boolean(input.generationIntent?.designRequirements);
   let inputHash=arsenalHash({policyVersion:10,automaticReviewVersion:4,copy,compositions,round});const operationKeys:string[]=[];
   const empty=(limitation:string)=>proposalReviewExceptionsRecordV10Schema.parse({policyVersion:10,automaticReviewVersion:4,round,inputHash,status:"inconclusive",inspectionStatus:"unavailable",expectedSlideCount:copy.slides.length,reviewedSlides:[],findings:[],limitation,operationKeys,rawResponseHash:null,evidenceInventory:[]});
   try{
@@ -50,13 +60,14 @@ export async function reviewProposalExceptionsV10(input:ProposalExecutionInput,d
     scenes.sort((a,b)=>a.slideIndex-b.slideIndex);
     if(scenes.length!==copy.slides.length||scenes.some((s,i)=>s.slideIndex!==i||s.renderer!=="CanvasPostStage"||s.width<256||s.height<256||s.width>4096||s.height>4096||!/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(s.dataUri))||scenes.reduce((n,s)=>n+s.dataUri.length,0)>16_000_000)throw new Error("proposal_review_renderer_unavailable");
     const reviewData={editorial:buildCompactEditorialContract({...input,editorialContext:context},evidenceInventory),
+      ...editorialDesignReviewContext(input),
       caption:copy.caption,hashtags:copy.hashtags,
       targets:units.map(u=>({id:u.id,scope:u.scope,...(u.slideIndex===null?{}:{slideIndex:u.slideIndex}),text:u.text,
         ...(u.visibleAliases.length?{visibleFragments:aliases.promptInventory.filter(a=>u.visibleAliases.includes(a.alias)).map(a=>({id:a.alias,text:a.quote}))}:{})})),
       slides:scenes.map(s=>({id:`slide:${s.slideIndex}`,index:s.slideIndex})),
       ...(input.previousReviewContext?{previous:{findings:input.previousReviewContext.previous.findings,changedTargets:input.previousReviewContext.changedTargets}}:{})};
     const renderHashes=scenes.map(s=>({slideIndex:s.slideIndex,hash:arsenalHash(s.dataUri)}));
-    inputHash=arsenalHash({policyVersion:10,automaticReviewVersion:4,configurationHash:config.configurationHash,identity:{requestId:input.requestId,proposalId:input.proposalId,revision:input.revision??1},reviewData,compositions,round,renderHashes,sourceImageHashes:input.sourceImages?.map(arsenalHash),profile,maxCompletionTokens});
+    inputHash=arsenalHash({policyVersion:10,automaticReviewVersion:4,configurationHash:config.configurationHash,identity:{requestId:input.requestId,proposalId:input.proposalId,revision:input.revision??1},reviewData,compositions,round,renderHashes,sourceImageHashes:input.sourceImages?.map(arsenalHash),profile,maxCompletionTokens,...(structuralIntent?{visualEvidenceVersion:1}:{})});
     const durableContext:ProposalReviewDurableContextV5={version:5,policyVersion:10,requestId:input.requestId,proposalId:input.proposalId,revision:input.revision??1,round,inputHash,configurationHash:config.configurationHash,sourceContextHash:context.hash,renderHashes,anchorInventory:aliases.inventory,aliasMap:aliases.aliasMap,textUnitInventory:units,evidenceInventory,profile};
     const schema=z.toJSONSchema(proposalReviewExceptionsResponseV10Schema);delete schema.$schema;
     const execute=async(key:string,violations?:string[],invalidHash?:string)=>{
@@ -66,7 +77,11 @@ export async function reviewProposalExceptionsV10(input:ProposalExecutionInput,d
         const params:Parameters<typeof deps.generateText>[0]={taskRoute:"post_evaluation",traceLabel:violations?`proposal_review_evidence_repair_${round}`:`proposal_review_${round}`,
           ...generationPinnedTaskModelCallOptions(config.taskModelConfig!),signal,deadlineMs,maxCompletionTokens,structuredValidationOwner:"caller",
           response_format:{type:"json_schema",json_schema:{name:"proposal_review_exceptions_v10",strict:true,schema}},
-          messages:[{role:"system",content:compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,violations,invalidHash)},
+          messages:[{role:"system",content:[
+            compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,violations,invalidHash,promptRevision),
+            ...(structuralIntent ? [visualLossEvidence] : []),
+            ...(config.artworkBriefPolicyVersion === 1 ? [objectiveArtworkReviewInstructions] : []),
+          ].join("\n")},
             {role:"user",content:[{type:"text",text:JSON.stringify(reviewData)},...(input.sourceImages??[]).flatMap((url,index)=>[{type:"text" as const,text:`Imagem fonte original ${index}; não é a arte gerada.`},{type:"image_url" as const,image_url:{url,detail:"high" as const}}]),
               ...scenes.flatMap(s=>[{type:"text" as const,text:`Slide ${s.slideIndex}`},{type:"image_url" as const,image_url:{url:s.dataUri,detail:"high" as const}}])]}]};
         await deps.persistReviewExpectation?.(key,{...durableContext,transport:{model:config.resolvedModel,messagesHash:arsenalHash(params.messages),configurationHash:config.configurationHash}});
@@ -74,10 +89,32 @@ export async function reviewProposalExceptionsV10(input:ProposalExecutionInput,d
         const result=await deps.generateText(params);return {...result,__proposalReview:durableContext};
       }));
     };
+    const cleanNativeUnitIds = new Set<string>();
+    for (const unit of units) {
+      if (unit.scope !== "art" || unit.slideIndex === null || !unit.fieldId) continue;
+      const scene = compositions[unit.slideIndex];
+      const def = definitions[unit.slideIndex];
+      if (!scene || !def) continue;
+      const field = completeDesignFields(def).find(f => f.id === unit.fieldId);
+      const bindingIds = field ? new Set(def.fragment.bindings.filter(b => b.source === field.source).map(b => b.id)) : new Set<string>();
+      const matchingElements = scene.elements.filter(e => e.kind === "text" && bindingIds.has(e.bindingId ?? ""));
+      if (!matchingElements.length) continue;
+      const hasImageOverlap = matchingElements.some(el => {
+        const idx = scene.elements.indexOf(el);
+        return scene.elements.slice(idx + 1).some(above =>
+          (above.kind === "media" || ((above.kind === "rect" || above.kind === "polygon") && (above.opacity ?? 1) > 0.3)) &&
+          above.x < el.x + el.width && above.x + above.width > el.x &&
+          above.y < el.y + el.height && above.y + above.height > el.y
+        );
+      });
+      if (!hasImageOverlap && !scene.issues.some(i => matchingElements.some(el => i.includes(el.id)))) {
+        cleanNativeUnitIds.add(unit.id);
+      }
+    }
     const parse=(result:Awaited<ReturnType<typeof execute>>,key:string)=>{
       const receipt=readReviewContext(result,input,config,key);if(arsenalHash(receipt)!==arsenalHash(durableContext))throw new GenerationFailureError("preparation_contract_incompatible","review");
       const choice=result.choices?.[0];if(/length|max_token|max_output|limit/i.test(`${choice?.finish_reason??""} ${choice?.native_finish_reason??""}`))throw new Error("proposal_review_response_truncated");
-      return normalizeReviewExceptionsV10({response:decodeReviewExceptionsV10(extractTextContent(choice?.message?.content)),units,evidenceInventory,context,aliases,slideCount:copy.slides.length,round,inputHash,operationKeys:[...operationKeys]});
+      return normalizeReviewExceptionsV10({response:decodeReviewExceptionsV10(extractTextContent(choice?.message?.content)),units,evidenceInventory,context,aliases,slideCount:copy.slides.length,round,inputHash,operationKeys:[...operationKeys],structuralIntent,objectiveArtworkReview:config.artworkBriefPolicyVersion === 1,cleanNativeUnitIds});
     };
     const key=`review:${round}:${inputHash}`;const result=await execute(key);
     try{return parse(result,key);}catch(error){

@@ -1,3 +1,6 @@
+import { TemporalMediaControls } from "./TemporalMediaControls";
+import { canvasTemporalSourceSchema } from "@shared/canvasTemporalMedia";
+import { videoPoster } from "../lib/videoPoster";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -44,6 +47,8 @@ export default function MediaSlotPanel({
   onRetainPreview,
   fixedTargetId,
   workspaceId,
+  allowVideoUpload,
+  onSendToMare,
   allowAiGeneration = true,
   addImage,
 }: {
@@ -53,13 +58,16 @@ export default function MediaSlotPanel({
   retainedPreview?: string;
   onRetainPreview?: (url: string | undefined) => void;
   fixedTargetId?: string;
+  allowVideoUpload?: boolean;
+  onSendToMare?: (post: CanvasPostModel, target: import("../lib/mediaSlots").MediaTarget) => Promise<void>;
   workspaceId?: string;
   allowAiGeneration?: boolean;
   addImage?: (
     url: string,
     width?: number,
     height?: number,
-    slideId?: string
+    slideId?: string,
+    temporalSource?: import("@shared/canvasTemporalMedia").CanvasTemporalSource
   ) => boolean | void | Promise<boolean | void>;
 }) {
   const latest = useRef({ post, onUpdate, onRetainPreview, addImage });
@@ -233,6 +241,26 @@ export default function MediaSlotPanel({
       if (mounted.current) setBusy(false);
     }
   };
+  const selectedSource = post.slides[post.currentSlideIndex].temporalMedia?.[selected.id];
+  const sendVideo = async (file?: File) => {
+    if (!file || !allowVideoUpload || locked || inFlight.current) return;
+    const target = capture();
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      const { uploadStudioVideo } = await import("@/lib/studioVideoUpload");
+      const {assetId} = await uploadStudioVideo(file,workspaceId);
+      if (!mounted.current || latest.current.post.id!==target.postId) return;
+      const source = canvasTemporalSourceSchema.parse({kind:"video",assetId});
+      if (addImage) {
+        const poster = await videoPoster(file);
+        await latest.current.addImage?.(poster.url,poster.width,poster.height,target.slideId,source);
+      } else if (latest.current.onUpdate(target,{kind:"temporal",source}) === false) {
+        throw Error("O destino foi alterado durante o envio.");
+      }
+    } catch (e) { toast.error((e as Error).message); }
+    finally { inFlight.current=false; if(mounted.current)setBusy(false); }
+  };
   const sendFile = async (file?: File) => {
     if (!file || locked || inFlight.current) return;
     if (
@@ -262,6 +290,19 @@ export default function MediaSlotPanel({
       className="space-y-3 rounded-xl border border-white/10 bg-white/4 p-3.5 text-white"
       data-media-slot-panel
     >
+      {allowVideoUpload && <label className={button}>Adicionar vídeo
+        <input type="file" className="sr-only" aria-label="Adicionar vídeo" accept="video/mp4,video/quicktime,video/webm"
+          disabled={locked || busy} onChange={e=>{const file=e.target.files?.[0]; e.target.value=""; void sendVideo(file);}} />
+      </label>}
+      {!addImage && selectedSource && <TemporalMediaControls key={key + JSON.stringify(selectedSource)}
+        source={selectedSource} disabled={locked || busy} onApply={source=>onUpdate(capture(),{kind:"temporal",source})} />}
+      {!addImage && selectedSource && <div className="flex gap-2">
+        <button type="button" className={button} disabled={locked || busy} onClick={()=>onUpdate(capture(),{kind:"temporal",source:{...selectedSource,muted:!selectedSource.muted}})}>
+          {selectedSource.muted ? "Ativar áudio" : "Silenciar vídeo"}</button>
+        <button type="button" className={button} disabled={locked || busy} onClick={()=>onUpdate(capture(),{kind:"remove"})}>Remover vídeo</button>
+      </div>}
+      {!addImage && onSendToMare && <button type="button" className={button} disabled={locked || busy}
+        onClick={()=>void onSendToMare(post,capture()).catch(e=>toast.error(e.message))}>Enviar ao Maré Studio</button>}
       {locked && (
         <p role="status" className="text-xs text-amber-200">
           Desbloqueie este destino em Camadas para alterar a imagem.

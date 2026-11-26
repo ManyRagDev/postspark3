@@ -639,6 +639,23 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
     expect(emptyDeps.generateText).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the selected project's extracted colors throughout a catalog carousel and isolates the next project", async () => {
+    const definition = completeDesignTestDefinitions()[0];
+    const { identityFixture } = await import("@shared/visualIdentity.fixture");
+    const { freezeGenerationProject } = await import("@shared/projectEditorial");
+    const { markExtractedIdentity } = await import("../../visualIdentity");
+    const identity = markExtractedIdentity(identityFixture({ background: "#183454", text: "#FFFFFF", accent: "#ED8056" }), [31, 32]);
+    const projectSnapshot = freezeGenerationProject({ name: "Marca", niche: "Teste", compiledDocument: "", visualIdentity: identity });
+    const definitions = [definition, definition];
+    const result = await executeProposalWorkflow(workflowInput(definition, { projectSnapshot, selectedDefinitions: definitions, postMode: "carousel" }),
+      textDeps(copyForSlides(definitions, ["Café artesanal", "Café da manhã"])));
+    expect(result.status, result.errorReason).toBe("ready");
+    const bundle = completeDesignVariationV1Schema.parse(result.bundle);
+    expect(bundle.slides.map(s => s.composition.artboard.background)).toEqual(["#183454", "#183454"]);
+    const other = await executeProposalWorkflow(workflowInput(definition), textDeps(copyFor(definition)));
+    expect(other.bundle?.slides[0].composition.artboard.background).toBe(definition.fragment.artboard.background);
+  });
+
   it("round-trips ready through the canonical contract and defaults omitted preferences", async () => {
     const definition = completeDesignTestDefinitions()[0];
     const result = await executeProposalWorkflow(

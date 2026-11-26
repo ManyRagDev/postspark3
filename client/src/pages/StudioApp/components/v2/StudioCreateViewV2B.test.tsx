@@ -5,19 +5,18 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import StudioCreateViewV2B from "./StudioCreateViewV2B";
 
-vi.mock("@/lib/trpc",()=>({trpc:{catalog:{acervo82Directory:{useQuery:()=>({data:{families:[]}})}}}}));
+vi.mock("@/lib/trpc",()=>({trpc:{useUtils:()=>({}),catalog:{acervo82Directory:{useQuery:()=>({data:{families:[]}})}}}}));
 vi.mock("@/lib/fonts", () => ({ loadFontByName: vi.fn() }));
 vi.mock("@/components/UserTopMenu", () => ({ default: () => null }));
 vi.mock("@/components/SparkLogo", () => ({ default: () => null }));
-vi.mock("./ProjectSelectorDropdown", () => ({ default: () => null }));
-vi.mock("./BrandCaptureModal",()=>({default:({url}:any)=><div data-testid="brand-capture">{url}</div>}));
+
 vi.mock("./ProjectCalibrationModal", () => ({ default: () => null }));
-vi.mock("./shared", () => ({
+vi.mock("./shared", async importOriginal => ({
   STUDIO: { bg: "#000", ink: "#fff", ink40: "#888", hairline: "#444", urlSignal: "#fff" },
   MONO: {},
   URL_REGEX: /^https?:\/\//,
   SPECIMEN_FONTS: [],
-  FormatSelector: () => null,
+  FormatSelector: (await importOriginal<typeof import("./shared")>()).FormatSelector,
   buildSpecimens: () => [],
   SpecimenCard: () => null,
   ProductionOverlay: () => null,
@@ -39,12 +38,62 @@ describe("StudioCreateViewV2B draft control", () => {
     container.remove();
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
+  it.each([1280,375])("abre o Maré geral em uma nova aba e mantém o briefing em %dpx",width=>{
+    const original=Object.getOwnPropertyDescriptor(window,"innerWidth");
+    Object.defineProperty(window,"innerWidth",{configurable:true,value:width});
+    const props={onSubmit:vi.fn(),onDeclareFamily:vi.fn(),declaredFamilyId:null,isLoading:false,initialPrompt:"Rascunho do carrossel"};
+    try{
+      act(()=>root.render(<StudioCreateViewV2B {...props} />));
+      expect(container.querySelector('a[href="/mare/"], a[href="/previa-mare/"]')).toBeNull();
+      act(()=>root.render(<StudioCreateViewV2B {...props} mareEntry="local-preview" />));
+      expect(container.querySelector('a[href="/previa-mare/"]')?.textContent).toContain("prévia local");
+      act(()=>root.render(<StudioCreateViewV2B {...props} mareEntry />));
+      const link=container.querySelector<HTMLAnchorElement>('a[href="/mare/"]');
+      expect(link?.target).toBe("_blank");
+      expect(link?.rel).toContain("noopener");
+      expect(link?.getAttribute("aria-label")).toContain("nova aba");
+      expect(link?.textContent).toContain("↗");
+      expect(container.querySelector("textarea")?.value).toBe(props.initialPrompt);
+      expect(props.onSubmit).not.toHaveBeenCalled();
+    } finally{if(original)Object.defineProperty(window,"innerWidth",original);}
+  });
+  it.each([1280, 375])("uses the saved artwork's own format in the briefing at %dpx", width => {
+    const originalWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    try {
+      const onSubmit = vi.fn(), onRemoveProjectArtwork = vi.fn();
+      const projectArtwork = {
+        projectId: "22222222-2222-4222-8222-222222222222",
+        postId: 31, name: "Cursor aceso", aspectRatio: "9:16" as const, slideCount: 1,
+      };
+      act(() => root.render(<StudioCreateViewV2B
+        onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()}
+        initialPrompt="Apresente o editor de posts" initialMode="carousel"
+        proposalAspectRatio="4:5" projectArtwork={projectArtwork} onRemoveProjectArtwork={onRemoveProjectArtwork}
+      />));
+      expect(container.textContent).toContain("Post único · 9:16");
+      expect(container.textContent).toContain("Cursor aceso");
+      expect(onSubmit).not.toHaveBeenCalled();
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Revisar briefing"]')!.click());
+      expect(onSubmit).toHaveBeenCalledOnce();
+      expect(onSubmit).toHaveBeenCalledWith("Apresente o editor de posts", "static", expect.objectContaining({
+        fixedDesign: { kind: "project", id: projectArtwork.projectId, postId: 31 },
+        aspectRatio: "9:16",
+      }));
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Remover design do briefing"]')!.click());
+      expect(onRemoveProjectArtwork).toHaveBeenCalledOnce();
+    } finally {
+      if (originalWidth) Object.defineProperty(window, "innerWidth", originalWidth);
+    }
+  });
   it("keeps website extraction and Replicar Design out of the Solo creation menu", () => {
     const onSubmit = vi.fn();
     act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null}
       onDeclareFamily={vi.fn()} initialPrompt="https://example.invalid/artigo" allowProfessionalTools={false} />));
     expect(container.textContent).toContain("A extração de URL está disponível a partir do PRO.");
     expect(container.textContent).not.toContain("Replicar Design");
+    act(() => container.querySelector<HTMLButtonElement>("[data-project-active]")!.click());
+    expect(container.textContent).not.toContain("Importar marca do site");
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')?.disabled).toBe(true);
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -149,13 +198,28 @@ describe("StudioCreateViewV2B draft control", () => {
     act(() => root.render(<StudioCreateViewV2B {...props} hasSavedDraft={false} initialPrompt="" />));
     expect(container.querySelector('button[aria-label="Apagar rascunho salvo e limpar o prompt"]')).toBeNull();
   });
-  it("routes a bare URL to free brand review and keeps page-as-content explicit",()=>{
-    const onSubmit=vi.fn();act(()=>root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={()=>{}} initialPrompt="https://example.com/"/>));
-    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Capturar marca gratuitamente"]')!.click());
-    expect(container.querySelector('[data-testid=brand-capture]')?.textContent).toBe("https://example.com/");expect(onSubmit).not.toHaveBeenCalled();
-    act(()=>container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click());
-    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
-    expect(onSubmit).toHaveBeenCalledWith("https://example.com/","static",expect.objectContaining({platform:"instagram"}));
+  it.each([1280, 375])("uses a URL for content and opens a separate brand import from projects at %dpx", width => {
+    const originalWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    try {
+      const onSubmit = vi.fn();
+      const article = "https://example.com/materia";
+      act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt={article} />));
+      expect(container.textContent).toContain("Fonte de conteúdo do post");
+      act(() => container.querySelector<HTMLButtonElement>("[data-project-active]")!.click());
+      const action = Array.from(container.querySelectorAll("button")).find(button => button.textContent?.includes("Importar marca do site"))!;
+      act(() => action.click());
+      const dialog = document.querySelector('[role="dialog"]')!;
+      expect(dialog.querySelector("input")?.value).toBe("");
+      expect(onSubmit).not.toHaveBeenCalled();
+      act(() => dialog.querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')!.click());
+      expect(container.querySelector("textarea")?.value).toBe(article);
+      const label = width < 768 ? "Gerar posts" : "Criar posts";
+      act(() => container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click());
+      expect(onSubmit).toHaveBeenCalledWith(article, "static", expect.objectContaining({ platform: "instagram" }));
+    } finally {
+      if (originalWidth) Object.defineProperty(window, "innerWidth", originalWidth);
+    }
   });
   it("treats a URL followed by instructions as content and exposes all four platforms",()=>{
     const onSubmit=vi.fn();act(()=>root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={()=>{}} initialPrompt="https://example.com/ Compare os critérios"/>));
@@ -311,18 +375,6 @@ describe("StudioCreateViewV2B draft control", () => {
       expect(onSubmit).toHaveBeenLastCalledWith(script, "carousel", expect.not.objectContaining({ scriptMode: "preserve" }));
       act(() => root.render(<StudioCreateViewV2B {...props} isLoading />));
       expect(container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!.disabled).toBe(true);
-    });
-
-    it("preserves free URL capture and distinguishes explicitly using the page as content", () => {
-      const onSubmit = vi.fn();
-      act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt="https://example.com/" />));
-      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Capturar marca gratuitamente"]')!.click());
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(container.querySelector('[data-testid="brand-capture"]')?.textContent).toBe("https://example.com/");
-      act(() => container.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
-      expect(container.querySelector('[data-mobile-tone="url"]')).not.toBeNull();
-      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!.click());
-      expect(onSubmit).toHaveBeenCalledWith("https://example.com/", "static", expect.objectContaining({ platform: "instagram" }));
     });
 
     it("keeps the arrow disabled for an empty briefing", () => {

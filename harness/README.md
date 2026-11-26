@@ -1,30 +1,14 @@
 # Harness de medição
 
-Oráculo das etapas **E2 a E5** de `docs/plano-implementacao.md`. Existe para que
-"o layout está bom" deixe de ser opinião e vire comando com código de saída.
+O harness mede texto e layout com perfis reproduzíveis. Seus perfis E2, E3 e E5 preservam critérios de verificação do plano antigo. Para a jornada atual de geração, use as evidências descritas no [mapa do motor](../docs/motor-integracao.md).
 
-```bash
-pnpm harness                                  # perfil baseline (estado atual)
-pnpm harness --profile e2                     # portão da prova de encaixe
-pnpm harness --profile e3                     # encaixe em produção
-pnpm harness --profile e5                     # cor garantida
-pnpm harness --family editorial-poster        # uma família
-pnpm harness --aspect 1:1,5:6,9:16            # múltiplos formatos
-pnpm harness --json relatorio.json            # relatório completo por caso
-pnpm harness:corpus                           # puxa a âncora real do Supabase
+```sh
+pnpm harness
+pnpm harness --profile e3 --family editorial-poster
+pnpm harness --aspect 1:1,4:5,9:16 --json relatorio.json
 ```
 
-Sai com **0 = aprovado**, **1 = reprovado**.
-
-## Regra de ouro
-
-> Uma etapa NUNCA está concluída sem `pnpm harness --profile <etapa>` verde.
-> Relatório vazio, casos pulados ou fonte ausente **reprovam** — não aprovam
-> com ressalva.
-
-Isso é deliberado. O modo de falha que este harness previne é o relatório verde
-e falso: medir com fonte substituta, medir zero casos, ou confundir "não medido"
-com "zero por cento".
+O comando retorna 0 quando o conjunto passa pelo perfil e 1 quando reprova. Uma fonte ausente impede a verificação.
 
 ## O que ele mede
 
@@ -57,35 +41,9 @@ harness/
     files/           .ttf variáveis
 ```
 
-## Fontes
+## Fontes e corpus
 
-O harness **não substitui fonte ausente**. Medir Playfair com Inter produziria
-um relatório verde e mentiroso.
-
-Presentes: `fraunces.ttf`, `inter.ttf`, `space-grotesk.ttf` (copiadas de
-`postspark-next/packages/fonts/files/`).
-
-Faltam, e precisam ser baixadas como **`.ttf` variável** (não estático) para
-`harness/fonts/files/`: `archivo.ttf`, `bricolage-grotesque.ttf`,
-`playfair-display.ttf`, `anton.ttf`, `archivo-black.ttf`, `space-mono.ttf`,
-`lora.ttf`.
-
-As três primeiras são as fontes de destino (D14). As demais são de linha de
-base — as que as 12 famílias declaram hoje, necessárias para provar o critério
-da E3 ("13 de 14 cortados vira 0 de 14" exige medir o antes com as fontes do
-antes).
-
-## Corpus
-
-Sintético por construção, e isso é intencional. `postspark.posts` tem 23
-registros: mín. 25, mediana 36, p90 46, máx. 51 caracteres, **zero acima de 60**.
-A ausência de cauda é estrutural — `applyDeterministicCopyGuards` corta em 60
-(`shared/validation.ts:69`), então o corpus real foi amputado pela guarda que a
-arquitetura remove.
-
-O harness varre de 20 a 90 caracteres em degraus de 5, acrescenta casos
-adversariais (palavras longas, token sem espaço) e usa os reais como âncora de
-sanidade.
+O [registro de fontes](./fonts/registry.ts) determina os arquivos requeridos. O harness mistura casos sintéticos e, quando disponível, uma amostra local em `harness/corpus.real.json`. A amostra é privada. `pnpm harness:corpus` faz uma leitura do Supabase configurado para regenerá-la.
 
 ## Limitação conhecida
 

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { ENV } from "./env";
+import { applySessionPlan } from "./sessionPlanAccess";
 import { enrollStartPilot, startPilotMemberLimit } from "../startPilot";
 import { registerAgencyRoutes } from "../agency";
 import { confirmSparkRefill } from "../billing";
@@ -26,7 +27,7 @@ export function registerMembershipRoutes(app: Express) {
     ? createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, { auth: { persistSession: false } })
     : null;
 
-  function withIdentity(handler: (req: Request, userId: string) => Promise<unknown>) {
+  function withIdentity(handler: (req: Request, userId: string) => Promise<unknown>, changesMembership = false) {
     return async (req: Request, res: Response) => {
       res.set("Cache-Control", "no-store");
       const token = /^Bearer (\S+)$/.exec(req.get("authorization") ?? "")?.[1];
@@ -39,6 +40,9 @@ export function registerMembershipRoutes(app: Express) {
         if (error || !user) throw new MembershipError(401, "Entre novamente para continuar.");
         if (!user.email || !user.email_confirmed_at)
           throw new MembershipError(403, "Confirme seu e-mail para assinar.");
+        const plan = await applySessionPlan(req, token, user);
+        if (plan && changesMembership)
+          throw new MembershipError(403, "Volte ao perfil real para alterar a assinatura ou a cobrança.");
         res.json(await handler(req, user.id));
       } catch (error) {
         if (error instanceof MembershipError) {
@@ -68,17 +72,17 @@ export function registerMembershipRoutes(app: Express) {
     const { cycle, plan } = cycleInput.parse(req.body);
     return plan ? startMembershipCheckout(userId, cycle, membershipOrigin(req), plan)
       : startMembershipCheckout(userId, cycle, membershipOrigin(req));
-  }));
+  }, true));
   app.post("/api/membership/confirm", withIdentity((req, userId) =>
-    confirmMembershipCheckout(userId, confirmationInput.parse(req.body).sessionId)));
+    confirmMembershipCheckout(userId, confirmationInput.parse(req.body).sessionId), true));
   app.post("/api/membership/topup-confirm", withIdentity((req, userId) =>
-    confirmSparkRefill(userId, confirmationInput.parse(req.body).sessionId)));
+    confirmSparkRefill(userId, confirmationInput.parse(req.body).sessionId), true));
   app.post("/api/membership/portal", withIdentity((req, userId) =>
-    createMembershipPortal(userId, membershipOrigin(req))));
+    createMembershipPortal(userId, membershipOrigin(req)), true));
   app.post("/api/membership/start", withIdentity(async (_req, userId) => {
     if (!startPilotMemberLimit()) throw new MembershipError(404, "O START ainda está indisponível.");
     const result = await enrollStartPilot(userId);
     if (!result.enrolled) throw new MembershipError(409, "O START está indisponível para esta conta.");
     return result;
-  }));
+  }, true));
 }

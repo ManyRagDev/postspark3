@@ -67,6 +67,21 @@ describe("distinct proposal selection v1", () => {
     expect(reserves[0][0].componentHashes).toEqual([eligible[0].sourceHash]);
   });
 
+  it("offers each compatible reserve to a missing slot under the trio policy", () => {
+    const eligible = [repertoire("a", "shared-a"), repertoire("b", "shared-b"), repertoire("c", "shared-c")];
+    const request = {
+      ...input(eligible, { a: 4, b: 3, c: 2 }),
+      neutrality: { ...policy, creativeFlexibility: 1 as const, deliveryRecoveryVersion: 3 as const },
+    };
+    const plan = buildHeuristicGenerationPlan(request);
+    expect(new Set(families(plan, eligible))).toEqual(new Set(["a", "b", "c"]));
+    const reserves = deliveryProposalReserves(request, [eligible[0].defaultOffer, null, null]);
+    expect(reserves.map(slot => slot.map(candidate => candidate.family))).toEqual([
+      ["b", "c"], ["a", "b", "c"], ["a", "b", "c"],
+    ]);
+    expect(reserves[2].every(candidate => candidate.plan.slot === 2)).toBe(true);
+  });
+
   it("delivers only one proposal when several sources have the same design identity", () => {
     const eligible = [repertoire("only", "old"), repertoire("only", "new")];
     const request = { ...input(eligible, { only: 4 }), neutrality: policy };

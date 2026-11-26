@@ -57,3 +57,11 @@ export const DECISION_TRACE_STAGES = [
 /** The database already permits replay-safe local operations ending in :candidate. */
 export const REVIEW_OBSERVATION_OPERATION =
   /^review_observation:(initial|recheck):[a-f0-9]{64}:candidate$/;
+
+export function isReplaySafeProposalOperation(operationKey: string): boolean {
+  return (
+    operationKey === "candidate" ||
+    operationKey.endsWith(":candidate") ||
+    REVIEW_OBSERVATION_OPERATION.test(operationKey)
+  );
+}

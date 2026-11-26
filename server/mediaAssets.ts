@@ -1,3 +1,4 @@
+import { validateTemporalMedia } from "./mareDocument";
 import { createClient } from "@supabase/supabase-js";
 import type { Express } from "express";
 import { ENV } from "./_core/env";
@@ -82,6 +83,7 @@ export async function normalizeCanvasMediaPayload<T extends Record<string, unkno
   signal?: AbortSignal
 ): Promise<T> {
   if (!payload.canvasModel || typeof payload.canvasModel !== "object") return payload;
+  validateTemporalMedia(payload.canvasModel);
   const cache = new Map<string, Promise<string>>();
   let visited = 0;
   const imageKeys = new Set(["url", "imageUrl", "bgImage", "logoUrl", "originalUrl", "inputUrl", "resultUrl"]);

@@ -4,7 +4,7 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
-import { commitSparkReservation, refundSparkReservation, reserveSparks } from "./billing";
+import { rpcCall, commitSparkReservation, refundSparkReservation, reserveSparks } from "./billing";
 import { generateCompleteDesignVariations } from "./ai/completeDesignGeneration";
 import { retrieveCompleteDesignCards } from "./designCatalog/completeDesignStore";
 vi.mock("./designCatalog/componentStore",()=>({retrieveComponentCardsForGeneration:vi.fn().mockResolvedValue([]),hydrateComponents:vi.fn()}));
@@ -107,12 +107,17 @@ vi.mock("./db", () => ({
   getUserByOpenId: vi.fn(),
 }));
 
-// Mock billing transacional: reserva real, commit/refund observáveis.
+// Exercise the router against the billing service boundary. Its PostgreSQL procedures run in studioPortfolio.postgres.test.ts.
 vi.mock("./billing", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./billing")>();
   return {
     ...actual,
+    rpcCall: vi.fn(async (action: string) => {
+      if (action === "claim_studio_image_dispatch") return { data: true, error: null };
+      throw new Error("Unexpected procedure: " + action);
+    }),
     getBillingProfile: vi.fn().mockResolvedValue({ id: "profile-1", email: "test@example.com", sparks: 100, plan: "PRO" }),
+    getRealBillingProfile: vi.fn().mockResolvedValue({ id: "profile-1", email: "test@example.com", sparks: 100, plan: "PRO" }),
     reserveSparks: vi.fn().mockResolvedValue({ reservationId: "res-1" }),
     commitSparkReservation: vi.fn().mockResolvedValue(true),
     refundSparkReservation: vi.fn().mockResolvedValue(true),
@@ -163,6 +168,7 @@ describe("post.generateImage", () => {
     vi.mocked(generateImage).mockRejectedValueOnce(new Error("image provider unavailable"));
     await expect(caller.post.generateImage({prompt:"Scene",idempotencyKey:"image-click-1"})).rejects.toThrow("image provider unavailable");
     expect(reserveSparks).toHaveBeenCalledWith(expect.anything(),25,"image-click-1","Geração de imagem IA");
+    expect(rpcCall).toHaveBeenCalledWith("claim_studio_image_dispatch", {p_reservation_id:"res-1"});
     expect(commitSparkReservation).not.toHaveBeenCalled();
     expect(refundSparkReservation).toHaveBeenCalledTimes(1);
   });

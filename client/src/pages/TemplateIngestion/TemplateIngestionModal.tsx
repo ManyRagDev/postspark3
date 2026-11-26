@@ -8,11 +8,25 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { ProjectArtworkDialog, type SavedProjectArtwork } from "@/pages/StudioApp/components/v2/ProjectArtworkDialog";
+import type { ProjectArtworkSelection } from "@/pages/StudioApp/lib/briefDraftStorage";
+import { ExtractionProjectSelect } from "./ExtractionProjectSelect";
 import { DesignExtractionReviewModal } from "./DesignExtractionReviewModal";
-import type { DesignExtraction } from "@shared/designExtraction";
+import {
+  ARTWORK_PROPOSAL_COUNT,
+  CREATIVE_DESIGN_EXTRACTION_VERSION,
+  DEFAULT_DESIGN_EXTRACTION_MODEL,
+  designExtractionModelLabels,
+  designExtractionModelSchema,
+  type DesignExtractionModel,
+  type DesignExtractionResult,
+} from "@shared/designExtraction";
+import type { CanvasPostModel } from "@/pages/CanvasLab/components/types";
+import type { CanvasSaveInputMeta } from "@/pages/CanvasLab/lib/saveAdapter";
 import {
   Upload,
   Globe,
@@ -28,6 +42,9 @@ interface TemplateIngestionModalProps {
   onClose: () => void;
   projectId?: string | null;
   onProjectCreatedOrUpdated?: (projectId: string) => void;
+  onUseSavedArtwork?: (artwork: ProjectArtworkSelection) => void;
+  onOpenSavedArtwork?: (post: SavedProjectArtwork) => void;
+  onOpenEditor?: (post: CanvasPostModel, input: CanvasSaveInputMeta) => void;
 }
 
 export function TemplateIngestionModal({
@@ -35,36 +52,47 @@ export function TemplateIngestionModal({
   onClose,
   projectId: initialProjectId,
   onProjectCreatedOrUpdated,
+  onOpenEditor,
+  onUseSavedArtwork,
+  onOpenSavedArtwork,
 }: TemplateIngestionModalProps) {
   const [activeTab, setActiveTab] = useState<"url" | "upload">("url");
   const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState<string | null>(null);
   const [targetUrl, setTargetUrl] = useState("");
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+  const [model, setModel] = useState<DesignExtractionModel>(DEFAULT_DESIGN_EXTRACTION_MODEL);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
 
   // Armazena a extração resultante para a tela de revisão e aprovação das intenções
   const [reviewData, setReviewData] = useState<{
-    extraction: DesignExtraction;
+    extraction: DesignExtractionResult;
     previewDataUrl: string;
     sourceUrl: string | null;
-    projectId: string;
+    model: DesignExtractionModel;
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const projectsQuery = trpc.brandProjects.list.useQuery(undefined, { enabled: isOpen });
+  const [createdProject, setCreatedProject] = useState<{ id: string; name: string }>();
+  const [destination, setDestination] = useState("");
+  const [savedModels, setSavedModels] = useState<{ project: { id: string; name: string }; postIds: number[] }>();
+  const projects: Array<{ id: string; name: string }> = projectsQuery.data ?? [];
+  const destinations = createdProject && !projects.some(project => project.id === createdProject.id)
+    ? [...projects, createdProject] : projects;
+  // With several projects, the capture belongs to the project explicitly chosen for this reference.
+  const target = destination || (projectsQuery.data && destinations.length <= 1 ? destinations[0]?.id ?? "new" : "");
+  const selectedProject = destinations.find(project => project.id === target);
+
+  const isCaptureFormOpen = isOpen && !reviewData && !savedModels;
 
   // tRPC Mutations
-  const extractDesignMutation = trpc.templateIngestion?.extractDesign?.useMutation
-    ? trpc.templateIngestion.extractDesign.useMutation()
-    : { mutateAsync: async (_args: any) => ({ extraction: {} as any, previewDataUrl: "", sourceUrl: null, fontsDetected: [] as string[] }) };
-
-  const upsertProjectMutation = trpc.brandProjects?.upsert?.useMutation
-    ? trpc.brandProjects.upsert.useMutation()
-    : { mutateAsync: async (_args: any) => ({ success: true, project: { id: "mock-proj" } }) };
+  const extractDesignMutation = trpc.templateIngestion.extractDesign.useMutation();
+  const upsertProjectMutation = trpc.brandProjects.upsert.useMutation();
 
   // Suporte a Ctrl+V para colar prints diretamente da área de transferência
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isCaptureFormOpen || isProcessing) return;
 
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -90,7 +118,7 @@ export function TemplateIngestionModal({
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [isOpen]);
+  }, [isCaptureFormOpen, isProcessing]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -134,9 +162,11 @@ export function TemplateIngestionModal({
 
   // Garante a existência de um projeto: se o usuário estiver "Sem projeto", cria um automaticamente
   const ensureProjectId = async (inferredName: string): Promise<string> => {
-    if (initialProjectId && initialProjectId.trim().length > 0) {
-      return initialProjectId;
+    if (selectedProject) {
+      setDestination(selectedProject.id);
+      return selectedProject.id;
     }
+    if (target !== "new") throw new Error("Escolha o projeto de destino.");
 
     // Criar projeto automaticamente
     const created = await upsertProjectMutation.mutateAsync({
@@ -157,7 +187,8 @@ export function TemplateIngestionModal({
     });
 
     const newId = created.project.id;
-    onProjectCreatedOrUpdated?.(newId);
+    setCreatedProject({ id: newId, name: created.project.name });
+    setDestination(newId);
     return newId;
   };
 
@@ -207,6 +238,8 @@ export function TemplateIngestionModal({
           projectId: targetProjectId,
           url: formattedUrl,
           viewport,
+          model,
+          version: CREATIVE_DESIGN_EXTRACTION_VERSION,
         });
 
         clearInterval(stepInterval);
@@ -214,13 +247,15 @@ export function TemplateIngestionModal({
           extraction: result.extraction,
           previewDataUrl: result.previewDataUrl,
           sourceUrl: result.sourceUrl,
-          projectId: targetProjectId,
+          model,
         });
       } else {
         const result = await extractDesignMutation.mutateAsync({
           projectId: targetProjectId,
           imageDataUrl: uploadedImageDataUrl!,
           viewport: "desktop",
+          model,
+          version: CREATIVE_DESIGN_EXTRACTION_VERSION,
         });
 
         clearInterval(stepInterval);
@@ -228,7 +263,7 @@ export function TemplateIngestionModal({
           extraction: result.extraction,
           previewDataUrl: result.previewDataUrl,
           sourceUrl: null,
-          projectId: targetProjectId,
+          model,
         });
       }
     } catch (error) {
@@ -244,13 +279,14 @@ export function TemplateIngestionModal({
     setUploadedImageDataUrl(null);
     setTargetUrl("");
     setIsProcessing(false);
+    setSavedModels(undefined);
     onClose();
   };
 
   return (
     <>
-      <Dialog open={isOpen && !reviewData} onOpenChange={open => !open && handleCloseAll()}>
-        <DialogContent className="max-w-[580px] sm:max-w-[580px] p-0 gap-0 bg-[#0e1117] border-white/10 text-white overflow-hidden shadow-2xl">
+      <Dialog open={isCaptureFormOpen} onOpenChange={open => !open && handleCloseAll()}>
+        <DialogContent className="max-w-[580px] sm:max-w-[580px] max-h-[calc(100dvh-2rem)] p-0 gap-0 bg-[#0e1117] border-white/10 text-white overflow-y-auto shadow-2xl">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-white/10 bg-[#131720]">
             <div className="flex items-center gap-2.5">
               <div className="size-8 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
@@ -258,21 +294,28 @@ export function TemplateIngestionModal({
               </div>
               <div>
                 <DialogTitle className="text-base font-semibold text-white">
-                  Replicar Design & Extrair DNA
+                  Replicar Design
                 </DialogTitle>
                 <DialogDescription className="text-xs text-white/50 mt-0.5">
-                  Informe uma URL ou print: a IA absorve a identidade estética e cria posts prontos com propósitos editoriais.
+                  Use um site ou uma imagem como referência para criar {ARTWORK_PROPOSAL_COUNT} modelos editáveis para o projeto.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
           <div className="p-6 space-y-5">
+            <ExtractionProjectSelect
+              value={target} projects={destinations} activeId={initialProjectId} onChange={setDestination}
+              disabled={isProcessing || projectsQuery.isPending} allowNew
+            />
+            {projectsQuery.isError && <p role="alert" className="text-xs text-amber-200">
+              Não foi possível carregar seus projetos. <button type="button" className="underline" onClick={() => void projectsQuery.refetch()}>Tentar novamente</button>
+            </p>}
             <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)}>
               <TabsList className="grid grid-cols-2 bg-black/40 border border-white/10 h-10 p-1">
                 <TabsTrigger value="url" className="text-xs data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                   <Globe className="size-3.5 mr-1.5" />
-                  Site ou página
+                  Site de referência
                 </TabsTrigger>
                 <TabsTrigger value="upload" className="text-xs data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                   <Upload className="size-3.5 mr-1.5" />
@@ -328,9 +371,6 @@ export function TemplateIngestionModal({
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-[11px] text-white/50 leading-relaxed">
-                    Vamos identificar as cores, as fontes e o estilo do site para criar de 3 a 5 propostas de posts editáveis.
-                  </div>
                 </div>
               </TabsContent>
 
@@ -384,20 +424,42 @@ export function TemplateIngestionModal({
               </TabsContent>
             </Tabs>
 
+            <div className="space-y-1.5">
+              <label htmlFor="design-extraction-model" className="text-xs font-medium text-white/70">
+                Modelo de IA
+              </label>
+              <Select
+                value={model}
+                onValueChange={value => setModel(value as DesignExtractionModel)}
+                disabled={isProcessing}
+              >
+                <SelectTrigger id="design-extraction-model" className="w-full border-white/15 bg-black/40 text-xs text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-white/15 bg-[#131720] text-white">
+                  {designExtractionModelSchema.options.map(option => (
+                    <SelectItem key={option} value={option} className="text-xs focus:bg-white/10 focus:text-white">
+                      {designExtractionModelLabels[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Progresso de análise */}
             {isProcessing && (
               <div className="p-4 rounded-xl border border-orange-500/30 bg-orange-500/10 space-y-2 animate-in fade-in duration-300">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-orange-400">
                     <Loader2 className="size-3.5 animate-spin" />
-                    <span>Absorvendo DNA e Desdobrando Intenções...</span>
+                    <span>Criando modelos a partir da referência…</span>
                   </div>
                   <span className="text-[10px] font-mono text-orange-400/80">Etapa {processingStep}/3</span>
                 </div>
                 <div className="text-[11px] text-white/70">
                   {processingStep === 1 && (activeTab === "url" ? "Capturando screenshot e inspecionando CSS real..." : "Processando imagem da referência...")}
                   {processingStep === 2 && "Identificando movimento de design, paleta funcional e fontes..."}
-                  {processingStep === 3 && "Curando conteúdo e compondo posts de rede social..."}
+                  {processingStep === 3 && `Criando ${ARTWORK_PROPOSAL_COUNT} modelos editáveis…`}
                 </div>
               </div>
             )}
@@ -406,18 +468,18 @@ export function TemplateIngestionModal({
             <div className="pt-2">
               <Button
                 onClick={handleStartIngestion}
-                disabled={isProcessing || (activeTab === "upload" && !uploadedImageDataUrl) || (activeTab === "url" && !targetUrl.trim())}
+                disabled={isProcessing || (!selectedProject && target !== "new") || (activeTab === "upload" && !uploadedImageDataUrl) || (activeTab === "url" && !targetUrl.trim())}
                 className="w-full h-10 bg-orange-600 hover:bg-orange-500 text-white font-medium text-xs shadow-lg shadow-orange-600/20"
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="size-4 mr-2 animate-spin" />
-                    Extraindo DNA Criativo...
+                    Criando modelos…
                   </>
                 ) : (
                   <>
                     <Sparkles className="size-4 mr-2" />
-                    Extrair DNA & Criar Variações
+                    Criar modelos
                   </>
                 )}
               </Button>
@@ -427,15 +489,33 @@ export function TemplateIngestionModal({
       </Dialog>
 
       {/* Modal de Revisão & Aprovação das Intenções (3 colunas com Konva 2D) */}
-      {reviewData && (
+      {reviewData && selectedProject && (
         <DesignExtractionReviewModal
           isOpen={Boolean(reviewData)}
           onClose={handleCloseAll}
+          onTryAnotherModel={() => setReviewData(null)}
           extraction={reviewData.extraction}
           previewDataUrl={reviewData.previewDataUrl}
           sourceUrl={reviewData.sourceUrl}
-          projectId={reviewData.projectId}
-          onExtractionSaved={onProjectCreatedOrUpdated}
+          project={selectedProject}
+          projects={destinations}
+          onChangeProject={setDestination}
+          model={reviewData.model}
+          onExtractionSaved={(project, postIds) => {
+            onProjectCreatedOrUpdated?.(project.id);
+            setSavedModels({ project, postIds });
+            setReviewData(null);
+          }}
+          onOpenEditor={onOpenEditor}
+        />
+      )}
+      {savedModels && (
+        <ProjectArtworkDialog
+          project={savedModels.project}
+          postIds={savedModels.postIds}
+          onClose={handleCloseAll}
+          onUseArtwork={onUseSavedArtwork && (artwork => { handleCloseAll(); onUseSavedArtwork(artwork); })}
+          onOpenArtwork={onOpenSavedArtwork && (post => { handleCloseAll(); onOpenSavedArtwork(post); })}
         />
       )}
     </>

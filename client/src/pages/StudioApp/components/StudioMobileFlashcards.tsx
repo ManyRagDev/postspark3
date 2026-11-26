@@ -1,3 +1,4 @@
+import { activeTemporalSlots } from "@/pages/CanvasLab/lib/activeTemporalSlots";
 import type { ExportQuality } from "@shared/aspectRatios";
 import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -132,7 +133,8 @@ export default function StudioMobileFlashcards({
           )}
         </motion.div>
 
-        <StudioSlideNavigation count={currentPost.slides.length} index={currentPost.currentSlideIndex}
+        {activeTemporalSlots(currentPost,currentPost.currentSlideIndex).length > 0 && <span className="text-xs text-white/70">Slide com vídeo</span>}
+                <StudioSlideNavigation count={currentPost.slides.length} index={currentPost.currentSlideIndex}
           onChange={index => slidePreviews.navigate(currentPost, currentIndex, index)} />
 
         <PostReviewWarning warning={currentPost.provenance?.reviewWarning} />

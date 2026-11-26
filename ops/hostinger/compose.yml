@@ -28,8 +28,46 @@ services:
         max-size: "50m"
         max-file: "5"
 
+  mare-worker:
+    image: postspark-worker:hostinger
+    profiles: ["mare"]
+    command: ["node", "--import", "tsx", "server/mareWorker.ts"]
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 12m
+    env_file: [/opt/postspark/shared/worker.env]
+    environment:
+      MARE_PROCESSOR_ORIGIN: http://127.0.0.1:18745
+      REVIEW_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+    mem_limit: 4g
+    cpus: 2
+    shm_size: 512m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  mare-ingest:
+    network_mode: host
+    image: postspark-worker:hostinger
+    profiles: ["mare"]
+    command: ["node", "--import", "tsx", "server/mareIngestWorker.ts"]
+    init: true
+    restart: unless-stopped
+    env_file: [/opt/postspark/shared/worker.env]
+    environment:
+      MARE_PROCESSOR_ORIGIN: http://127.0.0.1:18745
+      POSTSPARK_MARE_INGEST_MODE: worker
+    mem_limit: 2g
+    cpus: 2
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
   capture:
     image: postspark-capture:hostinger
+    networks:
+      default:
+      website-capture:
+        aliases: [postspark-capture]
     init: true
     restart: unless-stopped
     stop_grace_period: 15s
@@ -72,3 +110,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  website-capture:
+    external: true
+    name: postspark-capture-private

@@ -1,0 +1,15 @@
+{
+  "fxBrlPerUsd": 5,
+  "variableBrlPerSpark": 0.01,
+  "targetMargin": 0.7,
+  "netRevenueFraction": 0.8,
+  "period": "monthly",
+  "otherMonthlyCostsBrl": null,
+  "includedRenderUnitBrl": null,
+  "unitTcoBrl": {},
+  "mixes": {
+    "imagem": {},
+    "misto": {"firstCut":2,"edit":4,"review":2},
+    "intensivo": {"firstCut":10,"edit":30,"review":12,"narration":5}
+  }
+}

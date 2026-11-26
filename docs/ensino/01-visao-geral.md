@@ -13,9 +13,9 @@ De forma simplificada:
 3. Ele informa um texto, uma URL ou uma imagem.
 4. O frontend envia essa informacao para o backend.
 5. O backend valida quem e o usuario.
-6. O backend pode cobrar Sparks, consultar IA, extrair identidade visual e salvar dados.
-7. O frontend recebe as variacoes geradas.
-8. O usuario escolhe ou edita o resultado no Workbench.
+6. A API admite o pedido e registra a reserva de Sparks no PostgreSQL. O executor prepara, gera e revisa as propostas.
+7. O Studio acompanha o pedido e mostra as propostas entregues na galeria.
+8. O usuário escolhe uma proposta e pode editá-la no CanvasLab.
 9. O resultado pode ser salvo no banco.
 
 ## As camadas principais
@@ -81,7 +81,7 @@ O backend conversa com servicos que nao fazem parte do codigo do PostSpark:
 
 Deploy e o processo de colocar a aplicacao no ar.
 
-Neste repo, o deploy esta configurado para Vercel por `vercel.json`.
+A [VPS](../contrato-integracao-supabase-vps.md) hospeda a web, a API e o executor externo.
 
 ## Uma frase para memorizar
 

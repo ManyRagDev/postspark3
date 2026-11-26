@@ -27,10 +27,26 @@ export function textFontFlexibility(input: {
 
 /** Returns the largest measured fit. Failure retains the minimum and its defect;
  * it never truncates content or relaxes the declared interval. */
-export function largestFittingTextFont(range: TextFontRange, fits: (size:number)=>boolean) {
+export function largestFittingTextFont(range: TextFontRange, fits: (size:number)=>boolean, checkWrapTransitions = false) {
   if (fits(range.max)) return {fontSize:range.max,fits:true};
-  if (!fits(range.min)) return {fontSize:range.min,fits:false};
   let low=range.min,high=range.max;
+  if (!fits(low)) {
+    // At a line break a word moves to the next line. The right margin can
+    // therefore fit at an intermediate size even if it fails at the minimum.
+    if (!checkWrapTransitions) return {fontSize:range.min,fits:false};
+    const step = (range.max - range.min) / 32;
+    let found = false;
+    for (let i = 1; i < 32; i++) {
+      const size = range.max - i * step;
+      if (fits(size)) {
+        low = size;
+        high = size + step;
+        found = true;
+        break;
+      }
+    }
+    if (!found) return {fontSize:range.min,fits:false};
+  }
   for(let iteration=0;iteration<28;iteration++) {
     const candidate=(low+high)/2;
     if(fits(candidate))low=candidate;else high=candidate;
@@ -38,12 +54,9 @@ export function largestFittingTextFont(range: TextFontRange, fits: (size:number)
   return {fontSize:low,fits:true};
 }
 
-/** Advisory writing range from the same font interval used by the local solver.
- * Independent list slots describe one item; fragments describe the one canonical
- * string and retain their authored word partition. No catalogue payload is copied. */
-export function compactTextFieldFlexibility(definition: ComponentDefinitionV1, field: {source:string;required:boolean;kind:string}) {
-  const bindings=definition.fragment.bindings.filter(binding=>binding.source===field.source&&binding.kind!=="media");
-  const targets=bindings.flatMap(binding=>binding.targetIds).map(id=>{
+export function authoredTextBoxes(definition: ComponentDefinitionV1, source: string) {
+  const bindings=definition.fragment.bindings.filter(binding=>binding.source===source&&binding.kind!=="media");
+  return bindings.flatMap(binding=>binding.targetIds).map(id=>{
     const instance=definition.fragment.instances.find(instance=>instance.id===id);
     const piece=instance&&definition.pieces[instance.pieceHash];
     if(!instance||!piece||piece.kind!=="text")return;
@@ -55,11 +68,19 @@ export function compactTextFieldFlexibility(definition: ComponentDefinitionV1, f
     // Without an authored fontSize output, the actual solver cannot resize it.
     const scalable=relation?.kind==="textFit"&&relation.outputs.some(output=>output.targetId===id&&output.properties.includes("fontSize"));
     const sizes=scalable?range:{min:piece.fontSize,preferred:piece.fontSize,max:piece.fontSize};
-    const limits=authoredTextFitLimits(instance,relation?.kind==="textFit"?relation:undefined);
-    const rows=(size:number)=>Math.max(1,Math.floor((limits.height+1e-8)/(size*(piece.lineHeight??1.2))));
-    const characters=(size:number)=>Math.max(1,Math.floor(limits.width/Math.max(1,size*.55+(piece.letterSpacing??0))))*rows(size);
-    return {min:characters(sizes.max),max:characters(sizes.min),minLines:rows(sizes.max),maxLines:rows(sizes.min),fragment:piece.contentFragment};
+    return {id, ...authoredTextFitLimits(instance,relation?.kind==="textFit"?relation:undefined), sizes,
+      lineHeight:piece.lineHeight, letterSpacing:piece.letterSpacing, fragment:piece.contentFragment};
   }).filter((target):target is NonNullable<typeof target>=>Boolean(target));
+}
+
+/** Advisory writing range from the same font interval used by the local solver.
+ * Independent list slots describe one item; fragments describe the canonical string. */
+export function compactTextFieldFlexibility(definition: ComponentDefinitionV1, field: {source:string;required:boolean;kind:string}) {
+  const targets = authoredTextBoxes(definition, field.source).map(box => {
+    const rows = (size: number) => Math.max(1, Math.floor((box.height + 1e-8) / (size * (box.lineHeight ?? 1.2))));
+    const characters = (size: number) => Math.max(1, Math.floor(box.width / Math.max(1, size * .55 + (box.letterSpacing ?? 0)))) * rows(size);
+    return {min:characters(box.sizes.max),max:characters(box.sizes.min),minLines:rows(box.sizes.max),maxLines:rows(box.sizes.min),fragment:box.fragment};
+  });
   if(!targets.length)return;
   const partitioned=field.kind!=="list"&&targets.length>1&&targets.every(target=>target.fragment?.unit==="words"&&target.fragment.count===targets.length);
   const combine=(key:"min"|"max")=>{

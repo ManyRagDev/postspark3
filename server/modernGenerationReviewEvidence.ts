@@ -255,7 +255,9 @@ export function inspectModernReviewEvidence(
             const raw=decodeReviewExceptionsV10(extractTextContent(row(op?.result).choices?.[0]?.message?.content));
             const aliases=buildReviewEvidenceAliases(ctx.anchorInventory.map(({alias:_alias,...anchor})=>anchor));
             const normalized=normalizeReviewExceptionsV10({response:raw,units:ctx.textUnitInventory,evidenceInventory:ctx.evidenceInventory,context:sourceContext,aliases,
-              slideCount:ctx.renderHashes.length,round:review.round,inputHash:review.inputHash,operationKeys:review.operationKeys});
+              slideCount:ctx.renderHashes.length,round:review.round,inputHash:review.inputHash,operationKeys:review.operationKeys,
+              structuralIntent:Boolean(row(row(prepared.planning).intent).designRequirements),
+              objectiveArtworkReview:config.success && "artworkBriefPolicyVersion" in config.data && config.data.artworkBriefPolicyVersion === 1});
             consistent=same(normalized,review);
           }}catch{/* A malformed/missing receipt cannot certify a declared inspection. */}
           check("review_exception_record_matches_receipt",consistent);

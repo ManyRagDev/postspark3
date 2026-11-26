@@ -12,7 +12,7 @@ Estas regras são imutáveis e governam todas as implementações, correções d
 
 ## 1. Fonte Única da Verdade do Editor (`CanvasPostModel`)
 
-1. **O Editor Ativo é o CanvasLab:** O fluxo histórico (`Home.tsx` / `HoloDeck` / `WorkbenchV2`) é órfão de rotas. O editor oficial ativo do estúdio é o **CanvasLab** (`client/src/pages/CanvasLab/`), renderizado deterministicamente pelo motor Konva em `CanvasPostStage.tsx`.
+1. **O Editor Ativo é o CanvasLab:** O editor oficial ativo do estúdio é o **CanvasLab** (`client/src/pages/CanvasLab/`), renderizado deterministicamente pelo motor Konva em `CanvasPostStage.tsx`.
 2. **Autoridade do Modelo:** O `CanvasPostModel` (`client/src/pages/CanvasLab/components/types.ts`) é o documento autoritativo único de qualquer post em edição.
 3. **Funil Centralizado de Mutação:** Toda e qualquer alteração de estado deve passar pelo funil `CanvasLabPage.handleUpdatePost`. É proibido atualizar o estado de camadas Konva por vias laterais que ignorem o modelo.
 4. **Persistência Sem Perda:** Salvamento e reabertura são realizados na coluna `canvas_model` do Supabase via `client/src/pages/CanvasLab/lib/saveAdapter.ts`. O formato salvo deve ser 100% retrocompatível e fiel ao estado do editor.
@@ -89,5 +89,5 @@ Uma tarefa ou track SÓ é considerada finalizada quando:
 
 ## 9. Manutenção da Verdade (Product & Tech Integrity)
 
-- Os arquivos `.conductor/product.md` e `.conductor/tech-stack.md` refletem a realidade operacional do PostSpark 3.
+- Use `.conductor/product.md` para contexto de produto. Consulte `AGENTS.md`, `DOCUMENTO_MESTRE.md` e a implementação atual para arquitetura e operação.
 - Se uma alteração de código modificar contratos de rotas, introduzir novos padrões arquiteturais ou alterar fluxos fundamentais de usuário, você DEVE propor a sincronização correspondente dos arquivos em `.conductor/` no mesmo commit.

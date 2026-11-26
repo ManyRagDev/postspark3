@@ -221,6 +221,7 @@ export default function AdvancedImageEditor({
     [look, setLook] = useState<"warm" | "teal-orange">("warm"),
     [grain, setGrain] = useState(40);
   const [available, setAvailable] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [kind, setKind] = useState<ImageEditOperation["kind"]>("adjust");
   const [brightness, setBrightness] = useState(0),
     [contrast, setContrast] = useState(0),
@@ -391,9 +392,18 @@ export default function AdvancedImageEditor({
     setDetail(false);
     areaGesture.current = null;
     void Promise.all([
-      readAdvancedImage(target.url, controller.signal),
+      readAdvancedImage(target.url, controller.signal).catch(error => {
+        if (error instanceof TypeError)
+          throw new Error("Não foi possível ler a imagem de origem. Verifique a conexão ou reenvie a imagem.");
+        throw error;
+      }),
       imageEditorClient.imageEditor.capabilities.query(undefined, {
         signal: controller.signal,
+      }).catch(error => {
+        if (error.data?.code === "UNAUTHORIZED")
+          throw new Error("Sua sessão expirou. Entre novamente para editar a imagem.");
+        if (error.data?.code === "FORBIDDEN" || error.data?.code === "PRECONDITION_FAILED") throw error;
+        throw new Error("Não foi possível consultar as ferramentas de imagem. Verifique a conexão e tente novamente.");
       }),
     ])
       .then(([image, capability]) => {
@@ -401,12 +411,14 @@ export default function AdvancedImageEditor({
         setSource(image);
         setWidth(image.width);
         setHeight(image.height);
-        setAvailable(capability.available);
-        setTools(capability.tools ?? IMAGE_EDITOR_TOOLS.slice(0, 6));
-        if (!capability.available)
-          setError(
-            "As ferramentas estão sendo preparadas neste ambiente. Volte em breve."
-          );
+        const supported = capability.tools ?? IMAGE_EDITOR_TOOLS.slice(0, 6);
+        if (!capability.available || !supported.length) {
+          setError(("message" in capability && capability.message) || "Nenhuma ferramenta de imagem está disponível neste ambiente.");
+          return;
+        }
+        setTools(supported);
+        setKind(supported[0].kind);
+        setAvailable(true);
       })
       .catch(error => {
         if (!controller.signal.aborted)
@@ -424,7 +436,7 @@ export default function AdvancedImageEditor({
       pending.current?.abort();
       sequence.current++;
     };
-  }, [imageEditorClient, open, target?.url]);
+  }, [imageEditorClient, open, target?.url, loadAttempt]);
   useEffect(() => {
     setPreview(null);
     pending.current?.abort();
@@ -840,7 +852,34 @@ export default function AdvancedImageEditor({
           ) + index,
       }))
     : [];
-  const content = (
+  const restoreButton = originalAvailable && (
+    <button
+      type="button"
+      disabled={Boolean(busy)}
+      onClick={() => {
+        if (onRestore()) close(false);
+        else setError("A imagem mudou. Feche e abra novamente para restaurar.");
+      }}
+      className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-xs"
+    >
+      Restaurar imagem original
+    </button>
+  );
+  const content = !available || !source ? (
+    <div aria-label="Tratamentos de imagem" className="space-y-3 text-sm text-white">
+      {error ? (
+        <>
+          <p role="alert" className="text-amber-200">{error}</p>
+          <button type="button" className={fieldClass} onClick={() => setLoadAttempt(attempt => attempt + 1)}>
+            Tentar novamente
+          </button>
+        </>
+      ) : <p role="status">Abrindo imagem e consultando as ferramentas…</p>}
+      {source && <img src={source.imageData} alt="Imagem original" className="max-h-48 max-w-full object-contain" />}
+      {restoreButton}
+      <button type="button" className={fieldClass} onClick={() => close(false)}>Cancelar</button>
+    </div>
+  ) : (
     <div className="min-w-0 text-white" aria-label="Tratamentos de imagem">
       <div className="min-h-0 p-0">
         <p className="mb-4 rounded-lg border border-orange-400/20 bg-orange-400/5 p-3 text-xs text-orange-200">
@@ -1893,22 +1932,7 @@ export default function AdvancedImageEditor({
                 </select>
               </label>
             </fieldset>
-            {originalAvailable && (
-              <button
-                type="button"
-                disabled={Boolean(busy)}
-                onClick={() => {
-                  if (onRestore()) close(false);
-                  else
-                    setError(
-                      "A imagem mudou. Feche e abra novamente para restaurar."
-                    );
-                }}
-                className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-xs"
-              >
-                Restaurar imagem original
-              </button>
-            )}
+            {restoreButton}
             <button
               type="button"
               disabled={!currentPreview || Boolean(noChange) || Boolean(busy)}

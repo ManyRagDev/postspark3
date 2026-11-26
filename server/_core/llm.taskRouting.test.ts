@@ -95,7 +95,7 @@ describe("automatic task provider transport", () => {
   });
 
 
-  it("journals a known malformed editorial patch before local parsing and replays it without another inference", async () => {
+  it.each(["editorial_recovery", "copy_final_fit", "copy_final_fit_residual"])("journals a malformed %s patch and replays it without another inference", async label => {
     const config = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" });
     const fetch = vi.fn(async () => response(config.taskRouting!.repair.model, "{truncated")); vi.stubGlobal("fetch", fetch);
     let saved: any;
@@ -105,7 +105,7 @@ describe("automatic task provider transport", () => {
       markOperationUncertain: vi.fn(),
     };
     const operation = durableOperations(store as any, { id: "request", deadlineAt: Date.now() + 120_000 } as any, "lease", new AbortController().signal);
-    const infer = () => invokeLLM({ messages, taskRoute: "static_generation", traceLabel: "proposal_test_editorial_recovery",
+    const infer = () => invokeLLM({ messages, taskRoute: "static_generation", traceLabel: `proposal_test_${label}`,
       response_format: responseFormat, ...generationTaskModelCallOptions(config, "repair"), maxCompletionTokens: 2048,
       structuredValidationOwner: "caller", durableProposalCopyReceipt: true });
     const first = await operation("review_correction:known", infer);

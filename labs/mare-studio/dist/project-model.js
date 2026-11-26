@@ -59,6 +59,7 @@ export function validateProject(project) {
     if (!clip || typeof clip.id !== "string" || !clip.id || ids.has(clip.id) ||
         typeof clip.name !== "string" || !positive(clip.duration) ||
         !Number.isFinite(clip.trim) || clip.trim < 0 ||
+        (clip.volume!==undefined && (clip.kind!=="video" || !Number.isFinite(clip.volume) || clip.volume<0 || clip.volume>1)) ||
         Object.hasOwn(clip, "composition") || Object.hasOwn(clip, "scene"))
       throw new Error("Clipe inválido na montagem.");
     ids.add(clip.id);

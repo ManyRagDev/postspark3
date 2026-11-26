@@ -3,6 +3,20 @@ import type { MembershipCycle, PaidStudioPlan } from "@shared/membership";
 
 export const membershipCycleKey = "postspark.checkout-cycle";
 
+const paymentReturnKey = "postspark.payment-return";
+export function rememberPaymentReturn() {
+  const { pathname, search } = window.location;
+  if (pathname === "/billing/success" || pathname === "/billing/topup-success") {
+    const id = new URLSearchParams(search).get("session_id");
+    sessionStorage.setItem(paymentReturnKey, pathname + (id ? "?session_id=" + encodeURIComponent(id) : ""));
+  }
+}
+export function takePaymentReturn() {
+  const route = sessionStorage.getItem(paymentReturnKey);
+  sessionStorage.removeItem(paymentReturnKey);
+  return route && /^\/billing\/(?:success|topup-success)(?:\?session_id=[^&#]*)?$/.test(route) ? route : null;
+}
+
 class MembershipRequestError extends Error {}
 
 export async function requestIdentityApi<T>(path: string, input?: object) {

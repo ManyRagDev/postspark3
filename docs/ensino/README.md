@@ -28,19 +28,10 @@ No estado atual observado no codigo:
 - A autenticacao e feita com Supabase Auth.
 - A persistencia usa Supabase/Postgres, acessado pelo backend.
 - Billing usa Stripe.
-- O deploy esta configurado para Vercel.
+- O [Compose da VPS](../../ops/hostinger/compose.yml) declara a web e o executor externo.
 - O build gera assets estaticos do frontend e empacota o backend em `api/index.js`.
 
-## O que ele nao e hoje
-
-E importante separar arquitetura real de ideias futuras ou comparacoes:
-
-- Nao ha evidencia de que o runtime principal atual seja Next.js.
-- Nao ha evidencia de backend Python principal neste repositorio.
-- Nao ha evidencia de Railway como deploy principal deste repositorio.
-- Nao ha evidencia de filas, cron jobs ou workers dedicados no fluxo principal.
-
-Esses temas podem ser estudados como comparacao, mas nao devem ser apresentados como a arquitetura atual do PostSpark 3.
+O Studio registra a geração no PostgreSQL e acompanha a execução. Em produção há um worker externo. O [guia de operação local](../local-demand-operations.md) descreve o modo de desenvolvimento.
 
 ## Ideia central
 

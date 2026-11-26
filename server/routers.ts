@@ -1,3 +1,6 @@
+import { parse as parseCookies } from "cookie";
+import { PLAN_COOKIE, PLAN_DURATION_MS, issueSessionPlan, getImpersonatedPlan } from "./_core/planImpersonation";
+import { maySelectPlan } from "./_core/sessionPlanAccess";
 import { legacyCapture } from "./brandCapture";
 import {catalogRouter} from "./routers/catalog";
 import { executionBriefSchema } from "../shared/generationRequest";
@@ -26,9 +29,9 @@ import { scrapeUrl as scrapeSiteUrl } from "./siteContent";
 import { extractBrandDNA } from "./brandDNA";
 import * as fs from "fs";
 import * as path from "path";
-import { getBillingProfile, debitSparks, deriveIdempotencyKey, reserveSparks, commitSparkReservation, refundSparkReservation, getTopupPackages, createTopupCheckout, SPARK_COSTS, rpcCall } from "./billing";
-import { MembershipError, readMembership, startMembershipCheckout } from "./membership";
-import { SPARK_REFILL } from "@shared/membership";
+import { getBillingProfile, getRealBillingProfile, debitSparks, deriveIdempotencyKey, reserveSparks, commitSparkReservation, refundSparkReservation, getTopupPackages, createTopupCheckout, SPARK_COSTS, rpcCall } from "./billing";
+import { MembershipError, paidStudioPlanSchema, readMembership, startMembershipCheckout } from "./membership";
+import { SPARK_REFILL, studioPlanForProfile } from "@shared/membership";
 import { readAnnualFeatures, setIrisExperiment } from "./annualFeatures";
 import { requireAgencyEditor, requireProfessionalStudio, resolveStudioPlan } from "./studioAccess";
 import { startPilotRouter } from "./startPilot";
@@ -88,8 +91,21 @@ function resolveSaveLimitMessage(plan: string | null | undefined): string {
   return PLAN_SAVE_LIMIT_MESSAGES[plan || ""] || "Você atingiu o limite de posts salvos do seu plano. Exclua itens antigos ou faça upgrade para continuar.";
 }
 
+function requireRealBillingSession(userId: string) {
+  if (getImpersonatedPlan(userId))
+    throw new TRPCError({ code: "FORBIDDEN", message: "Volte ao perfil real para alterar a assinatura ou a cobrança." });
+}
+
 // ─── Billing router ───────────────────────────────────────────────────────────
 const billingRouter = router({
+  statement: protectedProcedure
+    .input(z.object({ before: z.string().regex(/^[1-9][0-9]{0,18}$/).refine(value => value.length < 19 || value <= "9223372036854775807").optional() }).strict())
+    .query(async ({ ctx, input }) => {
+      const { data, error } = await rpcCall("read_spark_statement", { p_payer: ctx.user.id, p_before: input.before ?? null });
+      if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Extrato indisponível." });
+      const rows = z.array(z.object({ cursor: z.string(), occurred_at: z.string(), delta: z.number().int(), balance: z.number().int() })).parse(data);
+      return { entries: rows.slice(0, 20), next: rows.length > 20 ? rows[19].cursor : null };
+    }),
   usage: protectedProcedure.query(async ({ ctx }) => {
     const { data, error } = await rpcCall("studio_usage_summary", { p_user_id: ctx.user.id });
     if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Resumo de uso indisponível." });
@@ -118,6 +134,7 @@ const billingRouter = router({
       cancelPath: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      requireRealBillingSession(ctx.user.id);
       if (input.plan !== "PRO")
         throw new TRPCError({ code: "BAD_REQUEST", message: "O plano Agency ainda não está disponível." });
       try {
@@ -148,6 +165,7 @@ const billingRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      requireRealBillingSession(ctx.user.id);
       const email = ctx.user.email ?? "";
       const name = ctx.user.name ?? undefined;
 
@@ -217,9 +235,28 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(async ({ ctx }) => {
       if (!ctx.user) return null;
-      return { ...ctx.user, studioPlan: await resolveStudioPlan(ctx.user) };
+      const profile = ctx.user.access ? null : await getBillingProfile(ctx.user.email ?? "", ctx.user.id);
+      const studioPlan = profile ? studioPlanForProfile(profile.plan) : await resolveStudioPlan(ctx.user);
+      const impersonatedPlan = ctx.user.impersonatedPlan ?? null;
+      const canImpersonate = !ctx.user.access && (ctx.user.role === "admin" || profile?.plan === "DEV" || impersonatedPlan !== null);
+      return { ...ctx.user, studioPlan, canImpersonate, impersonatedPlan };
+    }),
+    impersonatePlan: protectedProcedure.input(z.object({ plan: paidStudioPlanSchema.nullable() }).strict()).mutation(async ({ ctx, input }) => {
+      if (ctx.user.access || (!ctx.user.impersonatedPlan && !await maySelectPlan(ctx.user)))
+        throw new TRPCError({ code: "FORBIDDEN", message: "A impersonação é restrita a operadores." });
+      const origin = ctx.req.get("origin");
+      if (ctx.req.get("sec-fetch-site") === "cross-site" || (origin && (!URL.canParse(origin) || new URL(origin).host !== ctx.req.get("host"))))
+        throw new TRPCError({ code: "FORBIDDEN", message: "Origem inválida." });
+      const options = getSessionCookieOptions(ctx.req);
+      if (input.plan) {
+        const token = parseCookies(ctx.req.headers.cookie ?? "")[COOKIE_NAME];
+        const value = issueSessionPlan(ENV.supabaseServiceRoleKey, ctx.user.id, token ?? "", input.plan);
+        ctx.res.cookie(PLAN_COOKIE, value, { ...options, maxAge: PLAN_DURATION_MS });
+      } else ctx.res.clearCookie(PLAN_COOKIE, options);
+      return { plan: input.plan };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
+      ctx.res.clearCookie(PLAN_COOKIE, getSessionCookieOptions(ctx.req));
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -300,7 +337,7 @@ export const appRouter = router({
           const refreshed = await rpcCall("refill_pro_sparks", { p_user_id: billingOwner });
           if (refreshed.error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Saldo da equipe indisponível." });
         }
-        const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev", billingOwner);
+        const profile = await getRealBillingProfile(ctx.user.email ?? "dev@local.dev", billingOwner);
         const requestSeed = input.idempotencyKey ?? JSON.stringify([input.prompt, input.aspectRatio, input.postContext]);
         const reservationKey = !input.workspaceId && input.idempotencyKey
           ? input.idempotencyKey

@@ -14,10 +14,10 @@ import {
 } from "@shared/generationContracts";
 import { type OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { SiteIntelligence } from "@shared/postspark";
-import { invokeLLM, knownProviderRejectionReceipt, providerRejectionErrorFromReceipt } from "../../_core/llm";
+import { invokeLLM, knownProviderRejectionReceipt, LlmLocalRequestError, providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { replanGenerationSlot } from "./generationPlanning";
 import { recoverGenerationDelivery, deliveryRecoveryHistory } from "./generationDeliveryRecovery";
-import { REVIEW_OBSERVATION_OPERATION } from "@shared/generationDecisionTrace";
+import { isReplaySafeProposalOperation } from "@shared/generationDecisionTrace";
 import { extractTextContent, safeJsonParse } from "../llmJson";
 import type { InvokeResult } from "../../_core/llm";
 import { hydrateCompleteDesignComponents } from "../../designCatalog/completeDesignStore";
@@ -27,6 +27,7 @@ import { getBrandProjectById } from "../../db";
 import {
   createGenerationStore,
   type GenerationStore,
+  type GenerationOperationRecord,
   type RequestRecord,
 } from "./generationStore";
 import { GenerationCoordinator } from "./generationCoordinator";
@@ -141,6 +142,10 @@ export function durableOperations(
         `[runtime:op] ⏭️ [${record.id.slice(0, 8)}] ${operationKey} já concluída anteriormente no journal.`
       );
       const result = readJournalResult<T>(existing.result);
+      const localFailure = (result as { localFailure?: string } | undefined)?.localFailure;
+      if (localFailure === "llm_request_invalid") throw new LlmLocalRequestError(localFailure);
+      if (localFailure === "source_limitation")
+        throw new GenerationFailureError("source_limitation", "selection");
       const rejection = providerRejectionErrorFromReceipt(result);
       if (rejection) throw rejection;
       return result;
@@ -187,7 +192,11 @@ export function durableOperations(
         );
         parent.events.push(...operationTrace.events);
       }
-      const rejection = knownProviderRejectionReceipt(error);
+      const rejection = error instanceof LlmLocalRequestError
+        ? { localFailure: "llm_request_invalid" }
+        : operationKey === "prepare:context" && error instanceof GenerationFailureError && error.failure.code === "source_limitation"
+          ? { localFailure: "source_limitation" }
+          : knownProviderRejectionReceipt(error);
       if (!resultPersisted && rejection) {
         try {
           await store.persistOperationResult(record.id, leaseToken, operationKey,
@@ -554,7 +563,7 @@ export async function loadGenerationSources(
   for(const url of Array.from(urls)){
     const page=await scrapeUrl(url,{requireComplete:true});
     const hasContent = Boolean(page.content?.trim() || page.description?.trim() || page.title?.trim());
-    if(!hasContent)throw new GenerationFailureError("source_limitation","copy");
+    if(!hasContent)throw new GenerationFailureError("source_limitation","selection");
     const pageContent = page.content?.trim() || [page.description, page.title].filter(Boolean).join(". ").trim();
     add("page","content_page",`Título: ${page.title}\nDescrição: ${page.description}\n${pageContent}`,url);
   }
@@ -583,8 +592,8 @@ export function proposalRecoveryCopyFromOperations(
   visualTextRepairVersion?: 1,
 ): unknown {
   if (visualTextRepairVersion === 1) {
-    const candidate = operations.find(operation =>
-      operation.operationKey === `${proposalId}:copy_fit_candidate` && operation.state === "completed");
+    const candidate = ["copy_fit_residue:candidate", "copy_fit_residue", "copy_fit_candidate"].flatMap(key => operations.filter(operation =>
+      operation.operationKey === `${proposalId}:${key}` && operation.state === "completed"))[0];
     const receipt = readJournalResult<{ version?: unknown; copy?: unknown } | undefined>(candidate?.result);
     if (receipt?.version === 1 && receipt.copy && typeof receipt.copy === "object" && !Array.isArray(receipt.copy))
       return receipt.copy;
@@ -601,6 +610,12 @@ export function proposalRecoveryCopyFromOperations(
 }
 
 /** Any prior repair effect consumes the proposal budget, including an uncertain one. */
+function isConfirmedOperationRejection(operation: GenerationOperationRecord) {
+  if (operation.state !== "completed") return false;
+  const result = readJournalResult<{localFailure?: string} | undefined>(operation.result);
+  return result?.localFailure === "llm_request_invalid" || Boolean(providerRejectionErrorFromReceipt(result));
+}
+
 export async function proposalRecoveryOperationKeys(
   store: GenerationStore,
   record: RequestRecord,
@@ -613,8 +628,9 @@ export async function proposalRecoveryOperationKeys(
     ? await store.listOperations(record.id, record.ownerId)
     : [];
   return operations.filter(o=>o.operationKey.startsWith(prefix)||o.operationKey.startsWith(`${proposalId}-fb`)).flatMap(o=>{
+    if (isConfirmedOperationRejection(o)) return [];
     const relative=o.operationKey.replace(new RegExp(`^${proposalId}(?:-fb[1-3])?:`),"");
-    if(relative!=="copy_recovery"&&!relative.startsWith("review_correction:"))return [];
+    if(relative!=="copy_recovery"&&relative!=="copy_final_fit"&&relative!=="copy_final_fit_residual"&&!relative.startsWith("review_correction:"))return [];
     return [o.operationKey.startsWith(`${attemptId}:`)?relative:`previous_attempt:${relative}`];
   });
 }
@@ -634,7 +650,7 @@ export async function executeClaimedGeneration(
     platform: record.input.platform,
     postMode: record.input.postMode,
     creationMode: record.input.creationMode,
-    requestedModel: record.generationConfig?.model ?? record.input.model ?? "default",
+    requestedModel: record.generationConfig?.editorialTeam?.writer ?? record.generationConfig?.model ?? record.input.model ?? "default",
     generationStrategyVersion: record.generationConfig?.generationStrategyVersion,
     siteIntelligenceId: record.input.siteIntelligenceId,
     startedAt: record.createdAt ?? Date.now(),
@@ -810,22 +826,38 @@ async function executeClaimedGenerationWithinTrace(
         const context = await durableOperations(deps.store, record, leaseToken, signal, "prepare:", true)(
           "context", () => deps.loadContext(record.input, record.ownerId),
         );
+        const team = record.generationConfig?.editorialTeam;
+        const sourceParts = [typeof context === "string" ? context : context.text];
+        const literalIdentity = record.input.fixedDesign.kind === "identity" && record.input.executionBrief?.interventionLevel === "visual_only";
+        if (team && !literalIdentity) {
+          const operation = durableOperations(deps.store, record, leaseToken, signal, "prepare:");
+          const generate = deps.graphDeps?.generateText ?? invokeLLM;
+          const { readLongEditorialSource } = await import("./editorialSourceReading");
+          const quotes = await readLongEditorialSource(record.input, context, team, { operation, generate, deadlineMs: record.deadlineAt, signal });
+          if (quotes.length) sourceParts.push("Trechos selecionados das fontes: " + JSON.stringify(quotes));
+          if (record.input.inputType === "image" || record.input.sources?.some(s => s.kind === "image" && s.purpose === "content")) {
+            const { readGenerationImageSources } = await import("./generationImageSource");
+            const reading = await operation("image_source_reading", () => readGenerationImageSources(
+              record.input, record.ownerId, record.deadlineAt, signal, generate, team));
+            if (reading) sourceParts.push("Leitura de imagem: " + JSON.stringify(reading.reading));
+          }
+        }
         const { generateFixedCopy } = await import("./fixedDesignCopy");
-        const post = record.input.fixedDesign.kind === "identity"
-        ? await (await import("./identityCanvas")).generateIdentityCanvas({
-          pin: pinned, input: record.input, owner: record.ownerId, runId: record.id, signal, deadline: record.deadlineAt,
-          model: record.generationConfig?.model,
-          source: typeof context === "string" ? context : context.text,
-          operation: durableOperations(deps.store, record, leaseToken, signal, `${proposal.proposalId}:`),
-          generate: deps.graphDeps?.generateText, render: deps.graphDeps?.renderReviewScenes,
-        })
-        : await generateFixedCopy({
+        const fixedArgs = {
           pin: pinned, input: record.input, runId: record.id, signal, deadline: record.deadlineAt,
           model: record.generationConfig?.model,
-          source: typeof context === "string" ? context : context.text,
+          generationConfig: record.generationConfig,
+          source: sourceParts.join("\n\n"),
           operation: durableOperations(deps.store, record, leaseToken, signal, `${proposal.proposalId}:`),
           generate: deps.graphDeps?.generateText,
-        });
+        };
+        const post = record.input.fixedDesign.kind === "identity"
+          ? await (await import("./identityCanvas")).generateIdentityCanvas({
+              ...fixedArgs, owner: record.ownerId, render: deps.graphDeps?.renderReviewScenes,
+            })
+          : record.input.artworkCarousel
+            ? await (await import("./artworkCarousel")).generateArtworkCarousel(fixedArgs)
+            : await generateFixedCopy(fixedArgs);
         signal.throwIfAborted();
         const delivery = proposalDeliverySchema.parse({ ...proposal, status: "ready", fixedCanvas: post, completedAt: Date.now() });
         try {
@@ -916,7 +948,7 @@ async function executeClaimedGenerationWithinTrace(
             ? (key, expectation) => deps.store.persistPreparationExpectation!(record.id, leaseToken, `prepare:${key}`, expectation)
             : undefined,
           recentSelections: () =>
-            deps.store.recentSelections(record.ownerId, record.id),
+            deps.store.recentSelections(record.ownerId, record.id, record.input.selectionStrategy),
           parentDesignSelection: async requestId => {
             const parent = await deps.store.get(requestId, record.ownerId).catch(() => null);
             return parent ? { requestId, selections: parent.proposals.flatMap(p => p.status === "ready" && p.bundle
@@ -951,6 +983,17 @@ async function executeClaimedGenerationWithinTrace(
     const preservedImageUrl = prepared.preservedPhoto?.url ?? (record.input.allowAiImages === false
       ? requestedPreservedPhoto(record.input, [record.input.content, record.input.executionBrief?.rawInput, record.input.executionBrief?.notes].filter(Boolean).join("\n"))
       : undefined);
+    const activeRecoveryFamilies = new Map<number, string>();
+    if (record.generationConfig?.trioDeliveryVersion === 1 && prepared.planning?.deliveryReserves) {
+      const operations = await deps.store.listOperations(record.id, record.ownerId);
+      for (const proposal of currentProposals) {
+        if (["ready", "failed", "expired", "cancelled", "waiting_input"].includes(proposal.status)) continue;
+        const decision = deliveryRecoveryHistory(operations, proposal.proposalId, 4).previous;
+        const reserve = prepared.planning.deliveryReserves[proposal.slot]?.find(item =>
+          item.plan.candidateId === decision?.plan.candidateId);
+        if (reserve) activeRecoveryFamilies.set(proposal.slot, reserve.family);
+      }
+    }
     const coordinator = new GenerationCoordinator(
       {
         requestId: record.id,
@@ -964,6 +1007,7 @@ async function executeClaimedGenerationWithinTrace(
         projectSnapshot: record.input.projectSnapshot,
         projectDossier: record.input.projectDossier ?? (record.input.projectId ? prepared.contextContent : undefined),
         contextContent: prepared.contextContent,
+        editorialSourceQuotes: prepared.editorialSourceQuotes,
         sourceImages: prepared.imageSourceReading?.images,
         sourceReferences: prepared.sourceReferences,
         selectedDefinitions: prepared.selectedDefinitions,
@@ -988,6 +1032,7 @@ async function executeClaimedGenerationWithinTrace(
         deadlineMs: record.deadlineAt,
         signal: controller.signal,
         savedProposals: currentProposals,
+        activeRecoveryFamilies,
         referenceImages: [
           record.input.imageUrl,
           ...(record.input.sources??[]).filter(s=>s.kind==="image"&&s.purpose==="visual_reference").map(s=>s.value),
@@ -1020,7 +1065,7 @@ async function executeClaimedGenerationWithinTrace(
           recoverDelivery: async (input, reuseOriginal, context) => {
             const operations = await deps.store.listOperations(record.id, record.ownerId);
             const history = deliveryRecoveryHistory(operations, input.proposalId, context?.recoveryAttempt ?? 1);
-            const otherJournalFamilies = record.proposals.filter(proposal => proposal.slot !== input.slot).flatMap(proposal => {
+            const otherJournalFamilies = input.generationConfig?.trioDeliveryVersion === 1 ? [] : record.proposals.filter(proposal => proposal.slot !== input.slot).flatMap(proposal => {
               const decision = deliveryRecoveryHistory(operations, proposal.proposalId, 4).previous;
               if (!decision) return [];
               const originalPlan = prepared.planning!.slots[proposal.slot];
@@ -1039,6 +1084,15 @@ async function executeClaimedGenerationWithinTrace(
             planning: prepared.planning!,
             sourceDefinitions,
             recoveryAttempt: context?.recoveryAttempt,
+            lastChance: context?.lastChance,
+            repairBudgetSpent: (context?.lastChance || input.generationConfig?.trioDeliveryVersion === 1) && operations.some(o=>
+              !isConfirmedOperationRejection(o) &&
+              (o.operationKey.startsWith(input.proposalId+":") || o.operationKey.startsWith(input.proposalId+"-fb")) &&
+              (o.operationKey.endsWith(":copy_recovery") || o.operationKey.includes(":review_correction:"))),
+            ...(context?.lastChance ? {originalAttempt:{
+              definitions:prepared.selectedDefinitions?.[input.slot] ?? [],
+              copy:proposalRecoveryCopyFromOperations(operations,input.proposalId,1),
+            }} : {}),
             excludedCandidateIds: [...(context?.excludedCandidateIds ?? []), ...history.candidateIds],
             excludedFamilies: [...(context?.excludedFamilies ?? []), ...otherJournalFamilies],
             claimFamily: context?.claimFamily,
@@ -1097,7 +1151,7 @@ async function executeClaimedGenerationWithinTrace(
             leaseToken,
             controller.signal,
             `${proposalId}:`,
-            params.operationKey==="candidate" || REVIEW_OBSERVATION_OPERATION.test(params.operationKey)
+            isReplaySafeProposalOperation(params.operationKey)
           )(params.operationKey, work),
       }
     );

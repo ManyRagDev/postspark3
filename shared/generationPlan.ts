@@ -83,9 +83,34 @@ export const requirementEvidenceSchema = generationIntentLegacySchema.shape.requ
   source: z.enum(["declared", "inferred", "physical"]).optional(),
   strength: z.enum(["required", "preference"]).optional(),
 });
+export const compositionProfileSchema = z.enum([
+  "columns", "stacked", "paired_rows", "sequence", "list", "hierarchy", "typographic", "media",
+]);
+const compositionDirectionSchema = z.object({
+  profile: compositionProfileSchema,
+  approach: z.string().trim().min(1).max(240),
+}).strict();
+export const compositionDirectionsSchema = z.array(compositionDirectionSchema).length(3);
+const generationDesignRequirementsSchema = z.object({
+  version: z.literal(1),
+  requiresComparison: z.boolean(),
+  requiresTextCta: z.boolean(),
+  textCta: z.string().min(1).max(320).nullable(),
+  forbidsPhotography: z.boolean(),
+  estimatedArtCharacters: z.number().int().nonnegative(),
+  requiredFacts: z.array(z.object({
+    contentId: id,
+    text,
+    slideIndex: z.number().int().min(0).max(9).nullable(),
+    comparisonGroup: z.number().int().min(1).max(10).nullable(),
+    role: z.enum(["headline", "label", "detail"]),
+  }).strict()).max(24),
+}).strict();
 export const generationIntentSchema = generationIntentLegacySchema.extend({
   editorial: editorialIntentReadingSchema.optional(),
   requirements: z.array(requirementEvidenceSchema).max(50),
+  designRequirements: generationDesignRequirementsSchema.optional(),
+  compositionDirections: compositionDirectionsSchema.optional(),
 });
 export const generationEditorialIntentSchema = generationIntentLegacySchema.extend({ editorial: editorialIntentReadingSchema });
 export type GenerationIntent = z.infer<typeof generationIntentSchema>;
@@ -257,14 +282,19 @@ export const generationSlotPlanSchema = z.discriminatedUnion("status", [
   insufficientPlanSchema,
 ]);
 export type GenerationSlotPlan =
-  | z.infer<typeof generationSlotPlanSchema>
+  | ViableGenerationPlan
+  | z.infer<typeof insufficientPlanSchema>
   | {
       slot: number;
       status: "planning_failed";
       reason: string;
       unmetRequirementIds: string[];
     };
-export type ViableGenerationPlan = z.infer<typeof viablePlanSchema>;
+// This is added by the local lab planner. Keep the provider schema above stable
+// so outstanding selection receipts from the existing Studio remain readable.
+export type ViableGenerationPlan = z.infer<typeof viablePlanSchema> & {
+  editorialDesign?: { readerPriority: string };
+};
 export const DELIVERY_RECOVERY_KEY = "delivery_recovery:candidate";
 /** SQL begin_safe allows only local keys ending in :candidate. */
 export function deliveryRecoveryKey(attempt: number) {
@@ -291,6 +321,11 @@ export const generationPlanResponseSchema = z
 export interface GenerationPlanningReceipt {
   version: 1;
   intent: GenerationIntent;
+  editorialSelection?: {
+    version: 1;
+    source: "model" | "layout";
+    evaluated: number;
+  };
   visualRequirements?: import("./generationVisualRequirements").GenerationVisualRequirements;
   proposalSelectionVersion?: 1;
   firstDeliveryReviewRecovery?: 1;

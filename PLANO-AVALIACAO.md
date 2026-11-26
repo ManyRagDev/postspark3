@@ -1,6 +1,6 @@
 # Plano de avaliação do pipeline textual
 
-15/10/2026. Plano proposto, **não executado contra provedores**. Nenhuma correção autorizada por este documento. Fundamentação: [mapa do pipeline](</home/many/Documentos/Projetos linux/PostSpark 3/MAPA-PIPELINE-IA.md>) e [diagnóstico com evidências](</home/many/Documentos/Projetos linux/PostSpark 3/DIAGNOSTICO-QUALIDADE.md>).
+15/10/2026. Plano proposto, **não executado contra provedores**. Nenhuma correção autorizada por este documento. Fundamentação: [mapa do pipeline](./MAPA-PIPELINE-IA.md) e [diagnóstico com evidências](./DIAGNOSTICO-QUALIDADE.md).
 
 ## 1. Perguntas que a avaliação precisa responder
 

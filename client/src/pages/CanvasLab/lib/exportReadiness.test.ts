@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { INITIAL_POST, type CanvasPostModel, type CarouselSlideItem } from "../components/types";
-import { collectUsedFontsForSlide, collectUsedFontsForDocument, cleanFontFamily } from "./exportReadiness";
+import { collectUsedFontsForSlide, cleanFontFamily } from "./exportReadiness";
 import { createArsenalFixtureComposition } from "./arsenalFixture";
 import { addArsenalAuthorialLayer } from "./arsenalComposition";
 
@@ -8,6 +8,7 @@ describe("exportReadiness (OS-003-008-C05 / BUG-CL-033)", () => {
   it("cleanFontFamily trims and strips quotes", () => {
     expect(cleanFontFamily('"Arial"')).toBe("Arial");
     expect(cleanFontFamily("'Playfair Display'")).toBe("Playfair Display");
+    expect(cleanFontFamily('"Space Grotesk", sans-serif')).toBe("Space Grotesk");
     expect(cleanFontFamily("")).toBeNull();
     expect(cleanFontFamily(undefined)).toBeNull();
   });
@@ -28,8 +29,8 @@ describe("exportReadiness (OS-003-008-C05 / BUG-CL-033)", () => {
     };
 
     const used = collectUsedFontsForSlide(post.slides[0], post);
-    expect(used.has("Arial")).toBe(true);
-    expect(used.has("AuditEmptyBody")).toBe(false);
+    expect(used.map(use => use.family)).toContain("Arial");
+    expect(used.map(use => use.family)).not.toContain("AuditEmptyBody");
   });
 
   it("visible subtext requires subtextFontFamily (BUG-CL-033 failedBodyFont)", () => {
@@ -48,8 +49,8 @@ describe("exportReadiness (OS-003-008-C05 / BUG-CL-033)", () => {
     };
 
     const used = collectUsedFontsForSlide(post.slides[0], post);
-    expect(used.has("Arial")).toBe(true);
-    expect(used.has("AuditFailedBody")).toBe(true);
+    expect(used.map(use => use.family)).toContain("Arial");
+    expect(used.map(use => use.family)).toContain("AuditFailedBody");
   });
 
   it("unrelated font not used in slide is not in used fonts (unrelatedFont)", () => {
@@ -67,7 +68,7 @@ describe("exportReadiness (OS-003-008-C05 / BUG-CL-033)", () => {
     };
 
     const used = collectUsedFontsForSlide(post.slides[0], post);
-    expect(used.has("AuditUnused")).toBe(false);
+    expect(used.map(use => use.family)).not.toContain("AuditUnused");
   });
 
   it("composition collects only visible text element fonts and ignores empty/invisible text", () => {
@@ -103,7 +104,7 @@ describe("exportReadiness (OS-003-008-C05 / BUG-CL-033)", () => {
     };
 
     const used = collectUsedFontsForSlide(slide, post);
-    expect(used.has("EmptyAuthorialFont")).toBe(false);
+    expect(used.map(use => use.family)).not.toContain("EmptyAuthorialFont");
   });
 
   it("hidden or opacity-zero extra texts do not require their font", () => {
@@ -130,6 +131,23 @@ describe("exportReadiness (OS-003-008-C05 / BUG-CL-033)", () => {
     };
 
     const used = collectUsedFontsForSlide(slide, post);
-    expect(used.has("HiddenExtraFont")).toBe(false);
+    expect(used.map(use => use.family)).not.toContain("HiddenExtraFont");
+  });
+
+  it("collects the effective per-slide weight, style and text of visible variants", () => {
+    const slide: CarouselSlideItem = {
+      id: "s1", step: "", headline: "Ação", subtext: "",
+      visualStyle: { fontFamily: "Space Grotesk", headlineFontWeight: 600 },
+      headlineRich: [{ text: "A", bold: true }, { text: "ção", italic: true }],
+      extraTexts: [{
+        id: "authorial", text: "Ótimo", fontFamily: "Space Grotesk, sans-serif",
+        fontWeight: 500, fontStyle: "italic",
+      }],
+    };
+    expect(collectUsedFontsForSlide(slide, { ...INITIAL_POST, slides: [slide] })).toEqual([
+      { family: "Space Grotesk", weight: 700, italic: false, text: "A" },
+      { family: "Space Grotesk", weight: 600, italic: true, text: "ção" },
+      { family: "Space Grotesk", weight: 500, italic: true, text: "Ótimo" },
+    ]);
   });
 });

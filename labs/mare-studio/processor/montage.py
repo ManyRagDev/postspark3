@@ -216,6 +216,7 @@ def montage(work, cursor):
     check(isinstance(clips, list) and 0 < len(clips) <= 48, "Use de 1 a 48 clipes.")
     check(all(c["kind"] in ("scene", "video") and number(c["duration"], 0.000001, 60)
               and number(c["trim"], 0, 86400) and isinstance(c["name"], str) and len(c["name"]) <= 256
+              and ("volume" not in c or (c["kind"] == "video" and number(c["volume"], 0, 1)))
               and ("talk" not in c or (c["kind"] == "video" and isinstance(c["talk"], dict)))
               for c in clips), "Clipes ou cortes inválidos.")
     transitions = [transition_spec(clips[i-1] if i else None, clip) for i, clip in enumerate(clips)]
@@ -336,9 +337,16 @@ def montage(work, cursor):
             if out != path:
                 item, info = import_file(out)
                 video = info["video"]
+        gain = clip.get("volume", 1)
         place = command("timeline.place", item=item, frame=first, duration=frames * FRAME,
-                        sourceIn=round(source_time * TICKS), track="V1", audioTrack="A1", matchSequence=False)
+                        sourceIn=round(source_time * TICKS), track="V1", audioTrack="A1",
+                        audio=gain == 1, matchSequence=False)
         placed = place["clips"][0]
+        if 0 < gain < 1 and info.get("audio_streams"):
+            audio = command("timeline.place", item=item, frame=first, duration=frames * FRAME,
+                            sourceIn=round(source_time * TICKS), track="A1", audio=True,
+                            video=False, matchSequence=False)["clips"][0]
+            command("clip.audioGain", clips=[audio], mode="set", db=20 * math.log10(gain))
         command("clip.rename", clip=placed, name=clip["name"])
         fit_video(placed, video)
         effect, frames = transitions[i]
@@ -437,7 +445,7 @@ def montage(work, cursor):
     frame = min(end - 1, max(0, round(cursor * FPS)))
     run(FILM, "render", "--seconds", str(frame/FPS), "--out", "preview.png", "--project", "edit.fcproj")
     audio = any(track["items"] and not track["muted"] for track in layout["audio"])
-    run(FILM, "export", "final.mp4", "--project", "edit.fcproj", "--format", "h264", "--gpu-rendering", "off",
+    run(FILM, "export", "final.mp4", "--project", "edit.fcproj", "--settings", '{"h264Profile":"baseline"}', "--format", "h264", "--gpu-rendering", "off",
         *([] if audio else ["--no-audio"]))
     dump(work / "render.json", dict(width=540, height=960, fps=FPS, frames=end, previewFrame=frame,
                                     cuts=actual, audio=audio))

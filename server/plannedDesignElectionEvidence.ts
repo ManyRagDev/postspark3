@@ -1,4 +1,4 @@
-import { compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema, projectCompactGenerationIntent } from "../shared/compactGenerationIntent";
+import { compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema, projectCompactGenerationIntent, projectStructuralGenerationIntent, structuralGenerationIntentSchema, type StructuralIntentReading } from "../shared/compactGenerationIntent";
 import {familyTie, PROPOSAL_SELECTION_POLICY, proposalSelectionHistory} from "../shared/familyNeutrality";
 import { arsenalHash } from "../shared/arsenalContent";
 import { z } from "zod";
@@ -24,6 +24,7 @@ import {
 import {
   generationEditorialIntentSchema,
   generationIntentLegacySchema,
+  generationIntentSchema,
   normalizeGenerationIntent,
   generationPlanResponseSchema,
   generationSlotPlanSchema,
@@ -42,7 +43,8 @@ import { journalOperationWasLocal } from "./ai/workflows/generationJournalTrace"
 import { combineEditorialDesignProfile, discardUnattributedEditorialSignals, editorialRequestEvidence, frozenEditorialCatalogSchema, validateEditorialIntent, type FrozenEditorialCatalog } from "../shared/editorialIntent";
 import { buildFamilySelectionCandidates, familyAssessmentProfile } from "../shared/designFamilySelection";
 import { FAMILY_RETRIEVAL_POLICY as retrievalPolicy } from "../shared/familyRetrieval";
-import { assertFamilyRetrieval, familySearchQuery, familyVisualQuery, semanticFamilyQuery } from "./designCatalog/familyRetrieval";
+import { assertFamilyRetrieval, familySearchQuery, familyVisualQuery, semanticFamilyQuery, filterRepertoiresByCapacity } from "./designCatalog/familyRetrieval";
+import { requestsPhotoMix } from "./ai/workflows/generationPreparation";
 import { planFamilyRecovery, FAMILY_RECOVERY_REASON } from "../shared/familyRecovery";
 import { inspectFamilyPlanFit } from "./designCatalog/familyPlanFit";
 import { buildHeuristicGenerationPlan, deliveryProposalReserves, distinctProposalRecovery } from "./ai/workflows/heuristicPlanBuilder";
@@ -53,8 +55,17 @@ const row = (v: unknown): Row =>
   v && typeof v === "object" && !Array.isArray(v) ? (v as Row) : {};
 const list = (v: unknown): any[] => (Array.isArray(v) ? v : []);
 const same = (a: unknown, b: unknown) => arsenalHash(a) === arsenalHash(b);
-const sameCard = (a: ReturnType<typeof compactComponentCard>, b: ReturnType<typeof compactComponentCard>) =>
-  same({ ...a, fontFamilies: [...a.fontFamilies].sort() }, { ...b, fontFamilies: [...b.fontFamilies].sort() });
+const sameCard = (a: ReturnType<typeof compactComponentCard>, b: ReturnType<typeof compactComponentCard>) => {
+  // Earlier catalog snapshots omit fragmentCount. All originally recorded
+  // geometry and any fragment counts present on newer cards still need to match.
+  const textRegions = a.capacity.textRegions.map(({ fragmentCount, ...region }, index) =>
+    b.capacity.textRegions[index]?.fragmentCount === undefined ? region : { ...region, fragmentCount }
+  );
+  return same(
+    { ...a, capacity: { ...a.capacity, textRegions }, fontFamilies: [...a.fontFamilies].sort() },
+    { ...b, fontFamilies: [...b.fontFamilies].sort() }
+  );
+};
 const sameIds = (a: string[], b: string[]) =>
   new Set(a).size === a.length &&
   new Set(b).size === b.length &&
@@ -79,15 +90,17 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     return op?.state === "completed" ? clean(op.result) : null;
   };
   const selectionInput = completed("prepare:selection_input");
+  const editorialLab = input.selectionStrategy === "editorial_v1";
   const neutrality=selectionInput?.familyNeutrality;
   const automatic = selectionInput?.automaticSemanticVersion === 1;
   const compactAutomatic = automatic && selectionInput?.compactIntentVersion === 1;
+  const structuralCompact = selectionInput?.compactIntentVersion === 2;
   const distinctProposals = neutrality?.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
   const recent = completed("prepare:recent_selections");
   const proposalHistory = distinctProposals ? proposalSelectionHistory(list(recent?.selections), recent?.parentSelection) : list(recent?.selections);
-  const familyRanking = selectionInput?.familyRankingVersion === 1;
-  const boundedRetrieval = selectionInput?.familyRetrievalVersion === 1;
-  const recoveryEnabled = selectionInput?.familyRecoveryVersion === 1;
+  const familyRanking = !editorialLab && selectionInput?.familyRankingVersion === 1;
+  const boundedRetrieval = !editorialLab && selectionInput?.familyRetrievalVersion === 1;
+  const recoveryEnabled = !editorialLab && selectionInput?.familyRecoveryVersion === 1;
   const familyElection = row(row(planning).familyElection);
   const catalog = completed("prepare:catalog"),
     parsedCoverage = catalogCoverageSchema.safeParse(catalog?.coverage);
@@ -124,10 +137,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
   }
   try {
     check(automatic === Boolean(config.taskRouting), "automatic_policy_pin_mismatch");
+    check(selectionInput?.selectionStrategy === input.selectionStrategy, "selection_strategy_pin_mismatch");
     check(automatic ? neutrality?.creativeFlexibility === 1 : neutrality?.creativeFlexibility === undefined, "creative_flexibility_unpinned");
-    check(selectionInput?.familyRankingVersion === undefined || familyRanking, "family_ranking_protocol_unsupported");
-    check(selectionInput?.familyRetrievalVersion === undefined || boundedRetrieval, "family_retrieval_protocol_unsupported");
-    check(selectionInput?.familyRecoveryVersion === undefined || recoveryEnabled && boundedRetrieval, "family_recovery_protocol_unsupported");
+    check(editorialLab || selectionInput?.familyRankingVersion === undefined || familyRanking, "family_ranking_protocol_unsupported");
+    check(editorialLab || selectionInput?.familyRetrievalVersion === undefined || boundedRetrieval, "family_retrieval_protocol_unsupported");
+    check(editorialLab || selectionInput?.familyRecoveryVersion === undefined || recoveryEnabled && boundedRetrieval, "family_recovery_protocol_unsupported");
     check(familyRanking ? familyElection.version === (recoveryEnabled ? 3 : boundedRetrieval ? 2 : 1) : !Object.hasOwn(planning, "familyElection"), "family_ranking_protocol_mismatch");
     check(recoveryEnabled || familyElection.recovery === undefined, "family_recovery_unpinned");
     check(config.editorialIntentVersion === undefined || editorialEnabled, "editorial_protocol_unsupported");
@@ -157,7 +171,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         typeof result.id === "string" && result.id.length > 0,
         `preparation_receipt_identity_mismatch:${key}`);
       if (editorialEnabled && key === "prepare:intent") {
-        const schema = z.toJSONSchema(automatic ? compactAutomatic ? compactGenerationIntentSchema : legacyAutomaticGenerationIntentSchema : generationEditorialIntentSchema);
+        const schema = z.toJSONSchema(structuralCompact ? structuralGenerationIntentSchema
+          : automatic ? compactAutomatic ? compactGenerationIntentSchema : legacyAutomaticGenerationIntentSchema : generationEditorialIntentSchema);
         delete schema.$schema;
         check(expectation.success && expectation.data.responseFormatHash === arsenalHash({
           type: "json_schema", json_schema: { name: "generation_intent_v1", strict: true, schema },
@@ -193,7 +208,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       ),
       "catalog_card_content_mismatch"
     );
-    const intentSchema = editorialEnabled && !automatic ? generationEditorialIntentSchema : generationIntentLegacySchema;
+    const intentSchema = structuralCompact ? generationIntentSchema
+      : editorialEnabled && !automatic ? generationEditorialIntentSchema : generationIntentLegacySchema;
     const intent = intentSchema.parse(planning.intent);
     const brief = row(prepared.executionBrief ?? input.executionBrief),
       context = row(prepared.editorialContext);
@@ -214,7 +230,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         }),
       "catalog_request_scope_mismatch"
     );
-    const requestText = [
+    const requestParts = [
       input.content,
       brief.rawInput,
       brief.notes,
@@ -223,9 +239,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       ...list(brief.slides).map(s => s.rawText),
       ...list(brief.mustInclude),
       ...list(brief.mustKeep),
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ].filter(Boolean);
+    const requestText = requestParts.join("\n");
     if(selectionInput?.preservedPhoto){
       const url=selectionInput.preservedPhoto.url;
       const imageOperations=operations.filter(op=>op.state==='completed'&&/:image:\d+:/.test(String(op.operation_key)));
@@ -244,10 +259,17 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         )
         .map(s => s.id)
     );
-    const providerIntent = automatic ? (compactAutomatic ? compactGenerationIntentSchema : legacyAutomaticGenerationIntentSchema).parse(completed("prepare:intent")) : intentSchema.parse(completed("prepare:intent"));
+    const providerIntent = structuralCompact ? structuralGenerationIntentSchema.parse(completed("prepare:intent"))
+      : automatic ? (compactAutomatic ? compactGenerationIntentSchema : legacyAutomaticGenerationIntentSchema).parse(completed("prepare:intent")) : intentSchema.parse(completed("prepare:intent"));
     const slideCount = input.postMode === "static" ? 1 : (input.slideCount ?? 5);
     const editorialEvidence = editorialRequestEvidence({ content: input.content, tone: input.tone, executionBrief: brief });
-    const projectedIntent = compactAutomatic
+    const intentRequest = Array.from(new Set(requestParts)).join("\n");
+    const projectedIntent = structuralCompact
+      ? projectStructuralGenerationIntent(providerIntent as StructuralIntentReading, {
+        adaptation: brief.interventionLevel === "visual_only" ? "literal" : "controlled", factualSourceIds: factualSources,
+        request: intentRequest, slideCount, sources: list(context.sources), callToAction: brief.callToAction, mixedMedia: requestsPhotoMix(intentRequest),
+      })
+      : compactAutomatic
       ? projectCompactGenerationIntent(providerIntent as z.infer<typeof compactGenerationIntentSchema>, {
         adaptation: brief.interventionLevel === "visual_only" ? "literal" : "controlled", factualSourceIds: factualSources,
       })
@@ -265,7 +287,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         0,
       "intent_source_or_requirement_mismatch"
     );
-    if (editorialEnabled && !automatic) {
+    if (editorialEnabled && !automatic && !structuralCompact) {
       const editorial = generationEditorialIntentSchema.parse(intent).editorial;
       check(validateEditorialIntent(editorial, editorialCatalog, editorialEvidence).length === 0, "editorial_intent_evidence_mismatch");
     }
@@ -285,6 +307,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       contentMode: intent.adaptation === "literal" ? "literal" : "compose",
       instructions: requestText,
     }).filter(r => repertoireMeetsMedia(r, obligation) && repertoireMeetsVisualRequirements(r, visualRequirements));
+    repertoires = filterRepertoiresByCapacity(repertoires, intent).eligible;
     const expectedCandidates = repertoires.map(r => ({
       id: r.defaultOffer.offerId,
       signature: r.signature,
@@ -394,7 +417,20 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         identitiesVerified: valid,
       });
     }
-    if (familyRanking) {
+    if (editorialLab) {
+      const assessment = planning.editorialSelection;
+      const rankingIds = new Set(planning.ranking.map(rank => rank.id));
+      check(
+        !scoringBatches.length && rankingIds.size === planning.ranking.length &&
+        sameIds(planning.selectorIds, expectedCandidates.map(candidate => candidate.id)) &&
+        planning.ranking.every(rank => planning.selectorIds.includes(rank.id) &&
+          rank.score >= 0 && rank.score <= 4 && (rank.confidence === 0 || rank.confidence === 1)) &&
+        assessment?.version === 1 &&
+        assessment.evaluated === planning.ranking.filter(rank => rank.confidence === 1).length &&
+        assessment.source === (assessment.evaluated ? "model" : "layout"),
+        "editorial_selection_evidence_mismatch"
+      );
+    } else if (familyRanking) {
       let assessedIds = familyCandidates.map(candidate => candidate.id);
       if (boundedRetrieval) {
         const receipt = familyElection.retrieval, recorded = completed("prepare:family_retrieval");
@@ -507,12 +543,12 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
           ),
         "direct_selection_coverage_mismatch"
       );
-    const selection = planning.selectorIds.length
+    const selection = !editorialLab && planning.selectorIds.length
       ? generationPlanResponseSchema.parse(completed("prepare:selection"))
       : null;
     check(planning.proposalSelectionVersion === neutrality?.proposalSelectionVersion, "proposal_selection_pin_mismatch");
-    check(Boolean(planning.deliveryReserves) === Boolean(neutrality?.deliveryRecoveryVersion) &&
-      (planning.firstDeliveryReviewRecovery === 1) === (neutrality?.deliveryRecoveryVersion === 2), "delivery_recovery_pin_mismatch");
+    check(Boolean(planning.deliveryReserves) === (editorialLab || Boolean(neutrality?.deliveryRecoveryVersion)) &&
+      (planning.firstDeliveryReviewRecovery === 1) === ((neutrality?.deliveryRecoveryVersion ?? 0) >= 2), "delivery_recovery_pin_mismatch");
     if (distinctProposals) {
       const perProposalMedia = list(prepared.perProposalImageObligations);
       const selectedFamilies = planning.offers.flatMap(offer => offer ? [offer.family] : []);
@@ -525,9 +561,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         eligible: repertoires.filter(r => planning.selectorIds.includes(r.defaultOffer.offerId)),
         shortlist: { cards: [], evaluated: planning.ranking.map(r => ({ ...r, hash: "" })), batches: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 },
       };
-      if (selection) check(same(selection, buildHeuristicGenerationPlan(planInput)), "proposal_selection_replay_mismatch");
-      check(same(planning.recoveryRepertoires, distinctProposalRecovery(planInput, planning.offers)), "proposal_recovery_replay_mismatch");
-      if (planning.deliveryReserves) check(same(planning.deliveryReserves, deliveryProposalReserves({ ...planInput, eligible: repertoires }, planning.offers)), "delivery_reserves_replay_mismatch");
+      if (!editorialLab) {
+        if (selection) check(same(selection, buildHeuristicGenerationPlan(planInput)), "proposal_selection_replay_mismatch");
+        check(same(planning.recoveryRepertoires, distinctProposalRecovery(planInput, planning.offers)), "proposal_recovery_replay_mismatch");
+        if (planning.deliveryReserves) check(same(planning.deliveryReserves, deliveryProposalReserves({ ...planInput, eligible: repertoires }, planning.offers)), "delivery_reserves_replay_mismatch");
+      }
     }
     check(
       planning.slots.length === 3 &&
@@ -622,7 +660,9 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         // recovery receipt. Every other selector field must still match exactly.
         const chosenId = chosen?.status === "viable" ? chosen.candidateId : null;
         const recovered = recoveryEnabled && familyCandidates.some(f => list(familyElection.recovery?.recoveredIds).includes(f.id) && f.repertoires.some(r => r.defaultOffer.offerId === chosenId));
-        check(same(recovered ? { ...chosen, reason: distinctProposals ? `${chosen!.reason} ${FAMILY_RECOVERY_REASON}` : FAMILY_RECOVERY_REASON } : chosen, plan), `selection_plan_mismatch:${slot}`);
+        check(editorialLab
+          ? Boolean(plan.editorialDesign?.readerPriority.trim())
+          : same(recovered ? { ...chosen, reason: distinctProposals ? `${chosen!.reason} ${FAMILY_RECOVERY_REASON}` : FAMILY_RECOVERY_REASON } : chosen, plan), `selection_plan_mismatch:${slot}`);
         const materialized = materialize(plan);
         check(
           same(offer, materialized) &&
@@ -691,7 +731,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
           `attempt_identity_mismatch:${slot}`
         );
         if (deliveryRecovery) {
-          const parsed = generationSlotPlanSchema.safeParse(deliveryRecovery.plan);
+          const { editorialDesign, ...recoveryBasis } = row(deliveryRecovery.plan);
+          const parsed = generationSlotPlanSchema.safeParse(editorialLab ? recoveryBasis : deliveryRecovery.plan);
           const reserve = planning.deliveryReserves![slot].find(candidate => same(candidate.plan, deliveryRecovery.plan));
           const original = plan.status === "viable" && same(plan, deliveryRecovery.plan) && offer;
           const allowedMode = (deliveryRecovery.mode === "reuse_text" && reserve && deliveryRecovery.copy) ||
@@ -699,10 +740,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
             // copy is adaptation context for write_for_design, not a reused delivery.
             (deliveryRecovery.mode === "write_for_design" && (reserve || original));
           const repertoire = repertoires.find(r => r.defaultOffer.offerId === deliveryRecovery.plan?.candidateId);
-          check(parsed.success && parsed.data.status === "viable" && allowedMode && repertoire, `delivery_recovery_invalid:${slot}`);
+          check(parsed.success && parsed.data.status === "viable" && allowedMode && repertoire &&
+            (!editorialLab || typeof editorialDesign?.readerPriority === "string"), `delivery_recovery_invalid:${slot}`);
           if (parsed.success && parsed.data.status === "viable" && repertoire && (reserve || original)) {
             const recoveryPlan = parsed.data;
-            finalPlan = recoveryPlan;
+            finalPlan = editorialLab ? deliveryRecovery.plan : recoveryPlan;
             finalOffer = materializeDesignFamilyOffer(repertoire, recoveryPlan.pages.map(page => page.componentId));
             check(recoveryPlan.slot === slot && validateGenerationPlan(recoveryPlan, finalOffer, intent).length === 0 && mediaValid(finalOffer)
               && (!reserve || finalOffer.family === reserve.family && same(finalOffer.slides.map(slide => slide.componentHash), reserve.componentHashes)), `delivery_recovery_contract_mismatch:${slot}`);
@@ -805,9 +847,9 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     registered: coverage?.entries.length ?? 0,
     indexed: coverage?.indexed.length ?? 0,
     eligibleOffers: repertoires.length,
-    evaluated: familyRanking ? familyScores.size : scores.size,
+    evaluated: editorialLab ? planning.editorialSelection?.evaluated ?? 0 : familyRanking ? familyScores.size : scores.size,
     selectorOptions: list(planning.selectorIds).length,
-    method: automatic && boundedRetrieval ? "semantic_retrieval_then_scored_families" : boundedRetrieval ? "hybrid_retrieval_then_scored_families" : familyRanking ? "scored_family_batches" : repertoires.length > 12 || (editorialEnabled && repertoires.length > 0) ? "scored_batches" : "all_sent_to_selector",
+    method: editorialLab ? "editorial_v1" : automatic && boundedRetrieval ? "semantic_retrieval_then_scored_families" : boundedRetrieval ? "hybrid_retrieval_then_scored_families" : familyRanking ? "scored_family_batches" : repertoires.length > 12 || (editorialEnabled && repertoires.length > 0) ? "scored_batches" : "all_sent_to_selector",
     ...(familyRanking ? {
       assessmentUnit: "family" as const,
       eligibleFamilies: familyCandidates.length,

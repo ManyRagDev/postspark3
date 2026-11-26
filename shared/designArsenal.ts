@@ -135,10 +135,25 @@ export const arsenalContentFragmentSchema = z.object({
       f.allocation.priority.some(i => i >= f.count)))
     ctx.addIssue({ code: "custom", message: "Prioridade de ocupação inválida" });
 });
+const measuredSplitSchema = z.union([
+  z.object({ textHash: hash, afterWord: n.int().positive() }).strict(),
+  z.object({ textHash: hash, afterWords: z.array(n.int().positive()).min(2).max(7) }).strict(),
+]);
+
 /** Partition without dropping or duplicating canonical text, including whitespace. */
-export function fragmentContentText(text: string, fragment?: z.infer<typeof arsenalContentFragmentSchema>): string {
+export function fragmentContentText(text: string, fragment?: z.infer<typeof arsenalContentFragmentSchema>, split?: z.infer<typeof measuredSplitSchema>): string {
   if (!fragment) return text;
   const tokens = text.match(/\s*\S+\s*/g) ?? (text ? [text] : []);
+  if (split && arsenalHash(text) === split.textHash) {
+    const cuts = "afterWord" in split ? [split.afterWord] : split.afterWords;
+    if (cuts.length === fragment.count - 1 &&
+        cuts.every((cut, index) => cut > (cuts[index - 1] ?? 0) && cut < tokens.length)) {
+      const part = tokens.slice(cuts[fragment.index - 1] ?? 0, cuts[fragment.index] ?? tokens.length).join("");
+      // A measured cut at a hard break puts the next line in the next box.
+      // The original separator remains in the canonical field.
+      return fragment.index < cuts.length ? part.replace(/[ \t]*[\r\n]+[ \t]*$/, "") : part;
+    }
+  }
   const weights = fragment.weights ?? Array(fragment.count).fill(1);
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   if (fragment.allocation && tokens.length < fragment.count) {
@@ -739,6 +754,7 @@ export const canvasElementStatesSchema = z.record(z.string().min(1), canvasEleme
 export type CanvasElementStates = z.infer<typeof canvasElementStatesSchema>;
 
 const arsenalCompositionBaseFields = {
+  measuredSplits: z.record(id, measuredSplitSchema).optional(),
   elementStates: canvasElementStatesSchema.optional(),
   /** Last fill written by an explicit palette action; other fill overrides remain manual. */
   paletteAppliedFills: z.record(id, color).optional(),
@@ -996,7 +1012,7 @@ export function readArsenalComposition(value: unknown): ArsenalComposition {
         text:
           binding?.kind === "text"
             ? typeof boundText === "string"
-              ? fragmentContentText(boundText, piece.contentFragment)
+              ? fragmentContentText(boundText, piece.contentFragment, c.measuredSplits?.[binding.id])
               : ""
             : undefined,
       });

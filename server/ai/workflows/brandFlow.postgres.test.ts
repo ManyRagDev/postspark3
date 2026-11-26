@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import {
   generationReleasePostgresFixture,
@@ -7,6 +8,7 @@ import {
 let pg: Awaited<ReturnType<typeof generationReleasePostgresFixture>>;
 beforeAll(async () => {
   pg = await generationReleasePostgresFixture();
+  await pg.exec(readFileSync(new URL("../../../drizzle/0083_brand_capture_keep_project_models.sql", import.meta.url), "utf8"));
 }, 30000);
 afterAll(async () => {
   await pg?.close();
@@ -104,6 +106,19 @@ describe("durable free capture and reconciliation / PostgreSQL", () => {
         )
       ).rejects.toThrow("not owned");
     });
+    const kit = JSON.stringify({ source: "design-extraction", postIds: [71, 72] });
+    for (const composition of ["texto antigo", kit]) {
+      await pg.query("update postspark.brand_projects set visual_preferences=$2 where id=$1", [
+        saved.id, JSON.stringify({ colors: ["#ffffff"], composition }),
+      ]);
+      const reviewed = { colors: ["#112233"], fonts: ["Inter"], personality: [], composition: "Editorial" };
+      const args = [c.id, owner, JSON.stringify({ ...project, id: saved.id, visualPreferences: reviewed }), composition];
+      const sql = "select postspark.brand_capture_save($1,$2,$3,$4) v";
+      await scalar(sql, args);
+      const retry = await scalar(sql, args);
+      expect(retry.visual_preferences).toEqual({ ...reviewed, composition: composition === kit ? kit : reviewed.composition });
+      expect(await scalar("select visual_preferences v from postspark.brand_projects where id=$1", [saved.id])).toEqual(retry.visual_preferences);
+    }
     const fresh = await start("refresh", "https://example.com/", true);
     expect(fresh.id).not.toBe(c.id);
     await pg.query(

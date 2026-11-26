@@ -68,15 +68,9 @@ Docker nao elimina a necessidade de:
 - modelar corretamente banco e autenticacao;
 - tratar erros de integracoes externas.
 
-## Docker e Vercel
+## Docker no PostSpark
 
-Vercel e plataforma de deploy.
-
-Docker e ferramenta de empacotamento de ambiente.
-
-Eles podem coexistir, mas nao sao a mesma coisa.
-
-No PostSpark, Vercel continua sendo a configuracao de deploy observada. Docker entraria principalmente para melhorar desenvolvimento local, testes e reproducibilidade.
+Na VPS, o [Compose](../../ops/hostinger/compose.yml) organiza os containers da web e do worker. Cada processo recebe as dependências e a configuração do seu papel. O [Dockerfile do worker](../../Dockerfile.worker) inclui Node e Chromium para renderizar propostas.
 
 ## Regra mental
 

@@ -1,16 +1,8 @@
 /**
  * Interface do medidor de texto.
  *
- * O harness NUNCA fala com fontkit ou com o DOM diretamente — só com esta
- * interface. Isso existe por dois motivos:
- *
- *  1. A arquitetura ainda não resolveu quem é a autoridade de medição
- *     (`docs/arquitetura-definitiva.md` D10 diz DOM no cliente; D9 diz que a
- *     árvore resolvida é gravada, o que exige determinismo). Enquanto isso não
- *     fecha, o harness precisa servir aos dois desenhos.
- *  2. O critério de aceitação da E2 inclui "divergência medidor × browser
- *     dentro da margem" — o que só é verificável com duas implementações
- *     satisfazendo o mesmo contrato.
+ * O contrato atende o medidor canônico e as verificações que comparam suas
+ * medidas com o navegador.
  */
 
 /** Eixos de fonte variável. Valores no domínio do próprio eixo (ex.: wght 100–900). */

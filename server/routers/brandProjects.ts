@@ -4,16 +4,20 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { saveVisualIdentitySchema } from "@shared/visualIdentity";
-import { cachedVisualIdentity, manualVisualIdentity } from "../visualIdentity";
+import { cachedVisualIdentity, manualVisualIdentity, identityFromDesignKit, markExtractedIdentity } from "../visualIdentity";
+import { capturedProjectPalette, sameIdentityKit } from "@shared/projectIdentityExtraction";
 import { loadOwnedMediaReference } from "../mediaAssets";
 import { brandProjectInputSchema, compileProjectDossier } from "@shared/brandProjects";
 import { requireProfessionalStudio } from "../studioAccess";
+import { getImpersonatedPlan } from "../_core/planImpersonation";
 import {
+  getDb,
   getBrandProjectsByUser,
   getBrandProjectById,
   upsertBrandProject,
   deleteBrandProject,
   saveBrandProjectIdentity,
+  saveExtractedProjectIdentity,
 } from "../db";
 
 const brandCaptureProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -21,15 +25,61 @@ const brandCaptureProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   return next();
 });
 
+// Real accounts also have a transactional SQL quota. During impersonation the
+// database keeps the operator's real plan, so check the selected tier here.
+async function checkSimulatedBrandLimit(owner: string, id?: string) {
+  if (getImpersonatedPlan(owner) !== "SOLO") return;
+  const ownedBrands = () => getDb().from("brand_projects").select("id").eq("user_uuid", owner);
+  if (id) {
+    const existing = await ownedBrands().eq("id", id).maybeSingle();
+    if (existing.error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível conferir suas marcas." });
+    if (existing.data) return;
+  }
+  const first = await ownedBrands().limit(1);
+  if (first.error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível conferir suas marcas." });
+  if (first.data?.length) throw new TRPCError({ code: "FORBIDDEN", message: "O plano Solo permite uma marca." });
+}
+
 export const brandProjectsRouter = router({
+  extractIdentity: protectedProcedure.input(z.object({
+    id: z.string().uuid(), postIds: z.array(z.number().int().positive()).min(1).max(5),
+  })).mutation(async ({ ctx, input }) => {
+    const project = await getBrandProjectById(input.id, ctx.user.id);
+    if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto indisponível." });
+    const kit = capturedProjectPalette(project.visual_preferences);
+    if (!kit || !project.visual_preferences || kit.postIds.join() !== input.postIds.join())
+      throw new TRPCError({ code: "CONFLICT", message: "Os modelos do projeto mudaram. Reabra a lista para extrair a identidade." });
+    if (project.visual_identity && sameIdentityKit(project.visual_identity, kit.postIds))
+      return { id: project.id, visualIdentity: project.visual_identity };
+    const identity = identityFromDesignKit(project.visual_preferences, kit, project.visual_identity);
+    const saved = await saveExtractedProjectIdentity(ctx.user.id, project, identity);
+    if (saved?.visual_identity) return { id: saved.id, visualIdentity: saved.visual_identity };
+    const latest = await getBrandProjectById(input.id, ctx.user.id);
+    if (latest?.visual_identity && sameIdentityKit(latest.visual_identity, kit.postIds))
+      return { id: latest.id, visualIdentity: latest.visual_identity };
+    throw new TRPCError({ code: "CONFLICT", message: "O projeto mudou durante a extração. Reabra a identidade visual e tente novamente." });
+  }),
   saveIdentity: protectedProcedure.input(saveVisualIdentitySchema).mutation(async ({ ctx, input }) => {
     const id = input.id ?? input.creationId;
+    await checkSimulatedBrandLimit(ctx.user.id, id);
     const existing = id ? await getBrandProjectById(id, ctx.user.id) : undefined;
     if (input.id && !existing) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto não encontrado nesta conta." });
     if (input.logoUrl) await loadOwnedMediaReference(input.logoUrl, ctx.user.id);
-    const visualIdentity = ctx.user.access === "start"
+    const previous = existing?.visual_identity;
+    const interpreted = previous?.extractedFrom && previous.description === input.description
+      ? { ...previous, logoUrl: input.logoUrl }
+      : ctx.user.access === "start"
       ? manualVisualIdentity(input.description, input.logoUrl)
       : await cachedVisualIdentity(ctx.user.id, input.description, input.logoUrl, existing?.visual_identity);
+    const visualIdentity = previous?.extractedFrom
+      ? markExtractedIdentity({ ...interpreted, rules: {
+          ...interpreted.rules,
+          colors: interpreted.rules.colors.length ? interpreted.rules.colors : previous.rules.colors,
+          background: interpreted.rules.background ?? previous.rules.background,
+          text: interpreted.rules.text ?? previous.rules.text,
+          accent: interpreted.rules.accent ?? previous.rules.accent,
+        } }, previous.extractedFrom.postIds)
+      : interpreted;
     const saved = await saveBrandProjectIdentity(ctx.user.id, { id, name: input.name, visualIdentity });
     return { id: saved.id, visualIdentity: saved.visual_identity! };
   }),
@@ -106,6 +156,7 @@ export const brandProjectsRouter = router({
   upsert: protectedProcedure
     .input(brandProjectInputSchema)
     .mutation(async ({ ctx, input }) => {
+      await checkSimulatedBrandLimit(ctx.user.id, input.id);
       try {
         // Se compiledDocument não foi informado ou está vazio, compila a partir dos dados estruturados
         const compiledDoc =

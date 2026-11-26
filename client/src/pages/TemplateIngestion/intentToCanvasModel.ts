@@ -8,6 +8,7 @@ import {
   type CanvasCustomText,
   type CanvasPostModel,
 } from "../CanvasLab/components/types";
+import { composeReferenceIntent } from "./composeReferenceIntent";
 
 /**
  * Compositor determinístico: transforma DNA + intenção em um CanvasPostModel editável.
@@ -135,13 +136,12 @@ export interface IntentComposeOptions {
   aspectRatio?: AspectRatioType;
 }
 
-export function intentToCanvasModel(
+function composeLegacyIntent(
   dna: DesignDna,
   intent: PostIntent,
-  options: IntentComposeOptions = {}
-): CanvasPostModel {
-  const aspectRatio = options.aspectRatio ?? "4:5";
-  const H = HEIGHTS[aspectRatio];
+  aspectRatio: AspectRatioType,
+  H: number
+): Scene {
   const pal = dna.palette;
   const ty = dna.typography;
   const heading = ty.headingFont;
@@ -304,21 +304,33 @@ export function intentToCanvasModel(
   if (hasFooter) {
     scene.text(intent.footerNote, M, ctaTop + ctaH + 8, CW, 8, bodyFont, 500, pal.text, "center", 0.7);
   }
+  return scene;
+}
 
-  const slideId = "slide-1";
+export function intentToCanvasModel(
+  dna: DesignDna,
+  intent: PostIntent,
+  options: IntentComposeOptions = {}
+): CanvasPostModel {
+  const aspectRatio = options.aspectRatio ?? "4:5";
+  const height = HEIGHTS[aspectRatio];
+  const referenceScene = dna.composition && composeReferenceIntent(dna, dna.composition, intent, W, height);
+  const scene = referenceScene ?? composeLegacyIntent(dna, intent, aspectRatio, height);
+  const pal = dna.palette;
   return {
     ...structuredClone(INITIAL_POST),
     id: `extracted-${intent.kind}-${crypto.randomUUID()}`,
     aspectRatio,
     familyId: "minimal-air",
     familyName: dna.styleName,
-    fontFamily: heading,
-    subtextFontFamily: bodyFont,
+    fontFamily: dna.typography.headingFont,
+    subtextFontFamily: dna.typography.bodyFont,
     headline: "",
     subtext: "",
     caption: intent.caption,
-    headlineAlign: "left",
-    bodyAlign: "left",
+    headlineAlign: dna.composition?.alignment ?? "left",
+    bodyAlign: dna.composition?.alignment ?? "left",
+    ...(referenceScene && { imagePrompt: "" }),
     palette: {
       background: pal.background,
       text: pal.text,
@@ -334,11 +346,12 @@ export function intentToCanvasModel(
     currentSlideIndex: 0,
     slides: [
       {
-        id: slideId,
+        id: "slide-1",
         step: "",
         headline: "",
         subtext: "",
         suppressFamilyDecorations: true,
+        ...(referenceScene && { backgroundTreatment: referenceScene.backgroundTreatment }),
         extraShapes: scene.shapes,
         extraTexts: scene.texts,
       },

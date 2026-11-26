@@ -260,8 +260,17 @@ test(
       .fill(
         "Troque ‘Experimente agora’ por ‘Crie seu primeiro post’ e deixe a frase visível por mais um segundo"
       );
+    const editResponse = page.waitForResponse(r => r.url().endsWith("/api/director") && r.request().postDataJSON()?.stage === "edit", {timeout:135000});
     await page.locator("#assistant-plan").click();
-    await page.locator("#assistant-apply:enabled").click();
+    const proposed = await editResponse;
+    assert.equal(proposed.status(),200, "A API do laboratório deve devolver uma proposta");
+    const {output,model,usage} = await proposed.json();
+    t.diagnostic(JSON.stringify({model,usage,operations:output.commands?.map(c => ({id:c.id,fields:Object.keys(c)}))}));
+    try {
+      await page.locator("#assistant-apply:enabled").click({timeout:12000});
+    } catch (error) {
+      throw new Error("Proposta indisponível: " + await page.locator("#assistant-report").textContent(), {cause:error});
+    }
     const after = await state(page),
       finalId = after.clips.at(-1).compositionId;
     assert.equal(after.duration, 7);

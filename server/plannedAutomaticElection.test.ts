@@ -14,8 +14,9 @@ import { electionCatalogFixture } from "./designCatalog/designElection.fixture";
 import { reconcileCatalogCoverage } from "./designCatalog/catalogCoverage";
 import { withCatalogRevision } from "./designCatalog/versionedCatalog";
 import { inspectPlannedDesignElection } from "./plannedDesignElectionEvidence";
+import { structuralIntentFixture } from "./ai/workflows/generationIntent.fixture";
 
-async function fixture(score = 0, legacy = false) {
+async function fixture(score = 0, compactVersion: 0 | 1 | 2 = 2) {
   const {definitions,inventory}=electionCatalogFixture(25);
   const owner="00000000-0000-4000-8000-000000000001";
   const input=orchestratedGenerationInputSchema.parse({ownerId:owner,inputType:"text",content:"Uma pausa tranquila para café",postMode:"static",platform:"instagram",aspectRatio:"4:5",generationModel:"auto",idempotencyKey:"automatic-audit"});
@@ -23,7 +24,8 @@ async function fixture(score = 0, legacy = false) {
   const operations:any[]=[],expectations=new Map<string,unknown>();
   const legacyIntent={version:1,objective:"Uma pausa tranquila",tone:{description:"Acolhedor",origin:"inferred",rationale:"Convite sereno"},adaptation:"controlled",requirements:[],
     content:[{id:"idea",meaning:"Aproveitar uma pausa para café",sourceIds:[],requirementIds:[]}],semanticQuery:"Acolhedor, pausa para café, convite editorial livre"};
-  const intent = legacy ? legacyIntent : {objective:legacyIntent.objective,tone:legacyIntent.tone.description,semanticQuery:legacyIntent.semanticQuery,ideas:legacyIntent.content.map(({meaning,sourceIds})=>({meaning,sourceIds}))};
+  const compactIntent = {objective:legacyIntent.objective,tone:legacyIntent.tone.description,semanticQuery:legacyIntent.semanticQuery,ideas:legacyIntent.content.map(({meaning,sourceIds})=>({meaning,sourceIds}))};
+  const intent = compactVersion === 2 ? structuralIntentFixture(compactIntent) : compactVersion === 1 ? compactIntent : legacyIntent;
   const prepared=await withCatalogRevision("7",()=>prepareOrchestratedGeneration(input,owner,false,Date.now()+600000,{
     generationConfig,loadContext:async()=>input.content,preferences:async()=>defaultStudioPreferences,readEditorialCatalog:async()=>null,
     retrieve:async args=>reconcileCatalogCoverage(args,inventory),hydrate:async ids=>definitions.filter(d=>ids.includes(d.id)),
@@ -32,7 +34,10 @@ async function fixture(score = 0, legacy = false) {
     generate:async params=>({id:"controlled-intent",model:params.pinnedModel,choices:[{message:{role:"assistant",content:JSON.stringify(intent)},finish_reason:"stop"}]} as any),
     operation:async(key,work)=>{
       const result=await work();
-      if(legacy && key === "selection_input") delete (result as any).compactIntentVersion;
+      if (key === "selection_input" && compactVersion < 2) {
+        if (compactVersion === 1) (result as any).compactIntentVersion = 1;
+        else delete (result as any).compactIntentVersion;
+      }
       operations.push({operation_key:`prepare:${key}`,state:"completed",expectation:expectations.get(key),result:key==="selection"?{...result as object,__generationTrace:{version:1,calls:[],events:[{stage:"generation_plan",status:"completed",detail:"deterministic_local",data:{paidEffect:false}}]}}:structuredClone(result)});
       return result;
     },
@@ -74,9 +79,10 @@ describe("automatic planning audit",()=>{
     expect(request.prepared.planning.slots.every((slot:any)=>slot.status==="viable")).toBe(true);
   });
   it("reconstructs the original paid automatic schema when its receipt has no compact version", async () => {
-    const {request,operations}=await fixture(3,false);
+    const {request,operations}=await fixture(3,1);
     expect(operations.find(o=>o.operation_key==="prepare:selection_input").result.compactIntentVersion).toBe(1);
-    const old = await fixture(3,true);
+    expect(inspectPlannedDesignElection(request,operations).issues).toEqual([]);
+    const old = await fixture(3,0);
     expect(old.operations.find(o=>o.operation_key==="prepare:selection_input").result.compactIntentVersion).toBeUndefined();
     expect(inspectPlannedDesignElection(old.request,old.operations).issues).toEqual([]);
   });

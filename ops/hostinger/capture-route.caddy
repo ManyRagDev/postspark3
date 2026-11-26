@@ -1,0 +1,11 @@
+    @website_capture {
+        method POST
+        path /api/website-capture/screenshot /api/website-capture/screenshot/mobile /api/website-capture/screenshot/multi /api/website-capture/screenshot/element /api/website-capture/discover
+    }
+    handle @website_capture {
+        request_body {
+            max_size 32KB
+        }
+        uri strip_prefix /api/website-capture
+        reverse_proxy capture:3000
+    }

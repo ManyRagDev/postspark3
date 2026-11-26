@@ -12,9 +12,9 @@ flowchart LR
   API --> Backend["Backend Express"]
   Backend --> Supabase["Supabase Auth + Postgres"]
   Backend --> Stripe["Stripe"]
-  Backend --> AI["LLMs / Imagem / Screenshot"]
-  Frontend --> Workbench["Workbench visual"]
-  Backend --> Vercel["Deploy Vercel"]
+  Supabase --> Worker["Executor de geração"]
+  Worker --> AI["Provedores de IA"]
+  Frontend --> CanvasLab["Editor CanvasLab"]
 ```
 
 ## Fluxo de geracao
@@ -25,15 +25,19 @@ sequenceDiagram
   participant F as Frontend React
   participant B as Backend Express/tRPC
   participant S as Supabase
-  participant I as Servicos de IA
+  participant W as Executor
+  participant I as Serviços de IA
 
   U->>F: Informa texto, URL ou imagem
-  F->>B: Chama procedimento tRPC
-  B->>S: Valida usuario e saldo
-  B->>I: Solicita geracao ou analise
-  I-->>B: Retorna resultado
-  B->>S: Salva dados quando necessario
-  B-->>F: Retorna variacoes
+  F->>B: generation.start
+  B->>S: Registra pedido e reserva
+  B-->>F: Retorna identificador
+  W->>S: Assume pedido durável
+  W->>I: Solicita preparação, geração ou revisão
+  I-->>W: Retorna resultado
+  W->>S: Persiste progresso e propostas
+  F->>B: Acompanha o pedido
+  B-->>F: Entrega as propostas disponíveis
   F-->>U: Mostra opcoes e editor
 ```
 
@@ -65,9 +69,11 @@ flowchart TD
   Build --> Esbuild["esbuild empacota backend"]
   Vite --> Static["dist/public"]
   Esbuild --> Api["api/index.js"]
-  Static --> Vercel["Vercel"]
-  Api --> Vercel
-  Vercel --> Users["Usuarios acessam app"]
+  Static --> Web["Web e API na VPS"]
+  Api --> Web
+  Build --> Renderer["Bundle do CanvasLab"]
+  Renderer --> Worker["Executor externo na VPS"]
+  Users["Usuários"] --> Caddy["Caddy"] --> Web
 ```
 
 ## Onde investigar problemas

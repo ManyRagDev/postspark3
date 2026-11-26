@@ -40,6 +40,7 @@ export interface GenerationPreparedState {
   alternativeDefinitions?: ComponentDefinitionV1[][][];
   alternativeOffers?: import("@shared/completeDesignOffers").CompleteDesignOfferV1[][];
   recoveryPlanHash?: string;
+  editorialSourceQuotes?: string[];
   imageSourceReading?: import("./generationImageSource").ImageSourceReading|null;
   sourceReferences?: import("./proposalGraph").ProposalSourceReference[];
   contextContent?: string;
@@ -100,6 +101,7 @@ export interface GenerationOperationRecord {
 }
 
 export interface GenerationStore {
+  isArtworkCarouselAvailable?: () => Promise<boolean>;
   isIdentityAvailable?: () => Promise<boolean>;
   isFixedDesignAvailable?: () => Promise<boolean>;
   isPreparationAvailable?: () => Promise<boolean>;
@@ -134,7 +136,8 @@ export interface GenerationStore {
   ): Promise<GenerationOperationRecord[]>;
   recentSelections(
     ownerId: string,
-    excludeRequestId: string
+    excludeRequestId: string,
+    selectionStrategy?: OrchestratedGenerationInput["selectionStrategy"],
   ): Promise<import("../../../shared/designSelection").RecentDesignSelection[]>;
   getByIdempotencyKey(
     ownerId: string,
@@ -362,7 +365,7 @@ export function createGenerationStore(
       }));
     },
 
-    async recentSelections(ownerId, excludeRequestId) {
+    async recentSelections(ownerId, excludeRequestId, selectionStrategy) {
       const degraded = (error: { code?: string } | null | undefined) => {
         // Persist only a diagnostic code, never raw provider/DB messages or data.
         const code =
@@ -381,13 +384,17 @@ export function createGenerationStore(
       try {
         if (!db.from)
           return degraded({ code: "generation_store_read_unavailable" });
-        const result = await db
+        const query = db
           .from("generation_v5_requests")
           .select("id,proposals")
           .eq("owner_id", ownerId)
           .neq("id", excludeRequestId)
           .in("status", ["completed", "partial", "cancelled"])
-          .contains("proposals", JSON.stringify([{ status: "ready" }]))
+          .contains("proposals", JSON.stringify([{ status: "ready" }]));
+        const scoped = selectionStrategy
+          ? query.eq("input->>selectionStrategy", selectionStrategy)
+          : query.is("input->>selectionStrategy", null);
+        const result = await scoped
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .limit(5);
@@ -493,6 +500,9 @@ export function createGenerationStore(
     async isFixedDesignAvailable() {
       try { return await rpc("generation_fixed_design_available") === true; }
       catch { return false; }
+    },
+    async isArtworkCarouselAvailable() {
+      return (await rpc("generation_artwork_carousel_available").catch(() => false)) === true;
     },
     async isIdentityAvailable() {
       return Boolean(await rpc("generation_identity_available", {}).catch(() => false));

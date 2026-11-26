@@ -30,7 +30,7 @@ const schema = {
 } as const;
 
 describe("model provider adapters", () => {
-  it("round trips optional GPT fields through nested refs and unions without removing valid nullable values", () => {
+  it.each(["openai/gpt-6.1-sol", "openai/gpt-6.2-sol"])("round trips optional fields for %s through nested refs and unions", effectiveModel => {
     const original = { name: "strict-copy", strict: true, schema: {
       type: "object", properties: { slides: { type: "array", items: { anyOf: [
         { $ref: "#/$defs/slide" },
@@ -40,7 +40,7 @@ describe("model provider adapters", () => {
         kind: { const: "slide" }, title: { type: "string" }, optional: { type: "string" }, nullable: { type: ["string", "null"] },
       }, required: ["kind", "title"], additionalProperties: false } },
     } };
-    const adapted = adaptRequestForProvider({ provider: "openrouter", effectiveModel: "openai/gpt-6.1-sol", messages: [], responseFormat: { type: "json_schema", json_schema: original } });
+    const adapted = adaptRequestForProvider({ provider: "openrouter", effectiveModel, messages: [], responseFormat: { type: "json_schema", json_schema: original } });
     expect(adapted.schema).toEqual(original);
     const restored = adapted.normalizeResponseContent!(JSON.stringify({ slides: [{ kind: "slide", title: "A", optional: null, nullable: null }] }));
     expect(JSON.parse(restored)).toEqual({ slides: [{ kind: "slide", title: "A", nullable: null }] });

@@ -1,5 +1,6 @@
 import { buildCarouselSets } from "./carouselSets";
 /** Whole scenes from saved recipes or assisted folder specs. Immutable output; no DB or external model. */
+import {assertDesignTextCohesion,auditDesignTextCohesion} from '../../shared/designTextCohesion';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { GlobalFonts, createCanvas, loadImage } from '@napi-rs/canvas';
@@ -46,7 +47,7 @@ if(intake){
 }else for(const record of await readCorpus())inputs.push({record});
 installNativeSurface();
 type PreviewEvidence={id:string;hash:string;card:ReturnType<typeof compactComponentCard>;issues:string[];blockingIssues:string[];diagnostics:string[];render:string;sceneHash:string;renderer:'CanvasPostStage'|'diagnostic-without-media'};
-type BuildRow=SourceRecord&{status:string;reason?:string;references?:DesignReferenceEvidence;package?:string;componentIds?:string[];previews?:PreviewEvidence[]};
+type BuildRow=SourceRecord&{status:string;reason?:string;references?:DesignReferenceEvidence;package?:string;componentIds?:string[];textCohesion?:Array<{id:string;findings:ReturnType<typeof auditDesignTextCohesion>}>;previews?:PreviewEvidence[]};
 const rows:BuildRow[]=[],assetIds=new Set<string>(),componentIds=new Set<string>(),renders:Array<{title:string;file:string;issues:number;blocking:number}>=[];
 try{
 for(const input of inputs){
@@ -78,6 +79,7 @@ for(const input of inputs){
     const previews:PreviewEvidence[]=[];
     for(const [componentIndex,originalComponent] of p.components.entries()){
       let c=originalComponent;
+      assertDesignTextCohesion(c);
       if(componentHash(c)!==c.hash)throw new Error('Hash de design divergente');
 
       // Review helper materializes exactly one full scene at a time.
@@ -111,7 +113,7 @@ for(const input of inputs){
     const file=`packages/${record.fileHash}.json`;await fs.writeFile(path.join(output,file),JSON.stringify(p,null,2)+'\n');
     for(const c of p.components)componentIds.add(c.id);
     for(const preview of previews){const c=p.components.find(c=>c.id===preview.id)!;renders.push({title:`${c.label} · ${c.fragment.aspectRatio}`,file:preview.render,issues:preview.issues.length,blocking:preview.blockingIssues.length});}
-    rows.push({...record,references,status:'complete-design-draft',package:file,componentIds:p.components.map(c=>c.id),previews});
+    rows.push({...record,references,status:'complete-design-draft',package:file,componentIds:p.components.map(c=>c.id),textCohesion:p.components.map(c=>({id:c.id,findings:auditDesignTextCohesion(c)})),previews});
   }catch(e){rows.push({...record,references,status:'blocked',reason:(e as Error).message});}
 }
 }finally{await closeReviewRenderer();}

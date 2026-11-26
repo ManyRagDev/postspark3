@@ -21,7 +21,7 @@ Conferir o código e as alterações locais antes de implementar. A revisão ant
 - `server/ai/componentTextMeasurer.ts` já mede texto com fontes reais e layout compartilhado. Não criar medidor concorrente sem necessidade demonstrada.
 - As contagens do diagnóstico dos 82 designs precisam ser reproduzidas contra uma versão identificada do acervo.
 
-O [registro de correções de egress](../implementacao-egress-2026-11-11.md) documenta testes anteriores, não uma nova validação de produção. A [suspensão registrada](../verificacao-egress-2026-11-11.md) é evidência histórica. Este plano não presume serviços atualmente reativados.
+O `registro de correções de egress` (registro da infraestrutura) documenta testes anteriores, não uma nova validação de produção. A `suspensão registrada` (registro da infraestrutura) é evidência histórica. Este plano não presume serviços atualmente reativados.
 
 ## 3. Execução proposta
 

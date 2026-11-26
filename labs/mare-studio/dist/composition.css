@@ -1101,3 +1101,22 @@ dialog:has(.animation-catalog) {
 .cp-bezier-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 6px; }
 .cp-bezier-fields label { display: grid; gap: 3px; font-size: 11px; }
 .cp-bezier-fields input { width: 100%; min-width: 0; }
+
+.cp-quick { padding-bottom: .85rem; border-bottom: 1px solid var(--line, #393a40); margin-bottom: .85rem }
+.cp-quick-list { display: flex; flex-wrap: wrap; gap: .35rem }
+.cp-quick-list .btn, .cp-next .btn { min-height: 32px; text-align: left; white-space: normal }
+.cp-next { display: grid; justify-items: start; gap: .25rem; margin: .35rem 0 .65rem; border-left: 2px solid #9d91ac; padding-left: .55rem }
+.cp-next small { color: #bdb4c7 }
+#quick-settings { display: grid; gap: .65rem }
+#quick-settings fieldset { display: grid; max-height: 14rem; overflow: auto; gap: .3rem }
+#quick-settings input:not([type=checkbox]), #quick-settings select { width: 100%; padding: .5rem; font: inherit; color: inherit; background: #24252a; border: 1px solid #53545c; border-radius: .35rem }
+#quick-settings [role=alert]:empty { display: none }
+
+#canvas-selection-preview {
+  display:block;
+  max-width:100%;
+  height:auto;
+  max-height:48vh;
+  margin:auto;
+  background:repeating-conic-gradient(#373739 0% 25%, #252528 0% 50%) 0 0 / 20px 20px;
+}

@@ -4,7 +4,7 @@ import { assemblyIdentity, createComponentDefinition, type ComponentDefinitionV1
 
 type Bounds = { x?: number; y?: number; width?: number; height?: number; opacity?: number };
 type TextStyle = { fontSize?: number; fill?: string; align?: 'left' | 'center' | 'right'; stroke?: string; strokeWidth?: number };
-type Edit = Bounds & TextStyle;
+type Edit = Bounds & TextStyle & { minFontSize?: number };
 type Layout = Record<string, Edit>;
 
 // Native coordinates measured in the 1080 × 1350 authoring artboard.
@@ -14,23 +14,34 @@ const covers: Record<string, Layout> = {
     'titulo-line-2': {fontSize:111,height:123},
     apoio: {y:489,height:53,fontSize:39},
   },
+  'REF-02': {
+    'titulo-linha-1':{fontSize:111,height:118},'titulo-linha-2':{fontSize:110,height:117},
+    'titulo-linha-3':{fontSize:109,height:116},apoio:{x:279,width:540,height:43},
+  },
+  'REF-03': {verdade:{fontSize:60,height:65},sobre:{y:116,height:36}},
   'REF-04': {
     'titulo-brutal': {fontSize:163,height:190},
     'titulo-ism': {x:224,width:770,fontSize:146,height:172},
-    subtitulo: {y:807,width:590,height:73,fontSize:39,fill:'#A81826'},
+    subtitulo: {y:792,width:610,height:64,fontSize:34,fill:'#A81826'},
   },
   'REF-06': {'titulo-principal': {height:85,fontSize:57}},
+  'REF-08': {realce:{width:226},'ponto-realce-2':{x:838},'titulo-enfase':{width:216,minFontSize:48}},
   'REF-09': {
     'titulo-line-4': {height:112,fontSize:77},
     conversao: {height:81,fontSize:71},
     'conversao-line-2': {height:81,fontSize:71},
   },
-  'REF-13': {support: {height:88,fontSize:46}},
+  'REF-12': {'explanation-copy':{fontSize:33,height:40},'explanation-copy-line-2':{fontSize:33,height:40,y:537},
+    'takeaway-copy':{fontSize:28,height:39},'takeaway-copy-line-2':{fontSize:28,height:39,y:908}},
+  'REF-10': {pieces:{x:54,width:972,height:190,fill:'#E1F345',stroke:'#25251F',strokeWidth:2},volume:{fill:'#E1F345',stroke:'#25251F',strokeWidth:2}},
+  'REF-11': {'photo-scrim':{opacity:.37}},
+  'REF-13': {first:{fontSize:211,height:220},second:{fontSize:202,height:212},third:{y:769,fontSize:209,height:221},support: {height:88,fontSize:46}},
   'REF-15': {
     solution: {y:701,width:486,height:75,fontSize:67},
     'solution-line-2': {y:779,width:486,height:75,fontSize:67},
     'solution-line-3': {y:857,width:486,height:75,fontSize:67},
   },
+  'REF-16': {skill:{fontSize:207,height:210},'no-two':{y:577,height:238,fontSize:229}},
   'REF-17': {
     'optional-caption': {opacity:1,stroke:'#111A1E',strokeWidth:4,fill:'#FFFFFF',height:60},
   },
@@ -38,27 +49,50 @@ const covers: Record<string, Layout> = {
     marketing: {x:227,width:626,fontSize:109,height:129,align:'center'},
     tagline: {x:242,width:596,align:'center'},
     'paper-brand': {fill:'#435800'},
+    'paper-support':{x:287,y:915,width:510,height:54,fontSize:22},
   },
-  'REF-19': {'reveal-text': {y:690,height:124,fontSize:48}},
+  'REF-19': {title:{x:104,width:872,height:175,fontSize:143},'reveal-text': {y:690,height:124,fontSize:48}},
   'REF-21': {
+    'photo-scrim':{opacity:.3},
     intro: {x:160,width:760,align:'center',fontSize:52},
     title: {x:102,width:876,fontSize:152,height:165,align:'center'},
     left: {x:121,y:481,width:366,height:61,fontSize:37,align:'right'},
     right: {x:610,y:481,width:365,height:61,fontSize:37,align:'left'},
   },
+  'REF-22': {
+    line1:{x:168,y:75,width:744,height:96,fontSize:89,align:'center'},
+    line2:{x:138,y:179,width:804,height:96,fontSize:89,align:'center'},
+    line3:{x:113,y:283,width:854,height:98,fontSize:89,align:'center'},
+  },
   'REF-23': {
     ele: {x:498,y:903,width:430,height:65,fontSize:43},
-    parece: {x:183,y:982,width:748,height:171,fontSize:131},
+    parece: {x:183,y:982,width:748,height:171,fontSize:131,fill:'#FCF1D2',stroke:'#263CB2',strokeWidth:8},
   },
   'REF-24': {title: {x:106,y:51,width:868,height:145,fontSize:110,align:'center'}},
+  'CON-03': {'text-9-0':{width:924,height:104}},
+  'R9-03': {'text-1-0':{x:140,width:800,height:90,align:'center'}},
+  'R9-20': {'text-5-0':{height:103}},'R9-21': {'text-1-0':{width:722,height:88}},
+  'R9-22': {'text-5-0':{height:110}},
+  'CON-01': {'text-9-2':{width:692}},
+  'CON-18': {'text-6-4':{fill:'#9A1625'}},
+  'CON-19': {'text-2-0':{x:83,y:85,width:430,height:51,fontSize:30},'text-8-2':{fill:'#A51E12'}},
+  'CON-21': {'text-5-0':{height:92,fontSize:84},'text-5-1':{y:423,height:102,fontSize:84}},
+  'CON-29': {'text-9-1':{height:78,fontSize:74},'text-9-2':{y:689,height:81,fontSize:74}},
   'CON-04': {
     'text-12-0': {x:131,y:431,width:818,height:86,fontSize:44},
     'text-12-1': {x:131,y:535,width:818,height:369,fontSize:40},
   },
   'CON-05': {'text-1-0': {x:177,width:726,height:55,align:'center'}},
+  'R9-02': {'text-4-0': {x:466,y:652,width:148,height:46,align:'center'}},
+  'R9-15': {
+    'text-1-0': {x:792,y:94,width:200,height:50,align:'center'},
+    'text-3-0': {x:73,y:482,width:934,height:196,fontSize:100},
+    'text-4-0': {x:107,y:732,width:866,height:113},
+  },
+  'CON-06': {'text-10-0': {x:63,y:467,width:765,height:363}},
   'CON-07': {
-    'text-5-0': {x:126,y:421,width:828,height:111,fontSize:90,align:'center'},
-    'text-5-1': {x:126,y:531,width:828,height:111,fontSize:90,align:'center'},
+    'text-5-0': {x:126,y:421,width:828,height:232,fontSize:90,align:'center'},
+
     'text-6-0': {x:116,y:665,width:848,height:86,fontSize:55,align:'center'},
     'text-8-0': {x:120,y:816,width:840,height:176,align:'center'},
   },
@@ -75,8 +109,8 @@ const covers: Record<string, Layout> = {
     'text-19-0': {x:690,width:257,height:50,align:'right'},
   },
   'CON-22': {'text-11-0': {x:109,y:763,width:854,height:146,fontSize:35}},
-  'CON-24': {'text-10-0': {x:175,y:812,width:730,height:168,align:'center'}},
-  'CON-25': {'text-11-0': {x:86,y:844,width:920,height:145}},
+  'CON-24': {'text-13-0': {x:392,y:1153,width:296,height:52,align:'center',fill:'#833F32'},'text-4-0':{fill:'#833F32'},'text-8-0': {x:486,y:383,width:108,height:76,fontSize:54,align:'center',fill:'#FFF4E4'},'text-10-0': {x:175,y:812,width:730,height:168,align:'center'}},
+  'CON-25': {'text-9-0':{x:63,y:616,width:955,height:100,fontSize:88},'text-9-1':{x:63,y:716,width:955,height:102,fontSize:88},'text-8-0': {x:88,y:480,width:270,height:94,fontSize:40,fill:'#FFAB58'},'text-11-0': {x:86,y:844,width:920,height:145}},
   'CON-26': {'text-5-0': {x:72,width:936,height:121,fontSize:67,align:'center'}},
 };
 
@@ -107,7 +141,6 @@ const carouselSlides: Record<string, Layout> = {
   },
   'R9-09': {
     'text-3-0': {x:71,width:896},
-    'text-3-1': {x:71,width:896},
     'surface-4': {y:711},
     'text-5-0': {x:71,y:752,width:880,height:180},
   },
@@ -120,7 +153,7 @@ const carouselSlides: Record<string, Layout> = {
 };
 
 const closingSlides: Record<string, Layout> = {
-  'CON-01': {'text-17-0': {y:737},'text-17-1': {y:804}},
+  'CON-01': {'text-17-0': {y:737,height:130}},
 };
 
 export function refineCover(code: string, definition: ComponentDefinitionV1): Layout {
@@ -130,15 +163,50 @@ export function refineCover(code: string, definition: ComponentDefinitionV1): La
       edits[layer.id] = {height:53,fontSize:47};
     }
   }
+  if (code === 'REF-02') {
+    const targets = definition.fragment.bindings.find(b=>b.source==='block:headline:0:text')!.targetIds;
+    // On a short title, occupy the two highlighted lines first. The longer
+    // four-line arrangement remains available without adding filler words.
+    definition.completeDesign!.designGuidance!.requiredTextTargets = [targets[1]];
+    for (const id of targets) {
+      const layer = definition.fragment.instances.find(i=>i.id===id)!;
+      const old = definition.pieces[layer.pieceHash];
+      const piece = arsenalPieceSchema.parse({...old,contentFragment:{...old.contentFragment,allocation:{mode:'preserve_occupancy',priority:[1,2,0,3]}}});
+      layer.pieceHash = arsenalHash(piece);
+      definition.pieces[layer.pieceHash] = piece;
+    }
+  }
+  if (code === 'REF-08') {
+    const title=definition.fragment.bindings.find(b=>b.source==='block:headline:0:text')!;
+    for(const id of title.targetIds){
+      const layer=definition.fragment.instances.find(i=>i.id===id)!;
+      const old=definition.pieces[layer.pieceHash];
+      const piece=arsenalPieceSchema.parse({...old,contentFragment:{...old.contentFragment,weights:[44,17,39]}});
+      layer.pieceHash=arsenalHash(piece);
+      definition.pieces[layer.pieceHash]=piece;
+    }
+  }
+  if (code === 'CON-18' || code === 'CON-19') {
+    const id = code === 'CON-18' ? 'text-6-4' : 'text-8-2';
+    const layer=definition.fragment.instances.find(i=>i.id===id)!;
+    const old=definition.pieces[layer.pieceHash];
+    const piece=arsenalPieceSchema.parse({...old,textFragments:old.textFragments!.map((run,index)=>index===0?run:{...run,style:{...run.style,color:edits[id].fill}})});
+    layer.pieceHash=arsenalHash(piece);
+    definition.pieces[layer.pieceHash]=piece;
+  }
   applyLayerEdits(definition, edits);
   return edits;
+}
+
+export function refineMergedParagraphs(code: string, definition: ComponentDefinitionV1) {
+  if (code === 'REF-09') applyLayerEdits(definition,{'produto-descricao':{y:688,width:244,height:92,minFontSize:15}});
 }
 
 function applyLayerEdits(definition: ComponentDefinitionV1, edits: Layout) {
   for (const [id, edit] of Object.entries(edits)) {
     const layer = definition.fragment.instances.find(instance => instance.id === id);
     if (!layer) throw Error(`refinement_target_missing:${definition.label}:${id}`);
-    const {x,y,width,height,opacity,...style} = edit;
+    const {x,y,width,height,opacity,minFontSize,...style} = edit;
     Object.assign(layer, Object.fromEntries(Object.entries({x,y,width,height,opacity}).filter(([,value])=>value!==undefined)));
     const previous = definition.pieces[layer.pieceHash];
     if (Object.keys(style).length) {
@@ -154,6 +222,7 @@ function applyLayerEdits(definition: ComponentDefinitionV1, edits: Layout) {
       if (style.fontSize !== undefined) {
         relation.parameters.minFontSize = style.fontSize * Math.min(1, relation.parameters.minFontSize / previous.fontSize);
       }
+      if (minFontSize !== undefined) relation.parameters.minFontSize = minFontSize;
       if (style.align !== undefined) relation.parameters.anchor = style.align;
     }
   }

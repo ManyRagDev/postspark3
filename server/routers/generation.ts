@@ -3,6 +3,7 @@ import { selectionPolicyForNewRequest } from "@shared/selectionPolicy";
 import { extractUrlsFromText } from "@shared/creationBrief";
 import { requireProfessionalStudio } from "../studioAccess";
 import { getBrandProjectById } from "../db";
+import { getRealBillingProfile, isUnlimitedPlan } from "../billing";
 import { freezeGenerationProject } from "@shared/projectEditorial";
 import { reconcileGenerationReviews } from "../ai/workflows/generationReconciliation";
 import {arsenalHash} from "@shared/arsenalContent";
@@ -10,6 +11,7 @@ import {readCatalogManifest,withCatalogRevision} from "../designCatalog/versione
 import {localCatalogRevisionOverride} from "../designCatalog/localCatalogOverride";
 import { assertTrialCatalogEditorialReady, trialCatalogRevisionForUser } from "../designCatalog/trialCatalog";
 import {enqueueLocal,localExecutorScope} from "../ai/workflows/localDemandSupervisor";
+import { readDemandWorkerReadiness } from "../ai/workflows/workerReadiness";
 import { ENV } from "../_core/env";
 import { GenerationFailureError } from "../_core/generationError";
 import { toFailureMetadata } from "@shared/generationFailure";
@@ -18,6 +20,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import {
+  STUDIO_SELECTION_STRATEGY,
   orchestratedGenerationInputSchema,
   normalizeExecutionBrief,
 } from "@shared/generationRequest";
@@ -54,12 +57,32 @@ function admissionPaused(reason: AdmissionPauseReason) {
   return new GenerationFailureError({ code: "PRECONDITION_FAILED", failure });
 }
 
+async function artworkCarouselPrice(user: { id: string; email?: string | null }) {
+  const profile = await getRealBillingProfile(user.email ?? "", user.id);
+  if (isUnlimitedPlan(profile.plan)) return 0;
+  const price = ENV.artworkCarouselSparks;
+  return Number.isInteger(price) && price > 0 && price <= 99_999 ? price : null;
+}
+
 export const generationRouter = router({
   designFrequency: adminProcedure.input(designFrequencyInput).query(({ input }) => readDesignFrequency(input)),
   debugger: adminProcedure.input(z.object({ requestId: z.string().uuid(), ownerId: z.string().uuid() })).query(async ({ ctx, input }) => {
     if (input.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
     const { readStudioDebugger } = await import("../studioDebugger");
     return readStudioDebugger(input.requestId, ctx.user.id);
+  }),
+  artworkCarouselQuote: protectedProcedure.query(async ({ ctx }) => {
+    if (!ENV.openRouterApiKey || await admissionPauseReason(ctx.user.id))
+      return { status: "unavailable" as const };
+    const [workerReady, databaseReady] = await Promise.all([
+      ENV.generationWorkerMode === "local-demand"
+        ? ENV.localDemandEnabled
+        : readDemandWorkerReadiness().then(worker => worker?.supportsArtworkCarousel === true),
+      createGenerationStore().isArtworkCarouselAvailable?.(),
+    ]);
+    if (!workerReady || !databaseReady) return { status: "unavailable" as const };
+    const sparks = await artworkCarouselPrice(ctx.user);
+    return sparks === null ? { status: "price_pending" as const } : { status: "ready" as const, sparks };
   }),
   capabilities: protectedProcedure.query(async ({ ctx }) => {
     const configured=Boolean(ENV.openRouterApiKey&&ENV.openRouterProposalReviewModel&&ENV.openRouterVisionModel);
@@ -81,17 +104,25 @@ export const generationRouter = router({
       if(!ENV.localDemandEnabled)return {...base,enabled:false,reason:'local_activation_required'};
       try{await (await import('../ai/workflows/proposalRenderer')).assertReviewRendererConfigured();}catch{return {...base,enabled:false,reason:'renderer_configuration_required'};}
       const identityEnabled = await identityReady();
-      try{const m=await readCatalogManifest(localCatalogRevisionOverride()),counts=m.summary[ctx.user.role==='admin'?'experimental':'approved'];return {...base,identityEnabled,...counts,catalogRevision:m.revision,catalogScope:ctx.user.role==='admin'?'experimental' as const:'approved' as const,catalogProject:arsenalHash(ENV.supabaseUrl),catalogCount:counts.staticOfferCount+counts.carouselOfferCount,enabled:counts.staticOfferCount+counts.carouselOfferCount>0,reason:'ready'};}
+      try {
+        const manifest = await readCatalogManifest(localCatalogRevisionOverride());
+        const catalogScope = ctx.user.role === "admin" ? "experimental" as const : "approved" as const;
+        const counts = manifest.summary[catalogScope];
+        const catalogCount = counts.staticOfferCount + counts.carouselOfferCount;
+        return { ...base, identityEnabled, ...counts, catalogRevision: manifest.revision, catalogScope,
+          catalogProject: arsenalHash(ENV.supabaseUrl), catalogCount, enabled: catalogCount > 0,
+          reason: catalogCount > 0 ? "ready" : "catalogue_required" };
+      }
       catch{return {...base,identityEnabled,enabled:false,reason:'catalog_publication_required'};}
     }
     try {
-      const store = createGenerationStore();
       const trialRevision = trialCatalogRevisionForUser(ctx.user);
       if (trialRevision) await assertTrialCatalogEditorialReady(trialRevision);
-      const [available, manifest] = await Promise.all([
-        store.isAvailable().catch(() => false),
+      const [worker, manifest] = await Promise.all([
+        readDemandWorkerReadiness(),
         readCatalogManifest(trialRevision),
       ]);
+      const available = worker?.supportsEditorialSelection === true;
       // Publication owns the advisory counts (including V3 repertoires).
       // start still checks the exact request against this pinned revision.
       const scope = ctx.user.role === "admin" ? "experimental" : "approved";
@@ -137,7 +168,7 @@ export const generationRouter = router({
     })
     .input(orchestratedGenerationInputSchema)
     .mutation(async ({ ctx, input }) => {
-      // Policy is deployment configuration, never a client-controlled identity.
+      // The technical policy is server-pinned for both Studio routes.
       const { selectionPolicy: _clientPolicy, ...requestInput } = input;
       input = requestInput;
       const readsWebsite = input.inputType === "url" || Boolean(input.siteIntelligenceId) ||
@@ -154,7 +185,7 @@ export const generationRouter = router({
       }
       if (readsWebsite) await requireProfessionalStudio(ctx.user, "A extração de URL");
       console.info(
-        `[trpc:generation.start] 📩 Requisição recebida | user=${ctx.user.id.slice(0, 8)}... | modo=${input.postMode} | ratio=${input.aspectRatio ?? "auto"} | rota=${input.postMode === "carousel" ? "carousel_generation" : "static_generation"} | modelo_configurado=${resolveGenerationModelConfig(input).model}`
+        `[trpc:generation.start] 📩 Requisição recebida | user=${ctx.user.id.slice(0, 8)}... | modo=${input.postMode} | ratio=${input.aspectRatio ?? "auto"} | rota=${input.postMode === "carousel" ? "carousel_generation" : "static_generation"} | ${(input.generationModel ?? "auto") === "auto" ? "escolha=auto" : "modelo_configurado=" + resolveGenerationModelConfig(input).model}`
       );
       if (input.ownerId !== ctx.user.id)
         throw new TRPCError({
@@ -226,7 +257,10 @@ export const generationRouter = router({
           cause: error,
         });
       }
-      if (ENV.generationWorkerMode==='local-demand' ? !ENV.localDemandEnabled : !(await store.isAvailable()))
+      const worker = ENV.generationWorkerMode === "local-demand"
+        ? (ENV.localDemandEnabled ? { supportsTextRecovery: true, supportsFinalFitRepair: true, supportsTrioDelivery: true as const, supportsEditorialTeam: true as const, supportsEditorialSelection: true as const, supportsArtworkCarousel: true as const } : null)
+        : await readDemandWorkerReadiness();
+      if (!worker)
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message:
@@ -237,15 +271,45 @@ export const generationRouter = router({
         catch{throw new TRPCError({code:'PRECONDITION_FAILED',message:'Prepare o renderer e o Chromium local antes de gerar.'});}
       }
       if(!ENV.openRouterApiKey)throw new TRPCError({code:"PRECONDITION_FAILED",message:"O serviço de geração precisa ser configurado antes de gerar. Nenhum Spark foi reservado."});
+      if (input.artworkCarousel) {
+        if (!worker.supportsArtworkCarousel || !(await store.isArtworkCarouselAvailable?.()))
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A criação de slides para esta arte está indisponível." });
+        const currentPrice = await artworkCarouselPrice(ctx.user);
+        if (currentPrice === null || currentPrice !== input.artworkCarousel.confirmedSparks)
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Confira o custo atual em Sparks na revisão do briefing antes de gerar." });
+      }
       const parent = input.generationParentRequestId
         ? await store.get(input.generationParentRequestId, ctx.user.id)
         : null;
       if (input.generationParentRequestId && !parent)
         throw new TRPCError({ code: "NOT_FOUND", message: "A geração de origem não foi encontrada nesta conta." });
-      const generationConfig = parent?.generationConfig ?? resolveGenerationModelConfig(input);
+      if (parent?.input.artworkCarousel)
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Revise e confirme um novo briefing para criar outra versão deste carrossel." });
+      const selectionStrategy = parent ? parent.input.selectionStrategy : STUDIO_SELECTION_STRATEGY;
+      if (selectionStrategy && !input.fixedDesign && !worker.supportsEditorialSelection)
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "O executor precisa ser atualizado para a seleção editorial do Studio. Nenhum Spark foi reservado.",
+        });
+      if (parent?.generationConfig?.editorialTeam && !worker.supportsEditorialTeam)
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "O executor precisa suportar a equipe editorial desta geração." });
+      if ((parent?.generationConfig?.textRecoveryVersion && !worker.supportsTextRecovery) ||
+          (parent?.generationConfig?.finalFitRepairVersion && !worker.supportsFinalFitRepair) ||
+          (parent?.generationConfig?.trioDeliveryVersion && !worker.supportsTrioDelivery))
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "O executor disponível ainda não suporta a versão de ajuste de texto desta geração. Seu briefing foi preservado." });
+      const generationConfig = parent?.generationConfig ?? resolveGenerationModelConfig(
+        input, worker.supportsTextRecovery, worker.supportsFinalFitRepair === true, worker.supportsTrioDelivery === true,
+        !parent && worker.supportsEditorialTeam === true && process.env.POSTSPARK_EDITORIAL_TEAM !== "legacy",
+      );
+      if (selectionStrategy && !input.fixedDesign && generationConfig.generationStrategyVersion !== 2)
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "A seleção editorial do Studio requer a versão atual do motor. Nenhum Spark foi reservado.",
+        });
       const selectionPolicy = parent ? (parent.input.selectionPolicy ?? "legacy")
         : selectionPolicyForNewRequest(process.env.POSTSPARK_SELECTION_POLICY);
-      const policyInput = { ...input, selectionPolicy };
+      // Hash the submitted request for idempotency. Store the effective strategy for execution and continuations.
+      const policyInput = { ...input, selectionPolicy, selectionStrategy };
       if (generationConfig.preparationBudget && store.isPreparationAvailable && !(await store.isPreparationAvailable()))
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A preparação de geração está em atualização. Nenhum Spark foi reservado." });
       if (generationConfig.taskRouting && (!store.isTaskRoutingAvailable || !(await store.isTaskRoutingAvailable())))
@@ -295,21 +359,34 @@ export const generationRouter = router({
       }
       const inputHash = requestInputHash(input);
       const storedInput: typeof input & { pinnedDesign?: Awaited<ReturnType<typeof pinFixedDesign>> } = structuredClone(policyInput);
+      const frozenParent = parent?.input.projectId === input.projectId && parent?.input.projectSnapshot;
+      const requestsExtractedIdentity = input.projectSnapshot?.version === 3 && input.projectSnapshot.visualIdentity.extractedFrom;
+      if (frozenParent) {
+        storedInput.projectSnapshot = frozenParent;
+      } else if (input.projectId) {
+        const project = await getBrandProjectById(input.projectId, ctx.user.id);
+        const needsSnapshot = !input.projectDossier && !input.projectSnapshot;
+        if (!project && (needsSnapshot || requestsExtractedIdentity))
+          throw new TRPCError({ code: "NOT_FOUND", message: "Projeto indisponível nesta conta." });
+        if (project && (needsSnapshot || project.visual_identity?.extractedFrom || requestsExtractedIdentity)) {
+          storedInput.projectDossier = project.compiled_document;
+          storedInput.projectSnapshot = freezeGenerationProject({ name: project.name, niche: project.niche,
+            compiledDocument: project.compiled_document, structuredData: project.structured_data, capture: project.capture,
+            visualPreferences: project.visual_preferences, visualIdentity: project.visual_identity });
+        }
+      } else if (requestsExtractedIdentity) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione o projeto da identidade visual." });
+      }
       if (input.fixedDesign) {
         const previous = parent?.input.pinnedDesign;
-        if (parent?.input.fixedDesign && previous &&
+        if (parent?.input.fixedDesign && parent.input.projectId === input.projectId && previous &&
           arsenalHash(parent.input.fixedDesign) === arsenalHash(input.fixedDesign) &&
           parent.input.aspectRatio === input.aspectRatio && parent.input.postMode === input.postMode &&
           parent.input.slideCount === input.slideCount) {
           storedInput.pinnedDesign = previous;
         } else {
-          storedInput.pinnedDesign = await pinFixedDesign(input, ctx.user.id);
+          storedInput.pinnedDesign = await pinFixedDesign(storedInput, ctx.user.id);
         }
-      }
-      if(input.projectId&&!input.projectDossier&&!input.projectSnapshot){
-        const project=await getBrandProjectById(input.projectId,ctx.user.id);if(!project)throw new TRPCError({code:"NOT_FOUND",message:"Projeto não encontrado."});
-        storedInput.projectDossier=project.compiled_document;
-        storedInput.projectSnapshot=freezeGenerationProject({name:project.name,niche:project.niche,compiledDocument:project.compiled_document,structuredData:project.structured_data,capture:project.capture,visualPreferences:project.visual_preferences,visualIdentity:project.visual_identity});
       }
       // Content addressing makes concurrent/retried first admissions share the
       // same private bytes. Polling and restoration can use stable private URLs.

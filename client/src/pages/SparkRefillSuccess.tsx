@@ -28,6 +28,6 @@ export default function SparkRefillSuccess() {
     {!credited && <button type="button" disabled={pending} onClick={() => void verify()} className="w-fit rounded-lg bg-orange-300 px-4 py-3 font-semibold text-black">
       {pending ? "Conferindo…" : "Conferir recarga"}
     </button>}
-    <a href="/billing" className="underline">Ver saldo</a>
+    <a href="/billing" className="inline-flex min-h-11 items-center underline">Ver saldo</a>
   </main>;
 }

@@ -10,6 +10,7 @@ import {
   adaptRequestForProvider,
   buildRepairMessages,
   hasMultimodalContent,
+  isOpenRouterSolModel,
   generationTaskProviderOptions,
   validateStructuredContent,
   type ProviderModelConfig,
@@ -47,6 +48,22 @@ export const providerRejectionReceiptSchema = z.object({
   ]),
 }).strict();
 export type ProviderRejectionReceipt = z.infer<typeof providerRejectionReceiptSchema>;
+/** Only synchronous checks before the first dispatch may produce this error. */
+export class LlmLocalRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LlmLocalRequestError";
+  }
+}
+
+function checkLocalRequest<T>(check: () => T): T {
+  try {
+    return check();
+  } catch (error) {
+    throw new LlmLocalRequestError(error instanceof Error ? error.message : "llm_request_invalid");
+  }
+}
+
 export class KnownProviderRejectionError extends Error {
   readonly code?: "provider_route_unavailable";
   constructor(readonly receipt: ProviderRejectionReceipt) {
@@ -608,8 +625,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       throw new LlmDeadlineExceededError();
     }
   };
-  const taskModelConfig = validatedTaskModelConfig(params);
-  const normalizedMessages = messages.map(normalizeMessage);
+  const taskModelConfig = checkLocalRequest(() => validatedTaskModelConfig(params));
+  const normalizedMessages = checkLocalRequest(() => messages.map(normalizeMessage));
   const containsMultimodalContent = hasMultimodalContent(normalizedMessages);
   const requestedModel = taskRoute ?? model ?? (containsMultimodalContent ? "vision_analysis" : "static_generation");
   const effectiveTaskRoute = taskRoute ?? (isAiTaskRoute(requestedModel) ? requestedModel : undefined);
@@ -622,24 +639,25 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       ["static_generation", "carousel_generation"].includes(effectiveTaskRoute ?? "") &&
       /^proposal_.+_copy(?:_recovery)?$/.test(traceLabel);
     const completionLimit = params.maxCompletionTokens ?? params.max_completion_tokens ?? params.maxTokens ?? params.max_tokens;
-    // A targeted editorial patch must be journaled before local validation too.
+    // Both targeted repair protocols journal the provider response before local validation.
     // Keep this exception limited to the validated, bounded automatic repair route.
+    const factualEditorialRepair = params.pinnedModel === "openai/gpt-6.2-sol" &&
+      /^proposal_.+_editorial_recovery$/.test(traceLabel) && params.transportTimeoutMs === 60_000;
     const proposalRepairCaller = params.durableProposalCopyReceipt === true &&
-      taskModelConfig?.model === "deepseek/deepseek-v4.1-flash" &&
-      normalizeResponseFormat(params)?.type === "json_schema" &&
-      taskModelConfig.transportTimeoutMs <= 60_000 &&
+      ((taskModelConfig?.model === "deepseek/deepseek-v4.1-flash" && taskModelConfig.transportTimeoutMs <= 60_000) || factualEditorialRepair) &&
+      checkLocalRequest(() => normalizeResponseFormat(params))?.type === "json_schema" &&
       typeof params.transportTimeoutMs === "number" && params.transportTimeoutMs > 0 &&
-      params.transportTimeoutMs <= taskModelConfig.transportTimeoutMs &&
+      params.transportTimeoutMs <= (taskModelConfig?.transportTimeoutMs ?? 60_000) &&
       typeof completionLimit === "number" && Number.isInteger(completionLimit) && completionLimit > 0 && completionLimit <= 2048 &&
       ["static_generation", "carousel_generation"].includes(effectiveTaskRoute ?? "") &&
-      /^proposal_.+_editorial_recovery$/.test(traceLabel);
+      /^proposal_.+_(?:editorial_recovery|copy_final_fit(?:_residual)?)$/.test(traceLabel);
     if (
       effectiveTaskRoute !== "post_evaluation" && !preparationCaller && !proposalCopyCaller && !proposalRepairCaller ||
       maxTransportAttempts !== 1 ||
       !disableFallback ||
       !disableStructuredRepair
     ) {
-      throw new Error(
+      throw new LlmLocalRequestError(
         "structuredValidationOwner 'caller' requires post_evaluation route or a permitted journaled generation, exactly 1 transport attempt, disableFallback: true, and disableStructuredRepair: true"
       );
     }
@@ -674,20 +692,20 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       estimatedCostUsd: 0,
       error: error instanceof Error ? error.message.slice(0, 500) : "Model configuration failed",
     });
-    throw error;
+    throw new LlmLocalRequestError(error instanceof Error ? error.message : "llm_request_invalid");
   }
 
-  const normalizedToolChoice = normalizeToolChoice(
+  const normalizedToolChoice = checkLocalRequest(() => normalizeToolChoice(
     toolChoice || tool_choice,
     tools
-  );
+  ));
 
-  const normalizedResponseFormat = normalizeResponseFormat({
+  const normalizedResponseFormat = checkLocalRequest(() => normalizeResponseFormat({
     responseFormat,
     response_format,
     outputSchema,
     output_schema,
-  });
+  }));
 
   const buildPayload = (
     config: ProviderModelConfig,
@@ -716,7 +734,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         params.reasoningEffort ?? params.reasoning_effort ?? "low";
     } else if (config.provider === "openrouter") {
       const taskPolicy = effectiveTaskRoute ? OPENROUTER_TASK_POLICY[effectiveTaskRoute] : undefined;
-      const isGptSol = config.effectiveModel.startsWith("openai/gpt-6.1-sol");
+      const isGptSol = isOpenRouterSolModel(config.effectiveModel);
       const requestedReasoning =
         params.reasoningEffort ??
         params.reasoning_effort ??

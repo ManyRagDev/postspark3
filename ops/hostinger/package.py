@@ -7,7 +7,7 @@ import tarfile
 
 root = Path(__file__).resolve().parents[2]
 target = Path('/tmp/postspark-hostinger-source.tar.gz')
-directories = ['client', 'server', 'shared', 'patches', 'ops']
+directories = ['client', 'server', 'shared', 'patches', 'ops', 'labs/mare-studio/dist', 'labs/mare-studio/processor']
 files = ['Dockerfile.worker', '.dockerignore', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'scripts/build-review-renderer.mjs']
 excluded = {'node_modules', '.git', '.local', '__pycache__', 'benchmarks', '__tests__'}
 paths = [root / file for file in files]

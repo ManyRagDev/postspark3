@@ -76,7 +76,7 @@ O usuário fornece insumos flexíveis na etapa de criação (`StudioCreateViewV2
 ## 5. Invariantes de Produto e Regras de Negócio Inegociáveis
 
 1. **A Fonte Única da Verdade do Editor é o `CanvasPostModel`:**
-   - O fluxo legado (`Home.tsx` / `HoloDeck` / `WorkbenchV2`) é histórico e órfão de rota.
+   - A edição acontece no CanvasLab. As interfaces aposentadas estão no backup de legado.
    - Todo post em edição é regido pelo `CanvasPostModel`.
 2. **Contraste e Legibilidade Não São Opcionais:**
    - Nenhuma geração ou template padrão pode sair com texto invisível ou contraste abaixo das normas de acessibilidade (WCAG).

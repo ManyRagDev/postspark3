@@ -1,0 +1,22 @@
+.mobile-view, #mobile-fine { display: none; }
+@media (max-width:760px) {
+  .mobile-view { display:flex; gap:4px; width:max-content; margin:8px auto; padding:3px; border:1px solid var(--line); border-radius:8px; }
+  .mobile-view button { border:0; border-radius:5px; background:transparent; min-height:44px; padding:0 14px; color:var(--faint); }
+  .mobile-view button[aria-pressed="true"] { background:var(--panel); color:var(--bright); }
+  body[data-mobile-view="contextual"] .mobile-tabs { flex-wrap:wrap; }
+  body[data-mobile-view="contextual"] .mobile-tabs [data-panel="preview"] { display:none; }
+  body[data-mobile-view="contextual"] #mobile-fine { display:block; }
+  body[data-mobile-view="contextual"] .workspace { display:flex; flex-direction:column; height:auto; }
+  body[data-mobile-view="contextual"] .workspace > .preview { display:flex; order:-1; position:sticky; top:0; z-index:3; flex:none; height:clamp(170px,34dvh,330px); background:var(--panel); }
+  body[data-mobile-view="contextual"] .preview-head { display:none; }
+  body[data-mobile-view="contextual"] .workspace:not([data-panel="media"]) .inspector,
+  body[data-mobile-view="contextual"] .workspace[data-panel="media"] .library { display:block; height:auto; }
+  body[data-mobile-view="contextual"] .workspace[data-panel="media"] .library-scroll { max-height:45dvh; overflow:auto; }
+  body[data-mobile-view="contextual"] .cp-inspector { display:flex; flex-direction:column; }
+  body[data-mobile-view="contextual"] .cp-manual { order:-1; }
+  body[data-mobile-view="contextual"] .cp-manual > :not(.cp-prop-head):not(:has([data-cp-prop="text"])) { display:none; }
+  body[data-mobile-view="contextual"] .inspector:has([data-cp-prop="text"]) .composition-duration { display:none; }
+  body[data-mobile-view="contextual"] .cp-quick button,
+  body[data-mobile-view="contextual"] .cp-field input { min-height:44px; }
+  body[data-mobile-view="contextual"] #motion-track .cp-bezier-plot { display:none; }
+}

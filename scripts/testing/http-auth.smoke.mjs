@@ -20,6 +20,11 @@ function identity(session, role, grant) {
   users.set(session, { id, role, grant });
   return id;
 }
+const operatorToken = "fixture." + Buffer.from(JSON.stringify({ session_id: randomUUID() })).toString("base64url") + ".fixture";
+const operator = identity(operatorToken, "admin", "full");
+const developerToken = "fixture." + Buffer.from(JSON.stringify({ session_id: randomUUID() })).toString("base64url") + ".fixture";
+const developerId = identity(developerToken, "user", "full");
+let developerPlan = "DEV";
 const member = identity("member", "user", "full");
 identity("administrator", "admin", "full");
 identity("denied", "admin", null);
@@ -63,6 +68,15 @@ globalThis.fetch = async (input, init) => {
       case "refill_pro_sparks": return Response.json(null);
       case "agency_can_read_media": return Response.json(false);
     }
+  }
+  if (pathname === "/rest/v1/profiles") {
+    const id = searchParams.get("id")?.replace(/^eq\./, "");
+    assert.ok([...users.values()].some(user => user.id === id));
+    return Response.json({ id, plan: id === developerId ? developerPlan : "SOLO", sparks: 27 });
+  }
+  if (pathname === "/rest/v1/profiles") {
+    const user = [...users.values()].find(item => searchParams.get("id") === "eq." + item.id);
+    if (user) return Response.json({id:user.id, plan:user.role === "admin" && user.grant === "full" ? "DEV" : "SOLO", sparks:0});
   }
   if (pathname === "/rest/v1/brand_kits" && searchParams.get("user_uuid") === `eq.${member}`) {
     return Response.json([{ user_uuid: member }]);
@@ -127,8 +141,59 @@ try {
   assert.equal(downloads, 1);
 
   if (target === "current") {
+    for (const path of ["/mare", "/mare/", "/mare/index.html", "/api/mare/projects", "/api/mare/capabilities"]) {
+      assert.equal((await get(path)).status, 401, path);
+    }
+    assert.equal((await get("/previa-mare/")).status, localReview ? 401 : 404);
+    process.env.POSTSPARK_MARE_ENABLED = "true";
+    process.env.POSTSPARK_MARE_PILOT_USERS = users.get("administrator").id;
+    const editor = await get("/mare/", adminCookie);
+    assert.equal(editor.status, 200);
+    assert.match(editor.headers.get("cache-control"), /private, no-store/);
+    assert.match(await editor.text(), /id="studio-editor"/);
+    assert.equal((await get("/previa-mare/", adminCookie)).status, localReview ? 200 : 404);
+    // Exercise the same HTTP mutation and session cookies used by the account dropdown.
+    const operatorCookie = await login(operatorToken);
+    const choose = (plan, session) => clientFetch(origin + "/api/trpc/auth.impersonatePlan", {
+      method: "POST", headers: { "content-type": "application/json", cookie: session },
+      body: JSON.stringify({ json: { plan } }),
+    });
+    const who = async session => (await (await get("/api/trpc/auth.me", session)).json()).result.data.json;
+    const asCustomer = await choose("AGENCY", operatorCookie);
+    assert.equal(asCustomer.status, 200);
+    assert.match(asCustomer.headers.get("set-cookie"), /HttpOnly/i);
+    const preference = asCustomer.headers.get("set-cookie").split(";")[0];
+    const effective = operatorCookie + "; " + preference;
+    assert.equal((await who(effective)).id, operator);
+    assert.equal((await who(effective)).studioPlan, "AGENCY");
+    assert.equal((await who(effective)).canImpersonate, true);
+    assert.equal((await get(admin, effective)).status, 403);
+    assert.equal((await who(operatorCookie)).studioPlan, "SOLO");
+    assert.equal((await get(admin, operatorCookie)).status, 200);
+    assert.equal((await choose(null, effective)).status, 200);
+    users.get("member").grant = "full";
+    assert.equal((await choose("AGENCY", memberCookie)).status, 403);
+    assert.equal((await who(memberCookie + "; " + preference)).impersonatedPlan, null);
+    const developerCookie = await login(developerToken);
+    assert.equal((await who(developerCookie)).canImpersonate, true);
+    const preview = await choose("PRO_PLUS", developerCookie);
+    assert.equal(preview.status, 200);
+    const devPreview = developerCookie + "; " + preview.headers.get("set-cookie").split(";")[0];
+    const staleEditor = await clientFetch(origin + "/api/mare/projects", { headers: {
+      cookie: developerCookie, "X-PostSpark-Editor-Owner": operator,
+    } });
+    assert.equal(staleEditor.status, 401);
+    const [simulated, ordinary] = await Promise.all([who(devPreview), who(memberCookie)]);
+    assert.deepEqual([simulated.id, simulated.studioPlan, ordinary.id, ordinary.studioPlan], [developerId, "PRO_PLUS", member, "SOLO"]);
+    developerPlan = "SOLO";
+    assert.equal((await who(devPreview)).canImpersonate, false);
+    assert.equal((await who(devPreview)).impersonatedPlan, null);
     for (const session of ["start", "agency"]) {
       const scopedCookie = await login(session);
+      const restrictedEditor = await get("/mare/index.html", scopedCookie);
+      assert.equal(restrictedEditor.status, 403);
+      assert.doesNotMatch(await restrictedEditor.text(), /id="studio-editor"/);
+      assert.equal((await get("/previa-mare/", scopedCookie)).status, localReview ? 403 : 404);
       const me = await get("/api/trpc/auth.me", scopedCookie);
       assert.equal((await me.json()).result.data.json.access, session);
       assert.equal((await get(restricted, scopedCookie)).status, 403);

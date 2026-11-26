@@ -1,7 +1,8 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { resyncSupabaseSession } from "@/lib/authBridge";
 import { getAuthUiConfig } from "@/lib/authUiConfig";
-import { enrollStartPilot, membershipCycleKey, startProCheckout } from "@/lib/membershipApi";
+import { enrollStartPilot, membershipCycleKey, rememberPaymentReturn, startProCheckout } from "@/lib/membershipApi";
 import type { MembershipCycle, PaidStudioPlan } from "@shared/membership";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -13,7 +14,7 @@ import {
   Lock,
   Mail,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type AuthMode = "login" | "register";
 
@@ -53,22 +54,26 @@ interface StudioAuthModalProps {
   isOpen: boolean;
   isMobile: boolean;
   onClose: () => void;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
   initialPrompt?: string;
   checkoutCycle?: MembershipCycle;
   checkoutPlan?: PaidStudioPlan;
   startPilot?: boolean;
   agencyInvite?: string;
+  resumePayment?: boolean;
 }
 
 export default function StudioAuthModal({
   isOpen,
   isMobile,
   onClose,
+  returnFocusRef,
   initialPrompt,
   checkoutCycle,
   checkoutPlan = "PRO",
   startPilot = false,
   agencyInvite,
+  resumePayment = false,
 }: StudioAuthModalProps) {
   const { googleEnabled, signupEnabled } = getAuthUiConfig();
   const canRegister = signupEnabled || Boolean(checkoutCycle) || startPilot || Boolean(agencyInvite);
@@ -78,6 +83,7 @@ export default function StudioAuthModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const opener = useRef<HTMLElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +127,7 @@ export default function StudioAuthModal({
         throw new Error("Sessão não encontrada.");
       }
 
+      if (resumePayment) { onClose(); return; }
       if (agencyInvite) {
         window.location.assign(`/agency?invite=${agencyInvite}`);
         return;
@@ -156,11 +163,12 @@ export default function StudioAuthModal({
         throw new Error("Login com Google indisponível.");
       }
 
+      if (resumePayment) rememberPaymentReturn();
       if (checkoutCycle) sessionStorage.setItem(membershipCycleKey, checkoutCycle);
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/google-callback${startPilot || agencyInvite || checkoutPlan !== "PRO" ? returnQuery : ""}`,
+          redirectTo: `${window.location.origin}/auth/google-callback${resumePayment ? "?payment=1" : startPilot || agencyInvite || checkoutPlan !== "PRO" ? returnQuery : ""}`,
           queryParams: { access_type: "offline", prompt: "consent" },
         },
       });
@@ -173,9 +181,10 @@ export default function StudioAuthModal({
   };
 
   return (
+    <Dialog.Root open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none pointer-events-auto">
+        <Dialog.Portal><div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none pointer-events-auto">
           {/* Backdrop */}
           <motion.div
             key="studio-auth-backdrop"
@@ -188,12 +197,15 @@ export default function StudioAuthModal({
           />
 
           {/* Painel do Modal */}
+          <Dialog.Content asChild aria-describedby={undefined}
+            onOpenAutoFocus={() => { opener.current = returnFocusRef?.current ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null); }}
+            onCloseAutoFocus={event => { if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); } }}>
           <motion.div
             key="studio-auth-panel"
             className={
               isMobile
-                ? "relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-8 shadow-2xl backdrop-blur-2xl pointer-events-auto"
-                : "relative z-10 w-full max-w-md my-auto rounded-[2rem] border border-white/15 p-8 shadow-2xl backdrop-blur-2xl pointer-events-auto"
+                ? "relative z-10 w-full max-h-[min(95dvh,100%)] overscroll-contain overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-2xl pointer-events-auto"
+                : "relative z-10 w-full max-w-md max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain my-auto rounded-[2rem] border border-white/15 p-8 shadow-2xl backdrop-blur-2xl pointer-events-auto"
             }
             style={{
               background:
@@ -218,7 +230,7 @@ export default function StudioAuthModal({
             <button
               onClick={onClose}
               type="button"
-              className="absolute left-5 top-5 flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer"
+              className="absolute left-3 top-3 flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer"
               aria-label="Fechar"
             >
               <ChevronDown size={18} />
@@ -228,9 +240,9 @@ export default function StudioAuthModal({
               <div className="text-[10px] uppercase tracking-[0.32em] text-white/40 font-semibold">
                 {mode === "login" ? "Acesso ao Estúdio" : "Nova Conta"}
               </div>
-              <h2 className="mt-2 text-2xl font-bold text-white tracking-tight">
+              <Dialog.Title asChild><h2 className="mt-2 text-2xl font-bold text-white tracking-tight">
                 {mode === "login" ? "Entre no PostSpark" : checkoutCycle ? "Crie sua conta para assinar" : "Crie sua conta"}
-              </h2>
+              </h2></Dialog.Title>
               <p className="mt-1 text-xs md:text-sm text-white/60">
                 {initialPrompt
                   ? "Acesse sua conta para gerar posts com esta ideia."
@@ -376,9 +388,9 @@ export default function StudioAuthModal({
                 </button>
               </div>
             )}
-          </motion.div>
-        </div>
+          </motion.div></Dialog.Content>
+        </div></Dialog.Portal>
       )}
-    </AnimatePresence>
+    </AnimatePresence></Dialog.Root>
   );
 }

@@ -49,11 +49,16 @@ export function inspectGenerationDecisionTrace(source: DecisionTraceSource) {
     .map(op => {
       const data = row(row(op.result).data),
         review = row(data.review);
+      const expectedKey = data.attemptId
+        ? `${data.attemptId}:review_observation:${review.round}:${review.inputHash}:candidate`
+        : `${data.proposalId}:review_observation:${review.round}:${review.inputHash}:candidate`;
+      const reserveKeyPattern = new RegExp(
+        `^${String(data.proposalId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:-fb[1-9]\\d*)?:review_observation:${String(review.round)}:${String(review.inputHash)}:candidate$`
+      );
       const valid =
         op.state === "completed" &&
         data.requestId === request.id &&
-        op.operation_key ===
-          `${data.proposalId}:review_observation:${review.round}:${review.inputHash}:candidate`;
+        (op.operation_key === expectedKey || (!data.attemptId && reserveKeyPattern.test(String(op.operation_key))));
       if (!valid)
         issue(
           "review_observation_receipt_mismatch",
@@ -139,7 +144,10 @@ export function inspectGenerationDecisionTrace(source: DecisionTraceSource) {
 
   const assessments = operations
     .filter(op =>
-      String(op.operation_key).startsWith("prepare:design-shortlist:")
+      String(op.operation_key).startsWith("prepare:design-shortlist:") ||
+      (String(op.operation_key).startsWith("prepare:") &&
+        Boolean(row(clean(op.result).assessmentContext).questionIds) &&
+        Boolean(clean(op.result).answers))
     )
     .map(op => {
       const result = clean(op.result),

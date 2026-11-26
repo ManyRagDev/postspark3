@@ -221,7 +221,7 @@ def render(spec, work):
     sequence = json.loads(run(FILM, "inspect", "sequence", "--project", "edit.fcproj", "--compact"))
     if sequence["durationFrames"] != frame_count(spec):
         raise RuntimeError("A duração exportada diverge da composição.")
-    run(FILM, "export", "final.mp4", "--project", "edit.fcproj", "--no-audio", "--format", "h264", "--gpu-rendering", "off")
+    run(FILM, "export", "final.mp4", "--project", "edit.fcproj", "--settings", '{"h264Profile":"baseline"}', "--no-audio", "--format", "h264", "--gpu-rendering", "off")
     dump(work / "scene.json", spec)
     dump(work / "render.json", dict(frames=frame_count(spec), previewFrame=frame, fps=FPS, width=540, height=960))
     with ZipFile(work / "projects.zip", "w") as archive:

@@ -133,6 +133,34 @@ export function loadFontByName(name: string): void {
   loadFont(buildGoogleFontUrl(name));
 }
 
+/** Load a face before measuring an imported composition in the CanvasLab. */
+export async function prepareCanvasFont(family: string, weight: number, italic = false): Promise<void> {
+  if (typeof document === "undefined" || !document.fonts) return;
+  const safeFamily = family.replace(/["\\]/g, "");
+  const descriptor = `${italic ? "italic " : ""}${weight} 16px "${safeFamily}"`;
+  if ((await document.fonts.load(descriptor).catch(() => [])).length) return;
+  const base = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}`;
+  const urls = [`${base}:ital,wght@${italic ? 1 : 0},${weight}&display=swap`, `${base}&display=swap`];
+  for (const url of urls) {
+    loadFont(url);
+    const link = document.querySelector<HTMLLinkElement>(`link[href="${CSS.escape(url)}"]`);
+    if (link && !link.sheet) {
+      await new Promise<void>(resolve => {
+        const finish = () => {
+          clearTimeout(timeout);
+          link.removeEventListener("load", finish);
+          link.removeEventListener("error", finish);
+          resolve();
+        };
+        const timeout = setTimeout(finish, 1250);
+        link.addEventListener("load", finish);
+        link.addEventListener("error", finish);
+      });
+    }
+    if ((await document.fonts.load(descriptor).catch(() => [])).length) return;
+  }
+}
+
 /** Preload all curated catalog fonts in batch for immediate visual previews */
 export function loadCatalogFonts(): void {
   const batch1 =

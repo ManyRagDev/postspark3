@@ -70,12 +70,13 @@ describe("editor controls", () => {
     const title: EditorLayer = { id: "title", target: { slideId: "s", elementId: "title" }, label: "Título", kind: "text", role: "headline", parentId: null, children: [], visible: true, locked: false, capabilities };
     const ornament: EditorLayer = { ...title, id: "detail", target: { slideId: "s", elementId: "detail" }, label: "Linha", kind: "shape", role: "decoration" };
     const select = vi.fn();
-    act(() => root.render(<CanvasEditorLayers layers={[ornament, title]} onSelect={select} onAction={vi.fn()} />));
+    act(() => root.render(<CanvasEditorLayers layers={[title, ornament]} onSelect={select} onAction={vi.fn()} />));
     expect(container.textContent).toContain("Título");
     expect(container.textContent).toContain("Decoração (1)");
     expect(container.textContent).not.toContain("Linha");
-    act(() => root.render(<CanvasEditorLayers layers={[ornament, title]} selectedId="detail" onSelect={select} onAction={vi.fn()} />));
+    act(() => root.render(<CanvasEditorLayers layers={[title, ornament]} selectedId="detail" onSelect={select} onAction={vi.fn()} />));
     expect(container.textContent).toContain("Linha");
+    expect(Array.from(container.querySelectorAll<HTMLElement>("[data-layer-row]"), row => row.dataset.layerRow)).toEqual(["detail", "title"]);
     act(() => Array.from(container.querySelectorAll("button")).find(b => b.textContent?.includes("Linha"))?.click());
     expect(select).toHaveBeenCalledWith(ornament.target, expect.objectContaining({ toggle: false, range: false }));
   });

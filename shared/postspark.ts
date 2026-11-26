@@ -772,7 +772,10 @@ export type GenerationFailureReason =
   | "variations_not_distinct"
   | "persistence_failed"
   | "billing_commit_failed"
+  | "concurrent_limit_reached"
+  | "catalog_precondition_failed"
   | "generation_paused"
+  | "generation_unavailable"
   | "unknown";
 
 /** Metadados estruturados expostos ao cliente junto a uma falha de geração. */
@@ -809,7 +812,10 @@ export const GENERATION_FAILURE_REASONS: GenerationFailureReason[] = [
   "variations_not_distinct",
   "persistence_failed",
   "billing_commit_failed",
+  "concurrent_limit_reached",
+  "catalog_precondition_failed",
   "generation_paused",
+  "generation_unavailable",
   "unknown",
 ];
 

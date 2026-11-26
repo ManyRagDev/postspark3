@@ -6,6 +6,7 @@ import { availablePhotoCount, cardsWithAvailableMedia, repertoireMeetsMedia } fr
 import { reviewExecutionConfigV5Schema } from "@shared/proposalReviewV10";
 import { preparePlannedGeneration, verifyPlannedEligibility } from "./generationPlanning";
 import { resolveGenerationVisualImages,resolveGenerationVisualSites } from "./generationVisualSources";
+import { readLongEditorialSource } from "./editorialSourceReading";
 import { readGenerationImageSources,type ImageSourceReading } from "./generationImageSource";
 import { completeSourceContext } from "@shared/sourceContext";
 import { resolveReviewExecutionConfigV9 } from "./reviewExecutionConfigV9";
@@ -118,12 +119,13 @@ export const selectionInputReceiptSchema = z
     visualRequirementsVersion: z.literal(1).optional(),
     automaticSemanticVersion: z.literal(1).optional(),
     automaticRetrievalMode: z.literal("lexical").optional(),
-    compactIntentVersion: z.literal(1).optional(),
+    compactIntentVersion: z.union([z.literal(1), z.literal(2)]).optional(),
     selectionPolicy: z.literal("capability_v1").optional(),
+    selectionStrategy: z.literal("editorial_v1").optional(),
     editorialQuotePolicy: z.literal(1).optional(),
     carouselCaptionPolicy: z.literal(1).optional(),
     preservedPhoto: z.object({version:z.literal(1),url:z.string().regex(/^\/api\/post-media\/[a-f0-9-]{36}\/[a-f0-9]{64}$/i)}).strict().optional(),
-    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),selectionPolicy:z.literal("capability_v1").optional(),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2)]).optional(),axesVersion:z.literal(2).optional()}).strict().optional(),
+    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),selectionPolicy:z.literal("capability_v1").optional(),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(),axesVersion:z.literal(2).optional()}).strict().optional(),
     familyRetrievalVersion: z.literal(1).optional(),
     familyRecoveryVersion: z.literal(1).optional(),
     familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
@@ -149,6 +151,7 @@ export interface PreparedGeneration {
   alternativeDefinitions?: ComponentDefinitionV1[][][];
   alternativeOffers?: CompleteDesignOfferV1[][];
   recoveryPlanHash?: string;
+  editorialSourceQuotes?: string[];
   imageSourceReading?: ImageSourceReading|null;
   sourceReferences?: import("./proposalGraph").ProposalSourceReference[];
   selectionReasons: string[];
@@ -450,7 +453,7 @@ function requestImageInstructions(
 }
 
 /** Preserve the explicitly requested photo/typography mix in the unified selector. */
-function requestsPhotoMix(text: string): boolean {
+export function requestsPhotoMix(text: string): boolean {
   return (
     /\b(?:duas|2)\s+(?:propostas?\s+|varia[cç][oõ]es?\s+)?com\s+(?:espa[cç]o para\s+)?(?:foto|imagem|m[ií]dia)/i.test(
       text
@@ -850,7 +853,7 @@ export async function prepareOrchestratedGeneration(
   const baseContextContent=typeof contextResult==="string"?contextResult:contextResult.text;
   const sourceReferences:import("./proposalGraph").ProposalSourceReference[]|undefined=typeof contextResult==="string"?undefined:contextResult.sources.map(s=>({id:s.id,kind:s.kind,purpose:s.purpose,origin:s.origin,url:s.url,facts:s.text}));
   const readSources=!deps.resumeReviewPolicyVersion||deps.resumeReviewPolicyVersion===9||deps.resumeReviewPolicyVersion===10;
-  const imageSourceReading = readSources && (input.inputType==="image"&&input.imageUrl || input.sources?.some(s=>s.kind==="image"&&s.purpose==="content")) ? await deps.operation("image_source_reading",()=>readGenerationImageSources(input,ownerId,deadlineMs,deps.signal,deps.generate)) : null;
+  const imageSourceReading = readSources && (input.inputType==="image"&&input.imageUrl || input.sources?.some(s=>s.kind==="image"&&s.purpose==="content")) ? await deps.operation("image_source_reading",()=>readGenerationImageSources(input,ownerId,deadlineMs,deps.signal,deps.generate,deps.generationConfig?.editorialTeam)) : null;
   const visualReferenceImages=readSources && (input.sources?.some(s=>s.kind==="image"&&s.purpose==="visual_reference")||input.executionBrief?.brandInput?.referenceImageUrl)?await deps.operation("visual_reference_images",()=>resolveGenerationVisualImages(input,ownerId,deps.signal)):{images:[]};
   const visualReferenceSites=readSources && input.sources?.some(s=>s.kind==="url"&&s.purpose==="visual_reference")?await deps.operation("visual_reference_sites",()=>resolveGenerationVisualSites(input)):{sites:[]};
   if(imageSourceReading&&sourceReferences)sourceReferences.push({id:"source-image",kind:"image",purpose:"content",origin:"image_reading",facts:[imageSourceReading.reading.extractedText,...imageSourceReading.reading.facts].join("\n")});
@@ -927,12 +930,23 @@ export async function prepareOrchestratedGeneration(
   const declaredImagePreference = policyImageObligation(input, executionBrief, existingMediaPolicy);
   const imageObligation = automatic && input.selectionPolicy !== "capability_v1" ? creativeImagePreference(declaredImagePreference) : declaredImagePreference;
   const requestedPhotoMix = (!automatic || input.selectionPolicy === "capability_v1") && requestsPhotoMix(requestImageInstructions(input, executionBrief));
-  if (deps.generationConfig?.generationStrategyVersion === 2) return preparePlannedGeneration({
-    input, cards, coverage, recentSelections, count, requestedPhotoMix,
-    parentDesignSelection: Array.isArray(recentHistory) ? undefined : recentHistory.parentSelection,
-    visualReferenceImages: visualReferenceImages.images, visualReferenceSites,
-    contextContent, sourceReferences, imageSourceReading, visualPreference, executionBrief, imageObligation, experimental, deadlineMs,
-  }, deps);
+  if (deps.generationConfig?.generationStrategyVersion === 2) {
+    const plan = preparePlannedGeneration({
+      input, cards, coverage, recentSelections, count, requestedPhotoMix,
+      parentDesignSelection: Array.isArray(recentHistory) ? undefined : recentHistory.parentSelection,
+      visualReferenceImages: visualReferenceImages.images, visualReferenceSites,
+      contextContent, sourceReferences, imageSourceReading, visualPreference, executionBrief, imageObligation, experimental, deadlineMs,
+    }, deps);
+    const reading = readLongEditorialSource(input, contextResult, deps.generationConfig.editorialTeam,
+      { generate: deps.generate, operation: deps.operation, signal: deps.signal, deadlineMs });
+    // Both operations share the lease. Let each persist its result before returning or releasing it.
+    const [planResult, readingResult] = await Promise.allSettled([plan, reading]);
+    if (planResult.status === "rejected") throw planResult.reason;
+    if (readingResult.status === "rejected") throw readingResult.reason;
+    const prepared = planResult.value;
+    const quotes = readingResult.value;
+    return quotes.length ? { ...prepared, editorialSourceQuotes: quotes } : prepared;
+  }
   const offerRequest = { slideCount: count, contentMode: executionBrief?.interventionLevel === "visual_only" ? "literal" as const : "compose" as const, instructions: [input.content, executionBrief?.rawInput, executionBrief?.notes].filter(Boolean).join("\n") };
   const potential = resolveCompleteDesignOffers(cardsWithAvailableMedia(cards, imageObligation), offerRequest);
   const offers = potential.filter(o => {

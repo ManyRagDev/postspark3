@@ -9,6 +9,7 @@ const trpcMock = vi.hoisted(() => ({
   saveMutateAsync: vi.fn(),
   updateMutateAsync: vi.fn(),
   listInvalidate: vi.fn(),
+  fetchPost: vi.fn(),
   profileInvalidate: vi.fn(),
 }));
 
@@ -40,7 +41,7 @@ vi.mock("@/lib/trpc", () => {
     get(_target: any, prop: string): any {
       if (prop === "useUtils") {
         return () => ({
-          post: { list: { invalidate: trpcMock.listInvalidate },listSummary:{invalidate:vi.fn()} },
+          post: { get: { fetch: trpcMock.fetchPost }, list: { invalidate: trpcMock.listInvalidate },listSummary:{invalidate:vi.fn()} },
           billing: { getProfile: { invalidate: trpcMock.profileInvalidate } },
         });
       }
@@ -127,6 +128,7 @@ beforeEach(() => {
   document.body.appendChild(host);
   root = createRoot(host);
 
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({video:false,editor:false}));
   canvasLabProps = null;
   trpcMock.saveMutateAsync.mockReset().mockResolvedValue({ id: 101, revision: 1 });
   trpcMock.updateMutateAsync.mockReset().mockResolvedValue({ id: 101, revision: 1 });
@@ -147,6 +149,46 @@ afterEach(() => {
 });
 
 describe("StudioAppV2BPage Persistence and Concurrency (OS-008)", () => {
+  it("applies a returned revision, reopens its slide and keeps the attachment on the next save", async () => {
+    sessionStorage.clear();
+    const id = "88f204ed-de25-43cb-9e37-ec18c2cb11d5";
+    const media = { kind: "mare" as const, scope: "montage" as const, projectId: id, assetId: id, revisionId: id };
+    const original = { ...INITIAL_POST, id: "personal-document", slides: [
+      { ...INITIAL_POST.slides[0], id: "cover" }, { ...INITIAL_POST.slides[0], id: "product" },
+    ] };
+    let stored: CanvasPostModel = original;
+    const base = "/api/mare/anchors/" + id;
+    const network = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path === "/api/mare/capabilities") return Response.json({video:true,editor:true});
+      if (path === base) return Response.json({ id, postId: 997, revisionId: id, expectedRevision: 4, pending: true, slideId: "product" });
+      if (path === base + "/apply" && init?.method === "POST") {
+        expect(JSON.parse(String(init.body))).toEqual({revisionId:id,expectedRevision:4});
+        stored = { ...original, slides: [original.slides[0], { ...original.slides[1], temporalMedia: { __background__:media } }] };
+        return Response.json({appliedRevision:5});
+      }
+      return new Response(null,{status:404});
+    });
+    trpcMock.fetchPost.mockImplementation(async () => ({id:997,revision:5,canvas_model:structuredClone(stored)}));
+    const originalUrl = window.location.href;
+    window.history.replaceState({}, "", "/studio?mareReturn=" + id);
+    try {
+      await act(async () => { root.render(<StudioAppV2BPage />); });
+      expect(network.mock.calls.filter(([url])=> String(url) === base + "/apply")).toHaveLength(1);
+      expect(trpcMock.fetchPost).toHaveBeenCalledWith({id:997},{staleTime:0});
+      expect(window.location.search).toBe("");
+      const reopened = canvasLabProps.initialPost as CanvasPostModel;
+      expect(reopened.currentSlideIndex).toBe(1);
+      expect(reopened.slides[1].temporalMedia?.__background__).toEqual(media);
+      await act(async () => { expect(await canvasLabProps.onSave({...reopened,headline:"Preço atualizado"},"update","manual")).toBe(true); });
+      expect(trpcMock.updateMutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+        id:997,expectedRevision:5,canvasModel:expect.objectContaining({temporalMediaVersion:1,slides:reopened.slides})
+      }));
+      expect(trpcMock.saveMutateAsync).not.toHaveBeenCalled();
+    } finally {
+      window.history.replaceState({}, "", originalUrl);
+    }
+  });
   it("keeps the last confirmed revision after a conflict and allows saving the local edit as a copy", async () => {
     await act(async () => { root.render(<StudioAppV2BPage />); });
     await act(async () => { (host.querySelector('[data-testid="select-variation"]') as HTMLButtonElement).click(); });

@@ -133,7 +133,7 @@ async function main() {
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "no-store");
     res.statusCode = req.url === "/readyz" && !ready ? 503 : 200;
-    res.end(JSON.stringify({ contractVersion: 1, transport: "postgres-notify", ready,
+    res.end(JSON.stringify({ contractVersion: 1, transport: "postgres-notify", textRecoveryVersion: 1, finalFitRepairVersion: 1, editorialTeamVersion: 1, trioDeliveryVersion: 1, editorialSelectionVersion: 1, artworkCarouselVersion: 1, ready,
       listener: executor.connected, renderer: rendererReady, dependencies: recovered,
       notBefore: notBefore > Date.now() ? notBefore : null,
       active: executor.active, safetyScanMs: ENV.generationWorkerSafetyScanMs, metrics: executor.metrics }));

@@ -206,6 +206,22 @@ describe("automatic compact copy transport", () => {
     expect(JSON.stringify(payload)).not.toContain(prompt);
   });
 
+  it.each([0, 1, 2])("uses full GLM and transcribed evidence for creative slot %i", async slot => {
+    const config = resolveGenerationModelConfig({postMode:"static"}, true, true, true, true);
+    const value = input({
+      slot, generationConfig:config, reviewExecutionConfig:resolveReviewExecutionConfigV10(config.model,config.taskRouting!.copy),
+      sourceReferences:[{id:"image-reading",kind:"image",purpose:"content",facts:"O café custa R$ 8."}],
+      sourceImages:["data:image/png;base64,imagemOriginal"],
+    });
+    const generateText = vi.fn(async (_params: unknown) => response(copy()));
+    const result = await executeProposalWorkflow(value, {actor, generateText});
+    expect(result.status, result.errorReason).toBe("ready");
+    const call = generateText.mock.calls[0][0] as any;
+    expect(call.pinnedModel).toBe("z-ai/glm-5.3");
+    expect(call.messages[1].content).toContain("O café custa R$ 8.");
+    expect(JSON.stringify(call.messages)).not.toContain("base64");
+  });
+
   it("writes all carousel pages once and preserves original source images for the writer", async () => {
     const sourceImage = "data:image/png;base64,original-factual-image";
     const value = input({
@@ -367,7 +383,7 @@ describe("automatic compact copy transport", () => {
     expect(generateText).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the material review finding to repair only the authorized text and rechecks it", async () => {
+  it.each([false, true])("repairs only the authorized factual target and rechecks it (editorialTeam=%s)", async (withTeam) => {
     vi.mocked(reviewProposal)
       .mockResolvedValueOnce(review("initial", [contradiction()]))
       .mockResolvedValueOnce(review("recheck"));
@@ -385,12 +401,15 @@ describe("automatic compact copy transport", () => {
           })
         : response(copy("Café gratuito")),
     );
-    const result = await executeProposalWorkflow(input(), {
+    const value = input({ generationConfig: resolveGenerationModelConfig({postMode: "static"}, true, true, true, withTeam) });
+    const result = await executeProposalWorkflow(value, {
       actor,
       generateText,
     });
     expect(result.status, result.errorReason).toBe("ready");
     expect(generateText).toHaveBeenCalledTimes(2);
+    expect(generateText.mock.calls.map(([call]) => call.pinnedModel)).toEqual(withTeam
+      ? ["z-ai/glm-5.3", "openai/gpt-6.2-sol"] : ["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4.1-flash"]);
     expect(vi.mocked(reviewProposal)).toHaveBeenCalledTimes(2);
     const messages = JSON.stringify(generateText.mock.calls[1][0].messages);
     expect(messages).toContain("Gratuidade não foi informada");
@@ -520,10 +539,10 @@ describe("targeted repair V2 local integration", () => {
     const count = Math.max(1, Math.ceil(natural / value.width));
     return { height: count * 20, lines: Array.from({ length: count }, () => ({ width: Math.min(value.width, natural) })), runs: [] };
   };
-  function collisionDefinition() {
+  function collisionDefinition(titleWidth = 100, supportTop = 130) {
     return createComponentDefinition({ ...definition, fragment: { ...definition.fragment,
-      instances: definition.fragment.instances.map((element, index) => ({ ...element, x: 72, y: index ? 130 : 72, width: index ? 200 : 100, height: 100 })),
-      relations: [{ id: "fit-title", version: 1, enabled: true, kind: "textFit", inputs: [], outputs: [{ targetId: definition.fragment.instances[0].id, properties: ["x", "width", "height", "fontSize"] }], parameters: { anchor: "left", maxWidth: 100, maxHeight: 100, minFontSize: 20 } }],
+      instances: definition.fragment.instances.map((element, index) => ({ ...element, x: 72, y: index ? supportTop : 72, width: index ? 200 : titleWidth, height: 100 })),
+      relations: [{ id: "fit-title", version: 1, enabled: true, kind: "textFit", inputs: [], outputs: [{ targetId: definition.fragment.instances[0].id, properties: ["x", "width", "height", "fontSize"] }], parameters: { anchor: "left", maxWidth: titleWidth, maxHeight: 100, minFontSize: 20 } }],
     } });
   }
   const long = "Uma ideia longa para escrever hoje";
@@ -534,11 +553,18 @@ describe("targeted repair V2 local integration", () => {
     vi.mocked(reviewProposal).mockImplementation(async (_i, _d, _defs, _scenes, _copy, round) => review(round, round === "initial" ? [contradiction()] : []));
     const original = copy("Olá"); original.slides[0].values[1].value = "Apoio";
     const generateText = vi.fn(async (params: any) => response(params.traceLabel.endsWith("_editorial_recovery") ? { patches: [patch("field-0", long, ["Breve"])] } : original));
-    const value = input({ selectedDefinition: collisionDefinition() }); value.generationConfig = { ...value.generationConfig!, layoutFitPolicy };
+    const selectedDefinition = collisionDefinition(145, 128);
+    const measureText = await createComponentTextMeasurer(selectedDefinition.assets);
+    const value = input({ selectedDefinition }); value.generationConfig = { ...value.generationConfig!, layoutFitPolicy };
     const result = await executeProposalWorkflow(value, { actor, generateText, measureText });
     expect(result.status, result.errorReason).toBe(layoutFitPolicy === "adaptive_v2" ? "ready" : "failed");
     if (layoutFitPolicy === "adaptive_v2") expect(writtenTitle(result)).toBe("Breve");
-    else expect(result.findings.some(finding => finding.rule === "collision")).toBe(true);
+    else {
+      expect(result.diagnostics).toContainEqual(expect.objectContaining({
+        code: "review_correction_rolled_back", evidence: expect.stringContaining("collision:"),
+      }));
+      expect(result.findings).toContainEqual(expect.objectContaining({rule:"source_backed_factual_contradiction"}));
+    }
     expect(generateText).toHaveBeenCalledTimes(2);
     expect(original.slides[0].values[0].value).toBe("Olá");
   });

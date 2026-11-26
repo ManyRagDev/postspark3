@@ -1,3 +1,5 @@
+import { MareRetargetDialog, type MareRetargetState } from "@/components/MareRetargetDialog";
+import { acceptMareReturn, clearMareReturn, mareReturnId, sendToMare, useMareCapabilities } from "@/lib/mareIntegration";
 import type { AssemblyObserver, StudioDebugStep } from "@shared/studioDebugger";
 import { hasProfessionalEditor, type StudioPlan } from "@shared/membership";
 import { isStandaloneHttpUrl } from "@shared/generationSources";
@@ -15,6 +17,7 @@ import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { studioLibraryPath } from "@/lib/studioRoutes";
 import { useLocation } from "wouter";
 import StudioCreateViewV2B from "./components/v2/StudioCreateViewV2B";
 import StudioGalleryView from "./components/StudioGalleryView";
@@ -25,10 +28,11 @@ import { useProposalProgress } from "./lib/useProposalProgress";
 import CanvasLabPage from "@/pages/CanvasLab/CanvasLabPage";
 import StartPieceFinalization from "@/pages/CanvasLab/components/StartPieceFinalization";
 import { INITIAL_POST, ensureDistinctFamilies, type CanvasPostModel, type CanvasPostProvenance } from "@/pages/CanvasLab/components/types";
-import { normalizeCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
 import {
   canvasModelToSavePayload,
   canvasModelToUpdatePayload,
+  normalizeCanvasModel,
+  savedPostToCanvasModel,
   type SaveInputType,
 } from "@/pages/CanvasLab/lib/saveAdapter";
 import { fitSavePayload } from "@/pages/CanvasLab/lib/fitSavePayload";
@@ -53,14 +57,17 @@ import {
 import { CreationGuardsHost, FormatConfirmModal, GenerationFailureModal } from "./components/v2/CreationGuards";
 import BriefReviewModal from "./components/v2/BriefReviewModal";
 import {
+  BRIEF_DRAFT_STORAGE_KEY,
   saveBriefDraft,
   loadBriefDraft,
   clearBriefDraft,
   hasRecoverableBriefDraft,
+  type ProjectArtworkSelection,
+  projectArtworkSchema,
 } from "./lib/briefDraftStorage";
 import { shouldReviewBriefBeforeGeneration } from "./lib/briefReviewPolicy";
 import { getSelectedProjectId, setSelectedProjectId, getLocalProjectById } from "./lib/projectStorage";
-import type { OrchestratedGenerationInput } from "@shared/generationRequest";
+import { STUDIO_SELECTION_STRATEGY, type OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { GenerationCoordinatorSnapshot, ProposalDelivery } from "@shared/generationContracts";
 import {
   claimProposalDelivery,
@@ -74,6 +81,7 @@ import {
   persistPendingGenerationStart,
   readPendingGenerationStart,
   sameGenerationAdmissionBody,
+  studioGenerationStorage,
   type PendingGenerationStart,
 } from "./lib/studioGenerationState";
 
@@ -138,14 +146,26 @@ interface MaterializationIssueState {
   provenance?: CanvasPostProvenance;
 }
 
+class GenerationCapabilityError extends Error {
+  constructor(readonly capabilityReason?: string) {
+    super(capabilityReason === "maintenance" ? userMessageFor("generation_paused")
+      : capabilityReason ? labelGenerationCapabilityReason(capabilityReason)
+      : userMessageFor("generation_unavailable"));
+  }
+}
+
 /** Extrai os metadados estruturados de uma falha tRPC, com fallback local. */
 function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
   const data = (err as { data?: { generationFailure?: GenerationFailureMetadata; code?: string } } | undefined)?.data;
   if (data?.generationFailure) return data.generationFailure;
-  if (err instanceof Error && ["manual_session_limit", "pipeline_reconfiguration_required"].includes(err.message)) {
+  if (err instanceof GenerationCapabilityError) {
+    const paused = ["maintenance", "manual_session_limit", "pipeline_reconfiguration_required"].includes(err.capabilityReason ?? "");
+    const reason = paused ? "generation_paused"
+      : err.capabilityReason === "unauthenticated" ? "authentication"
+      : "generation_unavailable";
     return {
-      generationRunId: "not-admitted", reason: "generation_paused", retryable: false,
-      userMessage: labelGenerationCapabilityReason(err.message),
+      generationRunId: "not-admitted", reason, retryable: isRetryable(reason),
+      userMessage: err.message,
     };
   }
   const reason = classifyGenerationError(data?.code ? { code: data.code, message: err instanceof Error ? err.message : "" } : err);
@@ -163,8 +183,20 @@ interface StartPieceWorkflow {
   draft?: CanvasPostModel;
   save: (post: CanvasPostModel, finalize: boolean) => Promise<void>;
 }
-export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamShareUserId, debuggerOwnerId }: { debuggerOwnerId?: string; studioPlan?: StudioPlan; startPiece?: StartPieceWorkflow; teamShareUserId?: string } = {}) {
+export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamShareUserId, debuggerOwnerId, lab = false }: {
+  debuggerOwnerId?: string;
+  studioPlan?: StudioPlan;
+  startPiece?: StartPieceWorkflow;
+  teamShareUserId?: string;
+  lab?: boolean;
+} = {}) {
+  // Keep drafts and uncertain admissions reachable at their original URL.
+  const storageScope = lab ? STUDIO_SELECTION_STRATEGY : undefined;
+  const getGenerationStorage = () => studioGenerationStorage(window.sessionStorage, storageScope);
+  const briefDraftKey = storageScope ? `${BRIEF_DRAFT_STORAGE_KEY}.${storageScope}` : BRIEF_DRAFT_STORAGE_KEY;
   const utils = trpc.useUtils();
+  const [mareConflict,setMareConflict]=useState<MareRetargetState>();
+  const mare = useMareCapabilities();
   const professionalEditor = hasProfessionalEditor(studioPlan);
   const [assemblySteps, setAssemblySteps] = useState<Array<StudioDebugStep & { requestId: string; owner: string }>>([]);
   function observeAssembly(requestId: string, slot: number, revision: number): AssemblyObserver | undefined {
@@ -200,7 +232,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     } catch { return null; }
   });
   const [pendingGenerationStart, setPendingGenerationStart] = useState<PendingGenerationStart | null>(() => {
-    try { return historyRestore || startPiece ? null : readPendingGenerationStart(window.sessionStorage); } catch { return null; }
+    try { return historyRestore || startPiece ? null : readPendingGenerationStart(getGenerationStorage()); } catch { return null; }
   });
   const [pendingGenerationStartError, setPendingGenerationStartError] = useState<string | null>(null);
   // A normal entry restores only the briefing draft. Deliveries belong to the
@@ -211,7 +243,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
   const [resumingMonitoring, setResumingMonitoring] = useState(false);
   const monitoringPaused = Boolean(activeGenerationRequestId && pausedMonitoringRequestId === activeGenerationRequestId);
   useEffect(() => {
-    try { clearActiveGenerationRequestId(window.sessionStorage); } catch { /* Storage may be unavailable. */ }
+    try { clearActiveGenerationRequestId(getGenerationStorage()); } catch { /* Storage may be unavailable. */ }
   }, []);
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationCoordinatorSnapshot | null>(null);
   const [showProposalProgress, setShowProposalProgress] = useState(false);
@@ -460,7 +492,10 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
   const [selectedPost, setSelectedPost] = useState<CanvasPostModel>(startPiece?.draft ?? INITIAL_POST);
   const [declaredFamilyId, setDeclaredFamilyId] = useState<string | null>(null);
   const [selectedProjectId, setLocalSelectedProjectId] = useState<string | null>(() => getSelectedProjectId());
+  const [libraryArtwork] = useState(() => startPiece ? undefined : projectArtworkSchema.safeParse(window.history.state?.briefingArtwork).data);
+  const [projectArtwork, setProjectArtwork] = useState<ProjectArtworkSelection | undefined>(libraryArtwork);
   const handleSelectProjectId = (id: string | null) => {
+    if (id !== selectedProjectId) setProjectArtwork(undefined);
     setLocalSelectedProjectId(id);
     setSelectedProjectId(id);
     setDeclaredFamilyId(current => current?.startsWith("project-") ? null : current);
@@ -497,14 +532,20 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
   const [activeBrief, setActiveBrief] = useState<CreationBrief | null>(null);
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
   const [isReviewingBrief, setIsReviewingBrief] = useState(false);
+  const reviewingArtworkCarousel = isReviewingBrief && activeBrief?.format === "carousel" && projectArtwork?.slideCount === 1;
+  const artworkCarouselQuote = trpc.generation.artworkCarouselQuote.useQuery(undefined, {
+    enabled: reviewingArtworkCarousel,
+    retry: false,
+  });
 
   const acceptGenerationAdmission = (pending: PendingGenerationStart, admitted: Awaited<ReturnType<typeof generationStart.mutateAsync>>, epoch: number) => {
     if (epoch !== generationEpoch.current) return;
-    clearPendingGenerationStart(window.sessionStorage);
+    const storage = getGenerationStorage();
+    clearPendingGenerationStart(storage);
     setPendingGenerationStart(null);
     setPendingGenerationStartError(null);
     pendingAdmissionAttempt.current = null;
-    persistActiveGenerationRequestId(window.sessionStorage, admitted.snapshot.requestId);
+    persistActiveGenerationRequestId(storage, admitted.snapshot.requestId);
     activeRequestEpoch.current.set(admitted.snapshot.requestId, epoch);
     restoredGenerationContextRequestId.current = admitted.snapshot.requestId;
     currentRequestId.current = admitted.snapshot.requestId;
@@ -559,7 +600,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
   };
 
   const retryPendingGenerationAdmission = async () => {
-    const pending = pendingGenerationStart ?? readPendingGenerationStart(window.sessionStorage);
+    const pending = pendingGenerationStart ?? readPendingGenerationStart(getGenerationStorage());
     if (!pending) return;
     setPendingGenerationStartError(null);
     pendingAdmissionAttempt.current = null;
@@ -576,7 +617,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     retryAdmission: boolean,
     epoch: number,
   ) => {
-    const previousPending = retryAdmission ? pendingGenerationStart ?? readPendingGenerationStart(window.sessionStorage) : null;
+    const previousPending = retryAdmission ? pendingGenerationStart ?? readPendingGenerationStart(getGenerationStorage()) : null;
     if (previousPending) {
       setPendingGenerationStartError(null);
       pendingAdmissionAttempt.current = null;
@@ -586,13 +627,13 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     const capabilities=(await generationCapabilities.refetch()).data;
     const frozenProject = brief?.projectSnapshot;
     const selectedIdentityProject = (brandProjectsQuery.data ?? []).find((p: any) => p.id === selectedProjectId);
+    const briefIdentity = brief ? (frozenProject?.version === 3 ? frozenProject.visualIdentity : undefined) : selectedIdentityProject?.visualIdentity;
+    const useIdentityLayout = briefIdentity && (!briefIdentity.extractedFrom || !capabilities?.enabled || declaredFamilyId === `project-identity-${brief?.projectId ?? selectedProjectId}`) &&
+      (!declaredFamilyId || declaredFamilyId === `project-identity-${brief?.projectId ?? selectedProjectId}`);
     const identityRequested = source === "more" ? lastGenerationInput.current?.fixedDesign?.kind === "identity"
-      : !creationInputOptions.current.fixedDesign && (brief ? frozenProject?.version === 3 : selectedIdentityProject?.visualIdentity) && (!declaredFamilyId || declaredFamilyId === `project-identity-${brief?.projectId ?? selectedProjectId}`);
+      : !creationInputOptions.current.fixedDesign && useIdentityLayout;
     if (!capabilities?.enabled && !(identityRequested && capabilities && 'identityEnabled' in capabilities && capabilities.identityEnabled)) {
-      const reason = capabilities?.reason;
-      if (reason === "maintenance") throw new Error("generation_paused");
-      if (reason === "manual_session_limit" || reason === "pipeline_reconfiguration_required") throw new Error(reason);
-      throw new Error(labelGenerationCapabilityReason(reason));
+      throw new GenerationCapabilityError(capabilities?.reason);
     }
     const previousInput = source === "more" ? lastGenerationInput.current : null;
     const isPreserveScript = (brief?.scriptMode ?? creationInputOptions.current.scriptMode) === "preserve";
@@ -628,7 +669,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     const fixedDesign = startPiece ? undefined : previousInput ? previousInput.fixedDesign
       : creationInputOptions.current.fixedDesign ?? (extractedKit && activeProjId
         ? { kind: "project" as const, id: activeProjId }
-        : activeProjId && (brief ? (brief.projectSnapshot?.version === 3 ? brief.projectSnapshot.visualIdentity : undefined) : activeProjectRecord?.visualIdentity) && (!declaredFamilyId || declaredFamilyId === `project-identity-${activeProjId}`)
+        : activeProjId && useIdentityLayout
           ? { kind: "identity" as const, id: activeProjId } : undefined);
     let catalog: Awaited<ReturnType<typeof cachedCatalog>> | undefined;
     if(!fixedDesign && 'catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
@@ -637,7 +678,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     }
     const artDirectionGuidance = (import.meta as any).env?.VITE_ART_DIRECTION_GUIDANCE !== "false";
     let tasteInstruction = "";
-    let enrichedExecutionBrief = executionBrief;
+    let enrichedExecutionBrief: OrchestratedGenerationInput["executionBrief"] = executionBrief;
     if (!fixedDesign && !isUrl && declaredFamilyId) {
       if (isProjectDesignDeclared && activeProjectRecord?.visualPreferences) {
         const vp = activeProjectRecord.visualPreferences;
@@ -685,10 +726,19 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       }
     }
 
+    const image = creationInputOptions.current.image;
+    const savedSources = brief?.sources ?? (image ? [{
+      id: "image-1", kind: "image" as const, purpose: creationInputOptions.current.imagePurpose, value: image,
+    }] : undefined);
+    const sources = brief?.sourceUrls ? [
+      ...brief.sourceUrls.map((value, index) => ({ id: `page-${index + 1}`, kind: "url" as const, purpose: "content" as const, value })),
+      ...(savedSources ?? []).filter(source => source.kind !== "url" || source.purpose !== "content"),
+    ] : savedSources;
+
     const input: OrchestratedGenerationInput = {
       ownerId: capabilities.ownerId,
       inputType: previousInput?.inputType ?? ((brief?.sources?.some(s=>s.kind==="image"&&s.purpose==="content")||creationInputOptions.current.image&&creationInputOptions.current.imagePurpose==="content")?"image":isUrl ? "url" : "text"),
-      sources:previousInput?.sources??brief?.sources??(creationInputOptions.current.image?[{id:"image-1",kind:"image",purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:undefined),
+      sources: previousInput ? previousInput.sources : sources,
       imageUrl: previousInput?.imageUrl,
       siteIntelligenceId: previousInput?.siteIntelligenceId,
       tone: previousInput?.tone,
@@ -703,15 +753,18 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       ...(previousInput?.model ? { model: previousInput.model } : {}),
       generationModel: previousInput ? previousInput.generationModel ?? "gemini" : creationInputOptions.current.generationModel ?? "auto",
       generationParentRequestId: source === "more" ? activeGenerationRequestId ?? undefined : undefined,
+      selectionStrategy: previousInput ? previousInput.selectionStrategy : STUDIO_SELECTION_STRATEGY,
       creationMode: enrichedExecutionBrief ? "execution" : "ideation",
       executionBrief: enrichedExecutionBrief,
       projectId: activeProjId,
       fixedDesign,
+      artworkCarousel: creationInputOptions.current.artworkCarousel,
       projectDossier,
       projectSnapshot,
       idempotencyKey: newGenerationIdempotencyKey(),
     };
-    const unacknowledged = pendingGenerationStart ?? readPendingGenerationStart(window.sessionStorage);
+    const storage = getGenerationStorage();
+    const unacknowledged = pendingGenerationStart ?? readPendingGenerationStart(storage);
     if (unacknowledged && sameGenerationAdmissionBody(unacknowledged.input, input)) {
       pendingAdmissionAttempt.current = null;
       setPendingGenerationStartError(null);
@@ -727,7 +780,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       mode,
       inputType: input.inputType,
     };
-    persistPendingGenerationStart(window.sessionStorage, pending);
+    persistPendingGenerationStart(storage, pending);
     setPendingGenerationStart(pending);
     setPendingGenerationStartError(null);
     await submitPendingGenerationStart(pending, epoch);
@@ -741,7 +794,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     if (!pendingGenerationStart || !ownerId) return;
     if (pendingGenerationStart.input.ownerId !== ownerId) {
       generationEpoch.current += 1;
-      clearPendingGenerationStart(window.sessionStorage);
+      clearPendingGenerationStart(getGenerationStorage());
       setPendingGenerationStart(null);
       setPendingGenerationStartError(null);
       pendingAdmissionAttempt.current = null;
@@ -789,7 +842,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     const code = (activeGenerationQuery.error as { data?: { code?: string } }).data?.code;
     if (code === "NOT_FOUND" || code === "UNAUTHORIZED") {
       generationEpoch.current += 1;
-      clearActiveGenerationRequestId(window.sessionStorage);
+      clearActiveGenerationRequestId(getGenerationStorage());
       setActiveGenerationRequestId(null);
       currentRequestId.current = null;
       setGenerationSnapshot(null);
@@ -870,29 +923,88 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
 
   const persistBriefDraft = (brief: CreationBrief, stage: "create" | "gallery") => {
     if (startPiece) return;
-    saveBriefDraft(brief, declaredFamilyId, stage, creationInputOptions.current.generationModel);
-    setHasSavedDraft(hasRecoverableBriefDraft());
+    const { generationModel, fixedDesign } = creationInputOptions.current;
+    const artwork = fixedDesign?.kind === "project" && fixedDesign.postId === projectArtwork?.postId
+      ? projectArtwork : undefined;
+    saveBriefDraft(brief, declaredFamilyId, stage, generationModel, briefDraftKey, artwork);
+    setHasSavedDraft(hasRecoverableBriefDraft(briefDraftKey));
+  };
+  const removeProjectArtwork = () => {
+    setProjectArtwork(undefined);
+    const draft = loadBriefDraft(briefDraftKey);
+    if (draft?.projectArtwork) {
+      saveBriefDraft(draft.brief, draft.declaredFamilyId, draft.stage, draft.generationModel, briefDraftKey);
+    }
   };
 
   // Etapa 4 §9.4 — Recuperação de rascunho de briefing após refresh/perda de sessão
   useEffect(() => {
     if (startPiece) return;
-    const draft = loadBriefDraft();
+    const draft = loadBriefDraft(briefDraftKey);
     setHasSavedDraft(Boolean(draft?.brief.rawInput?.trim()));
     if (draft && draft.brief && draft.brief.rawInput) {
       setLastPrompt(draft.brief.rawInput);
       setLastMode(draft.brief.format);
-      if (draft.declaredFamilyId) {
+      if (draft.declaredFamilyId && !libraryArtwork) {
         setDeclaredFamilyId(draft.declaredFamilyId);
       }
       setActiveBrief(draft.brief);
+      if (!libraryArtwork && draft.projectArtwork && draft.projectArtwork.projectId === draft.brief.projectId &&
+          draft.projectArtwork.projectId === getSelectedProjectId()) {
+        setProjectArtwork(draft.projectArtwork);
+      }
       const image=draft.brief.sources?.find(s=>s.kind==="image");creationInputOptions.current={platform:draft.brief.platform??"instagram",image:image?.value,imagePurpose:image?.purpose==="visual_reference"?"visual_reference":"content",generationModel:draft.generationModel??"auto"};
+    }
+    if (libraryArtwork) {
+      setLocalSelectedProjectId(libraryArtwork.projectId);
+      setSelectedProjectId(libraryArtwork.projectId);
+      const { briefingArtwork, ...rest } = window.history.state ?? {};
+      window.history.replaceState(rest, "");
     }
   }, []);
 
   // Pré-carrega antecipadamente todas as 14 fontes oficiais para evitar FOUC na galeria e editor
   useEffect(() => {
     loadCatalogFonts();
+  }, []);
+
+  const openEditorPost = (
+    model: CanvasPostModel,
+    input?: { inputType?: string | null; inputContent?: string | null },
+    saved?: { id: number; revision?: number }
+  ) => {
+    setLastInputMeta({
+      inputType: input?.inputType === "url" || input?.inputType === "image" ? input.inputType : "text",
+      inputContent: input?.inputContent ?? model.headline,
+    });
+    setSelectedPost(model);
+    setStage("editor");
+    if (saved && model.id) {
+      setSavedPostIdsByDocId(prev => ({ ...prev, [model.id!]: saved.id }));
+      if (typeof saved.revision === "number") savedPostRevisionsRef.current[saved.id] = saved.revision;
+      telemetry.record(model.provenance?.journey, exposureId, "reopen");
+    }
+  };
+
+  useEffect(() => {
+    const id = mareReturnId();
+    if (!id) return;
+    let current = true;
+    void (async () => {
+      const anchor = await acceptMareReturn(id, "personal");
+      const post = await utils.post.get.fetch({id: anchor.postId!}, {staleTime: 0});
+      if (!post) throw new Error("Design indisponível.");
+      if (!current) return;
+      const model = savedPostToCanvasModel(post);
+      const index = model.slides.findIndex(slide => slide.id === anchor.slideId);
+      openEditorPost({...model, currentSlideIndex: Math.max(0,index)},post,{id:post.id,revision:post.revision});
+      if (anchor.conflict) {
+        if (typeof post.revision !== "number") throw new Error("Recarregue o design para obter sua revisão atual.");
+        setMareConflict({model,anchor,revision:post.revision});
+      }
+      else clearMareReturn();
+    })().catch(error => { if(current) toast.error(error.message); });
+    return () => { current=false; };
   }, []);
 
   // Item 7: reabertura de post salvo — chega via /saved-posts (sessionStorage).
@@ -910,17 +1022,9 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       };
       if (payload.model && typeof payload.model === "object") {
         const model = normalizeCanvasModel(payload.model as Partial<CanvasPostModel> & { id?: string });
-        setSelectedPost(model);
-        setStage("editor");
-        if (model.id && typeof payload.postId === "number") {
-          setSavedPostIdsByDocId(prev => ({ ...prev, [model.id!]: payload.postId as number }));
-          if (typeof payload.revision === "number") savedPostRevisionsRef.current[payload.postId] = payload.revision;
-        }
-        telemetry.record(model.provenance?.journey, exposureId, "reopen");
-        setLastInputMeta({
-          inputType: payload.inputType === "url" ? "url" : payload.inputType === "image" ? "image" : "text",
-          inputContent: payload.inputContent || "",
-        });
+        const saved = typeof payload.postId === "number" ? { id: payload.postId, revision: payload.revision } : undefined;
+        openEditorPost(model, { inputType: payload.inputType, inputContent: payload.inputContent ?? "" }, saved);
+        if (!saved) telemetry.record(model.provenance?.journey, exposureId, "reopen");
       }
     } catch {
       toast.error("Não foi possível abrir o documento salvo. Confira a integridade e a versão da composição.");
@@ -937,7 +1041,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     if (!payload) return;
     const restoreEpoch = generationEpoch.current;
     try {
-      clearActiveGenerationRequestId(window.sessionStorage);
+      clearActiveGenerationRequestId(getGenerationStorage());
       lastGenerationInput.current = null;
       setActiveBrief(null);
       setDeclaredFamilyId(null);
@@ -1059,27 +1163,30 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     formatConfirmed = false,
   ) => {
     setFormatChoiceConfirmed(formatConfirmed);
+    const fixed = creationInputOptions.current.fixedDesign;
+    const isArtworkBrief = fixed?.kind === "project" && fixed.postId !== undefined;
     const project = selectedProjectId
       ? (brandProjectsQuery.data ?? []).find((p: any) => p.id === selectedProjectId) ?? getLocalProjectById(selectedProjectId)
       : null;
+    const parsedBrief = interpretRawBriefing(promptText, { selectedFormat: mode });
     const interpreted: CreationBrief = {
-      ...interpretRawBriefing(promptText, { selectedFormat: mode }),
+      ...parsedBrief,
       ...(mode === "carousel" && creationInputOptions.current.slideCount ? { slideCount: creationInputOptions.current.slideCount } : {}),
       platform:creationInputOptions.current.platform,
       visualBrief: creationInputOptions.current.visualBrief,
       scriptMode: creationInputOptions.current.scriptMode,
       scriptSlides: creationInputOptions.current.parsedSlides?.map(slide => slide.rawText),
-      sources:[...interpretRawBriefing(promptText,{selectedFormat:mode}).sourceUrls?.map((url,index)=>({id:`page-${index+1}`,kind:"url" as const,purpose:"content" as const,value:url}))??[],...(creationInputOptions.current.image?[{id:"image-1",kind:"image" as const,purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:[])],
+      sources:[...parsedBrief.sourceUrls?.map((url,index)=>({id:`page-${index+1}`,kind:"url" as const,purpose:"content" as const,value:url}))??[],...(creationInputOptions.current.image?[{id:"image-1",kind:"image" as const,purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:[])],
       ...(project ? {
         projectId: project.id,
         projectDossier: project.compiledDocument?.trim() ?? "",
         projectSnapshot: freezeGenerationProject(project),
-      } : {}),
+      } : isArtworkBrief ? { projectId: fixed.id } : {}),
     };
     setActiveBrief(interpreted);
     persistBriefDraft(interpreted, "create");
 
-    if (shouldReviewBriefBeforeGeneration(mode)) {
+    if (shouldReviewBriefBeforeGeneration(mode) || isArtworkBrief) {
       setIsReviewingBrief(true);
       return;
     }
@@ -1098,6 +1205,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       return;
     }
     if(options?.image?.startsWith("data:")){const selected=options;void sourceUpload.mutateAsync({imageData:options.image}).then(saved=>handleCreateSubmit(promptText,mode,{...selected,image:saved.url})).catch(()=>toast.error("Não foi possível guardar a imagem fonte. Tente novamente."));return;}
+    if (options?.fixedDesign?.kind === "showcase") setProjectArtwork(undefined);
     creationInputOptions.current=options??{platform:"instagram",imagePurpose:"content"};
     setFormatChoiceConfirmed(false);
     // Etapa 3 §8.2 — divergência de formato detectável localmente: interrompe
@@ -1222,7 +1330,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
 
   const stopResumingGeneration = () => {
     if (generationSnapshot?.overallStatus === "running") return;
-    clearActiveGenerationRequestId(window.sessionStorage);
+    clearActiveGenerationRequestId(getGenerationStorage());
     setActiveGenerationRequestId(null);
     currentRequestId.current = null;
     setGenerationSnapshot(null);
@@ -1281,7 +1389,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
         if (typeof result.revision === "number") savedPostRevisionsRef.current[existingSavedId] = result.revision;
         if (source === "manual") {
           toast.success("Post atualizado na sua biblioteca!", {
-            action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
+            action: { label: "Ver salvos", onClick: () => setLocation(studioLibraryPath("/saved-posts", lab)) },
           });
         }
       } else {
@@ -1294,7 +1402,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
         }
         if (source === "manual") {
           toast.success("Post salvo na sua biblioteca!", {
-            action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
+            action: { label: "Ver salvos", onClick: () => setLocation(studioLibraryPath("/saved-posts", lab)) },
           });
         }
       }
@@ -1375,8 +1483,9 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
   // ─── Item 6: recomeçar do zero ───
   const handleRestart = () => {
     generationEpoch.current += 1;
-    clearPendingGenerationStart(window.sessionStorage);
-    clearActiveGenerationRequestId(window.sessionStorage);
+    const storage = getGenerationStorage();
+    clearPendingGenerationStart(storage);
+    clearActiveGenerationRequestId(storage);
     setPendingGenerationStart(null);
     setPendingGenerationStartError(null);
     pendingAdmissionAttempt.current = null;
@@ -1388,7 +1497,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     setIsLoading(false);
     setIsGeneratingMore(false);
     processedGenerationDeliveries.current.clear();
-    clearBriefDraft();
+    clearBriefDraft(briefDraftKey);
     setHasSavedDraft(false);
     setLastPrompt("");
     setLastMode("static");
@@ -1404,6 +1513,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     setGeneratedVariations([]);
     setSelectedPost(INITIAL_POST);
     setDeclaredFamilyId(null);
+    setProjectArtwork(undefined);
     setSavedPostIdsByDocId({});
     setLastInputMeta({ inputType: "text", inputContent: "" });
     setFailure(null);
@@ -1412,7 +1522,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
   };
 
   const handleDiscardDraft = () => {
-    clearBriefDraft();
+    clearBriefDraft(briefDraftKey);
     setHasSavedDraft(false);
     setLastPrompt("");
     setLastMode("static");
@@ -1420,6 +1530,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     setActiveBrief(null);
     setIsReviewingBrief(false);
     setDeclaredFamilyId(null);
+    setProjectArtwork(undefined);
     setFormatConfirm(null);
     setFailure(null);
     setFormatChoiceConfirmed(false);
@@ -1446,6 +1557,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
     setStage("gallery");
   };
 
+  if (mareConflict) return <MareRetargetDialog state={mareConflict} onCancel={()=>{clearMareReturn();setMareConflict(undefined);}} />;
   return (
     <>
     {debuggerOwnerId && <Suspense fallback={null}><StudioDebugger key={debuggerOwnerId}
@@ -1506,8 +1618,10 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       */}
       {stage === "create" && (
         <StudioCreateViewV2B
+          mareEntry={mare?.publicEntry || (import.meta.env.MODE === "development" && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname) && mare?.editor) || (mare?.localPreview ? "local-preview" : false)}
           startPilot={Boolean(startPiece)}
           allowProfessionalTools={professionalEditor}
+          savedPostsPath={studioLibraryPath("/saved-posts", lab)}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading||sourceUpload.isPending}
           initialPlatform={activeBrief?.platform}
@@ -1527,11 +1641,14 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
           onSelectProjectId={handleSelectProjectId}
           proposalAspectRatio={arsenalReadiness.data ? assemblyAspectRatio : undefined}
           onProposalAspectRatioChange={setAssemblyAspectRatio}
-          onOpenEditorWithPost={(post) => {
-            setLastInputMeta({ inputType: "text", inputContent: post.headline });
-            setSelectedPost(post);
-            setStage("editor");
+          onOpenEditorWithPost={openEditorPost}
+          onOpenSavedArtwork={post => openEditorPost(savedPostToCanvasModel(post), post, post)}
+          projectArtwork={projectArtwork}
+          onUseSavedArtwork={artwork => {
+            setDeclaredFamilyId(null);
+            setProjectArtwork(artwork);
           }}
+          onRemoveProjectArtwork={removeProjectArtwork}
         />
       )}
 
@@ -1644,7 +1761,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
               });
             }}
             onBackToCreate={handleGalleryBackToCreate}
-            onGenerateMore={startPiece || dispatchInterrupted || (!generationSnapshot && Boolean((historyRestore?.variations?.[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas)) ? undefined : handleGenerateMore}
+            onGenerateMore={startPiece || dispatchInterrupted || lastGenerationInput.current?.artworkCarousel || (!generationSnapshot && Boolean((historyRestore?.variations?.[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas)) ? undefined : handleGenerateMore}
             isGeneratingMore={!dispatchInterrupted && (isGeneratingMore || generationSnapshot?.overallStatus === "running")}
             declaredFamilyId={declaredFamilyId}
             generationProposals={dispatchInterrupted ? generationSnapshot?.proposals.filter(proposal => proposal.status === "ready") : generationSnapshot?.proposals}
@@ -1662,11 +1779,20 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
       ) : (
         <CanvasLabPage
           studioPlan={studioPlan}
+          mareRecordId={savedPostIdsByDocId[selectedPost.id]?.toString()}
           initialPost={selectedPost}
           onJourneyEvent={(post, kind, delta) => telemetry.record(post.provenance?.journey, exposureId, kind, { delta })}
           onBackToGallery={returnToGallery}
           onRestart={handleRestart}
           onSave={handleSavePost}
+          allowVideoUpload={mare?.video}
+          onSendToMare={mare?.editor ? async (post,target) => {
+            if (!await handleSavePost(post,"update","manual")) throw new Error("Salve o design para abrir o Maré.");
+            const postId=savedPostIdsRef.current[post.id];
+            const expectedRevision=savedPostRevisionsRef.current[postId];
+            if (!postId || !expectedRevision) throw new Error("A revisão salva não foi localizada.");
+            await sendToMare({postId,expectedRevision,documentId:post.id,slideId:target.slideId,slotId:target.slotId});
+          } : undefined}
           onShareWithTeam={teamShareUserId ? post => {
             try {
               sessionStorage.setItem(`postspark.agency_share.${teamShareUserId}`, JSON.stringify(post));
@@ -1680,14 +1806,26 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
 
       {/* Etapa 3 & 4 — bloqueios de UX e revisão de briefing sobre as telas */}
       <CreationGuardsHost>
-        {isReviewingBrief && activeBrief?.format === "carousel" && (
+        {isReviewingBrief && activeBrief && (
           <BriefReviewModal
             brief={activeBrief}
+            projectArtwork={projectArtwork}
+            artworkCarouselQuote={reviewingArtworkCarousel ? (artworkCarouselQuote.isFetching ? undefined : artworkCarouselQuote.data) ?? {
+              status: artworkCarouselQuote.isError ? "unavailable" : "loading",
+            } : undefined}
             onUpdateBrief={(updated) => {
               setActiveBrief(updated);
               persistBriefDraft(updated, "create");
             }}
             onConfirmGenerate={() => {
+              if (reviewingArtworkCarousel) {
+                const quote = artworkCarouselQuote.data;
+                if (quote?.status !== "ready" || artworkCarouselQuote.isFetching) return;
+                creationInputOptions.current = {
+                  ...creationInputOptions.current,
+                  artworkCarousel: { confirmedSparks: quote.sparks },
+                };
+              }
               // Fecha primeiro para revelar imediatamente o ProductionOverlay
               // da tela de criação enquanto a geração acontece.
               setIsReviewingBrief(false);
@@ -1704,7 +1842,7 @@ export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamS
           <FormatConfirmModal
             intent={formatConfirm.intent}
             selectedMode={formatConfirm.mode}
-            onSwitchToDetected={() => {
+            onSwitchToDetected={projectArtwork ? undefined : () => {
               const detected = formatConfirm.intent.detectedFormat;
               const prompt = formatConfirm.prompt;
               setFormatConfirm(null);

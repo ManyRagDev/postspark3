@@ -137,22 +137,26 @@ export function validateTotalFontPayload(
 }
 
 // Registro global de fontes já carregadas no DOM para prevenir injeções duplicadas (AC-006-05)
-const registeredFonts = new Set<string>();
+const registeredFonts = new Map<string, Promise<boolean>>();
 
 /**
  * Registra e injeta a fonte no DOM de forma idempotente sem duplicar fontes no FontFaceSet.
  */
-export async function registerUserFont(font: ArsenalUserFont): Promise<boolean> {
-  const fontKey = `${font.family}::${font.url}`;
-  if (registeredFonts.has(fontKey)) {
-    return true;
-  }
+export function registerUserFont(font: ArsenalUserFont): Promise<boolean> {
+  if (typeof document === "undefined" || !document.fonts) return Promise.resolve(true);
+  const fontKey = `${font.family}::${font.weight ?? "normal"}::${font.url}`;
+  const existing = registeredFonts.get(fontKey);
+  if (existing) return existing;
+  const registration = installUserFont(font);
+  registeredFonts.set(fontKey, registration);
+  void registration.then(loaded => {
+    if (!loaded) registeredFonts.delete(fontKey);
+  });
+  return registration;
+}
 
-  if (typeof document === "undefined" || !document.fonts) {
-    registeredFonts.add(fontKey);
-    return true;
-  }
-
+async function installUserFont(font: ArsenalUserFont): Promise<boolean> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     const formatStr = font.format ? `format("${font.format}")` : "";
     const source = `url("${font.url}") ${formatStr}`.trim();
@@ -162,23 +166,17 @@ export async function registerUserFont(font: ArsenalUserFont): Promise<boolean> 
     };
 
     const fontFace = new FontFace(font.family, source, descriptors);
-    const loadedFace = await Promise.race([
-      fontFace.load(),
-      new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout ao carregar fonte")), DEFAULT_FONT_TIMEOUT_MS)
-      ),
-    ]);
-
-    if (loadedFace) {
-      document.fonts.add(loadedFace);
-      registeredFonts.add(fontKey);
-      return true;
-    }
+    const deadline = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error("Timeout ao carregar fonte")), DEFAULT_FONT_TIMEOUT_MS);
+    });
+    document.fonts.add(await Promise.race([fontFace.load(), deadline]));
+    return true;
   } catch (err) {
     console.warn(`[fontResources] Falha ao registrar fonte ${font.family}:`, err);
+    return false;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return false;
 }
 
 /**

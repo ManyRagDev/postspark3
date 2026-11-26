@@ -62,6 +62,18 @@ const generationTaskRoutingV2Schema = z.object({
 }).strict();
 export const generationTaskRoutingSchema = z.discriminatedUnion("version", [generationTaskRoutingV1Schema, generationTaskRoutingV2Schema]);
 
+export const editorialWriterSchema = z.enum([
+  "z-ai/glm-5.3", "qwen/qwen4-max", "openai/gpt-6.2-sol", "google/gemini-3.8-flash",
+]);
+export type EditorialWriter = z.infer<typeof editorialWriterSchema>;
+const editorialTeamSchema = z.object({
+  version: z.literal(1),
+  writer: editorialWriterSchema,
+  sourceReader: z.literal("moonshotai/kimi-k3.1-pro"),
+  factualCorrection: z.literal("openai/gpt-6.2-sol"),
+  commercialAdaptation: z.literal("z-ai/glm-5.3"),
+}).strict();
+
 /** Immutable admission receipt. Old requests legitimately have no receipt. */
 export const generationModelConfigSchema = z.object({
   version: z.literal(1),
@@ -73,6 +85,10 @@ export const generationModelConfigSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().min(0).max(1).optional(),
   /** Absent on historical receipts that use the original fit thresholds. */
+  textRecoveryVersion: z.literal(1).optional(),
+  finalFitRepairVersion: z.literal(1).optional(),
+  editorialTeam: editorialTeamSchema.optional(),
+  trioDeliveryVersion: z.literal(1).optional(),
   layoutFitPolicy: z.enum(["subpixel_v1", "adaptive_v2"]).optional(),
   /** Absent means the exact historical prompt/schema must be replayed. */
   editorialIntentVersion: z.literal(1).optional(),
@@ -89,6 +105,13 @@ export const generationModelConfigSchema = z.object({
       config.structuredOutputMode !== "native_schema" || config.temperature !== undefined || config.topP !== undefined)) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "task_routing_configuration_mismatch", path: ["taskRouting"] });
   }
+  if (config.editorialTeam && config.taskRouting?.version !== 2) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "editorial_team_requires_automatic_v2", path: ["editorialTeam"] });
+  }
+  if (config.trioDeliveryVersion && (config.choice !== "auto" || config.layoutFitPolicy !== "adaptive_v2" ||
+      !config.textRecoveryVersion || !config.finalFitRepairVersion)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "trio_delivery_configuration_mismatch", path: ["trioDeliveryVersion"] });
+  }
 });
 export type GenerationModelConfig = z.infer<typeof generationModelConfigSchema>;
 
@@ -100,7 +123,7 @@ export const GENERATION_MODEL_LABELS: Record<ActiveGenerationModel, string> = {
 };
 
 export const GENERATION_MODEL_HINTS: Record<ActiveGenerationModel, string> = {
-  auto: "Equilíbrio entre criatividade, qualidade e custo.",
+  auto: "O Studio escolhe os modelos de redação e revisão conforme o briefing.",
   claude: "Escrita natural e expressiva em português.",
   deepseek: "Textos diretos e objetivos.",
   gemini: "Modelo versátil para criação de conteúdo.",

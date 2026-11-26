@@ -59,6 +59,16 @@ export function buildStudioDebugger(
   });
   const calls = new Map<string, Row>();
   const addCall = (call: Row, operationKey = call.operationKey) => {
+    const key = call.providerId
+      ? arsenalHash(["provider", call.providerId])
+      : arsenalHash([
+          call.label,
+          call.attempt ?? 1,
+          call.promptHash ?? null,
+          call.requestedModel ?? null,
+          call.effectiveModel ?? null,
+        ]);
+    const existing = calls.get(key);
     const data = {
       ...fields(call, [
         "label",
@@ -73,20 +83,14 @@ export function buildStudioDebugger(
         "costSource",
         "estimatedCostUsd",
       ]),
-      operationKey,
+      operationKey: existing?.operationKey ?? operationKey,
     };
-    const key = arsenalHash([
-      operationKey ?? null,
-      call.providerId ?? null,
-      call.label,
-      call.attempt ?? 1,
-      call.promptHash ?? null,
-    ]);
     calls.set(key, data);
   };
   for (const call of runCalls) addCall(call);
   // A worker can copy the same observation to the operation journal and to the run.
   // Keep separate evaluations at the same instant when their payloads differ.
+  const debuggerIssues = [...decision.issues];
   function event(e: Row, operationKey?: string) {
     const id = arsenalHash([
       e.at ?? null,
@@ -95,7 +99,14 @@ export function buildStudioDebugger(
       e.detail ?? null,
       e.data ?? null,
     ]);
-    if (!operationKey && timeline.has(id)) return;
+    if (timeline.has(id)) return;
+    if (e.stage === "proposal_copy_validation_failed" || (e.stage === "proposal_failure" && e.detail === "copy_response_invalid")) {
+      const target = String(e.data?.attemptId ?? e.data?.proposalId ?? operationKey ?? "proposal");
+      if (e.stage === "proposal_copy_validation_failed" || !debuggerIssues.some(i => i.target === target && i.code === "copy_response_invalid_detail")) {
+        debuggerIssues.push({ code: e.stage === "proposal_copy_validation_failed" ? "copy_response_invalid_detail" : "copy_response_invalid",
+          target, detail: e.data?.issues ? JSON.stringify(e.data.issues) : "A resposta de redação foi rejeitada pelo validador." });
+      }
+    }
     const data = fields(e.data ?? {}, [
       "slot",
       "round",
@@ -117,7 +128,14 @@ export function buildStudioDebugger(
       "requestHash",
       "estimatedInputTokens",
       "remainingMs",
+      "outcome",
+      "targetCount",
+      "remainingFindings",
+      "elapsedMs",
       "proposalId",
+      "attemptId",
+      "detailHash",
+      "issues",
       "slideCount",
       "findings",
       "inspectedSlides",
@@ -138,16 +156,46 @@ export function buildStudioDebugger(
       { detail: e.detail, operationKey, ...data }
     );
   }
+  let finalFitAttempts = 0, finalFitKnownCost = 0, finalFitUnknownCosts = 0;
+  const finalFitDeliveries = new Set<string>();
   for (const op of operations) {
     const key = String(op.operation_key);
     step(key + ":start", op.started_at, key, "started", { operationKey: key });
     for (const e of rows(op.result?.__generationTrace?.events)) event(e, key);
     const documentedCalls = rows(op.result?.__generationTrace?.calls);
     for (const call of documentedCalls) addCall(call, key);
+    const rejection = op.result?.__providerRejection;
+    if (rejection && typeof rejection === "object") {
+      debuggerIssues.push({
+        code: "provider_request_rejected",
+        target: key,
+        detail: `${rejection.provider ?? "provider"}:${rejection.model ?? ""} HTTP ${rejection.httpStatus ?? "?"} (${rejection.reason ?? "rejected"})`,
+      });
+    }
+    const fit = /:copy_final_fit(?:_residual)?$/.exec(key);
+    if (fit) {
+      const proposalId = key.slice(0, -fit[0].length);
+      const proposal = rows(request.proposals).find(p => p.proposalId === proposalId);
+      const call = documentedCalls.find(call => ["provider", "estimate"].includes(call.costSource) && typeof call.estimatedCostUsd === "number");
+      const cost = op.result?.usage?.cost ?? call?.estimatedCostUsd;
+      finalFitAttempts++;
+      if (proposal?.status === "ready" && op.state === "completed" &&
+          rows(proposal.diagnostics).some(d => d.code === "final_text_fit_passed" && d.target === op.result?.finalFit?.attemptId)) finalFitDeliveries.add(proposalId);
+      if (typeof cost === "number") finalFitKnownCost += cost;
+      else finalFitUnknownCosts++;
+      step(key + ":fit", op.updated_at, key.endsWith("_residual") ? "Reparo do texto restante" : "Ajuste final de texto", rejection ? "provider_rejected" : op.state, {
+        proposalId, operationKey: key,
+        ...fields(op.result?.finalFit ?? {}, ["attemptId", "targetCount", "durationMs"]),
+        costUsd: cost ?? null,
+        costSource: typeof op.result?.usage?.cost === "number" ? "provider" : call?.costSource ?? "unknown",
+        deliveryStatus: proposal?.status,
+      });
+    }
     if (op.state !== "started")
-      step(key + ":result", op.updated_at, key, op.state, {
+      step(key + ":result", op.updated_at, key, rejection ? "provider_rejected" : op.state, {
         model: op.result?.model,
         kind: op.result?.kind,
+        ...(rejection ? { providerRejection: rejection } : {}),
         operationKey: key,
         calls: documentedCalls.map(call =>
           fields(call, [
@@ -162,6 +210,19 @@ export function buildStudioDebugger(
   }
   for (const e of source.events ?? []) event(e);
   for (const p of rows(request.proposals)) {
+    if (p.status === "failed") debuggerIssues.push({
+      code: "proposal_failed", target: String(p.proposalId ?? p.slot),
+      detail: [p.failure?.stage, p.failure?.code ?? p.errorReason].filter(Boolean).join(" / "),
+    });
+    for (const diag of rows(p.diagnostics)) {
+      if (diag.code === "copy_response_invalid_detail" || diag.code === "copy_recovery_provider_rejected") {
+        debuggerIssues.push({
+          code: String(diag.code),
+          target: String(p.proposalId ?? `slot-${p.slot}`),
+          detail: String(diag.evidence ?? ""),
+        });
+      }
+    }
     if (typeof p.completedAt === "number" && Number.isFinite(p.completedAt)) {
       step(
         "delivery:" + p.proposalId,
@@ -177,6 +238,10 @@ export function buildStudioDebugger(
       );
     }
   }
+  if (finalFitAttempts) step("final-fit-summary", request.updated_at, "Resultado dos reparos finais", request.status, {
+    attempts: finalFitAttempts, delivered: finalFitDeliveries.size, knownCostUsd: finalFitKnownCost, unknownCosts: finalFitUnknownCosts,
+    costUsdPerRecoveredProposal: finalFitDeliveries.size && !finalFitUnknownCosts ? finalFitKnownCost / finalFitDeliveries.size : null,
+  });
   return {
     requestId: String(request.id),
     status: String(request.status),
@@ -192,7 +257,7 @@ export function buildStudioDebugger(
     ),
     calls: Array.from(calls.values()),
     coverage: decision.coverage,
-    issues: decision.issues,
+    issues: debuggerIssues,
     candidates: decision.candidates.map(c => ({
       id: String(c.offerId),
       sourceId: c.sourceId as string | undefined,

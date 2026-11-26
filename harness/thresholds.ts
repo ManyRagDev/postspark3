@@ -1,11 +1,8 @@
 /**
  * Critérios de aceitação, declarados ANTES de rodar.
  *
- * Estes números são o contrato entre o plano e o agente executor: uma etapa só
- * fecha quando `pnpm harness` sai com código 0 contra o perfil dela.
- *
- * Origem dos valores: `docs/plano-implementacao.md` (E2, E3, E5) e
- * `docs/decisoes-pendentes.md` (item 10, piso de legibilidade).
+ * Os perfis E2, E3 e E5 preservam os critérios históricos do harness.
+ * Os limites compartilhados de tipografia ficam em shared/typography/constants.ts.
  */
 
 export interface Thresholds {

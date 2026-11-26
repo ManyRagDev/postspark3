@@ -143,6 +143,18 @@ usar SSH por requisição. Para desenvolvimento sem serviço remoto, a mesma fla
 habilita `PHOTOCRAFT_BIN`/`PHOTOCRAFT_WORK_ROOT` no backend local; os limites de
 CPU/RAM exigem o isolamento externo do ambiente de execução.
 
+Para habilitar o editor na cópia local Linux, instale a versão validada a partir
+da raiz do projeto e use o caminho absoluto que o instalador imprimir.
+
+```bash
+PHOTOCRAFT_INSTALL_ROOT="$PWD/.cache/photocraft" PHOTOCRAFT_GLOBAL_LINK= bash scripts/photocraft/install-linux.sh v0.23.1
+```
+
+No `.env` local, configure `PHOTOCRAFT_BIN` com esse caminho e
+`ADVANCED_IMAGE_EDITOR_ENABLED=true`. As opções `ADVANCED_IMAGE_CORE_ENABLED=true`
+e `ADVANCED_IMAGE_FINISHING_ENABLED=true` habilitam também os tratamentos de
+cor e acabamento. A API lê essas variáveis ao iniciar.
+
 Contexto publicado: `/opt/postspark/photocraft/web-release-20261115/`.
 Imagem: `postspark-web:advanced-editor-20261115`, digest
 `sha256:09f296eaf2b336ec0a94814592418e09a246794b41dd3756cf09468fccf4db6e`.

@@ -237,9 +237,15 @@ function drawScene(context, scene, time) {
   context.fillRect(0, 0, WIDTH, HEIGHT);
 }
 
+function layerFont(layer,size) {
+  return (layer.italic?"italic ":"")+(layer.fontWeight??600)+" "+size+'px "'+(layer.fontFamily||"Arial")+'", sans-serif';
+}
+function textOrigin(layer) {
+  return layer.align==="left"?-layer.width/2:layer.align==="right"?layer.width/2:0;
+}
 function drawCompositionText(context, layer) {
-  context.font = `600 ${layer.fontSize}px Arial, sans-serif`;
-  context.textAlign = "center";
+  context.font=layerFont(layer,layer.fontSize);
+  context.textAlign=layer.align||"center";
   context.textBaseline = "middle";
   if (layer.wrap) {
     drawWrappedText(context, layer);
@@ -252,33 +258,33 @@ function drawCompositionText(context, layer) {
   );
   const firstLine = (-lineHeight * (lines.length - 1)) / 2;
   for (let i = 0; i < lines.length; i++) {
-    context.fillText(lines[i], 0, firstLine + i * lineHeight, layer.width);
+    context.fillText(lines[i], textOrigin(layer), firstLine + i * lineHeight, layer.width);
   }
 }
 
 function drawWrappedText(context, layer) {
   // Wrap by available width, then fit the whole block uniformly if necessary.
-  const words = layer.text.trim().split(/\s+/);
+  const paragraphs=layer.text.split(/\r?\n/);
   let size = layer.fontSize;
   let lines;
   while (true) {
-    context.font = `600 ${size}px Arial, sans-serif`;
+    context.font=layerFont(layer,size);
     lines = [];
-    let line = "";
-    for (const word of words) {
-      const candidate = line ? line + " " + word : word;
-      if (line && context.measureText(candidate).width > layer.width) {
-        lines.push(line);
-        line = word;
-      } else line = candidate;
+    for(const paragraph of paragraphs){
+      let line="";
+      for(const word of paragraph.trim().split(/\s+/)){
+        const candidate=line?line+" "+word:word;
+        if(line && context.measureText(candidate).width>layer.width){lines.push(line);line=word;}
+        else line=candidate;
+      }
+      lines.push(line);
     }
-    lines.push(line);
     if (size <= 1 || (lines.length * size * 1.18 <= layer.height &&
       lines.every(text => context.measureText(text).width <= layer.width))) break;
     size = Math.max(1, Math.floor(size * 0.88));
   }
   const advance = size * 1.18;
-  lines.forEach((line, index) => context.fillText(line, 0, (index - (lines.length - 1) / 2) * advance));
+  lines.forEach((line, index) => context.fillText(line, textOrigin(layer), (index - (lines.length - 1) / 2) * advance));
 }
 
 function drawCompositionImage(context, layer, image) {
@@ -296,8 +302,10 @@ function drawCompositionImage(context, layer, image) {
 }
 
 export function drawComposition(context, composition, sceneTime, media) {
-  context.fillStyle = composition.background;
-  context.fillRect(0, 0, WIDTH, HEIGHT);
+  if(composition.background!=="transparent"){
+    context.fillStyle = composition.background;
+    context.fillRect(0, 0, WIDTH, HEIGHT);
+  }
   for (const layer of composition.layers) {
     if (sceneTime < layer.start || sceneTime >= layer.end) continue;
     const p = evaluateLayer(layer, sceneTime);
@@ -370,17 +378,24 @@ export function drawComposition(context, composition, sceneTime, media) {
   }
 }
 
-/** The transport prepares the media element, including source-time seeking. */
+// Playback supplies a video element, precise export supplies a decoded canvas.
+function footageDimensions(source) {
+  if (!source || source.readyState < 2) return null;
+  const width = source.videoWidth ?? source.width;
+  const height = source.videoHeight ?? source.height;
+  return width && height ? {width, height} : null;
+}
 function drawFootage(context, video) {
-  if (!video || video.readyState < 2 || !video.videoWidth) return;
-  drawCover(context, video, video.videoWidth, video.videoHeight);
+  const size = footageDimensions(video);
+  if (size) drawCover(context, video, size.width, size.height);
 }
 
 function drawClip(context, clip, sourceTime, project, media, secondary = false) {
   if (clip.kind === "video") {
     const video = media.get(secondary ? transitionMediaKey(clip) : clip.assetId);
-    if (video?.readyState >= 2 && video.videoWidth) {
-      drawSpeakingVideo(context, video, video.videoWidth, video.videoHeight, clip, sourceTime,
+    const size = footageDimensions(video);
+    if (size) {
+      drawSpeakingVideo(context, video, size.width, size.height, clip, sourceTime,
         media.get(clip.talk?.matte?.id), media.get(clip.talk?.image?.src));
     }
     return;
@@ -408,19 +423,16 @@ function transitionPictures(canvas) {
   return pair;
 }
 
-export function drawFrame(canvas, project, time, media = new Map()) {
-  const context = canvas.getContext("2d", { alpha: false });
+export function drawFrame(canvas, project, time, media = new Map(), transparent = false,viewport) {
+  const context = canvas.getContext("2d", { alpha: transparent });
   context.save();
-  context.setTransform(
-    canvas.width / WIDTH,
-    0,
-    0,
-    canvas.height / HEIGHT,
-    0,
-    0
-  );
-  context.fillStyle = "#000";
-  context.fillRect(0, 0, WIDTH, HEIGHT);
+  const sx=canvas.width/(viewport?.width??WIDTH),sy=canvas.height/(viewport?.height??HEIGHT);
+  context.setTransform(sx,0,0,sy,-(viewport?.left??0)*sx,-(viewport?.top??0)*sy);
+  if(transparent)context.clearRect(0,0,WIDTH,HEIGHT);
+  else {
+    context.fillStyle = "#000";
+    context.fillRect(0, 0, WIDTH, HEIGHT);
+  }
   time = Math.min(time, Math.max(0, durationOf(project) - 1e-7));
   let start = 0;
   for (let i = 0; i < project.clips.length; i++) {

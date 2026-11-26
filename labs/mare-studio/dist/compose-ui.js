@@ -1,7 +1,7 @@
 import { axesFor, timelineKeys, positionFrame, editPosition, editScale, setValue } from "./layer-transform.js";
 import { editLayerFields } from "./editor-commands.js";
 import { elements } from "./elements.js";
-import { hasCachedModel } from "./model-cache.js";
+import { quickChoices, quickLabel, runQuickAction } from "./quick-actions.js";
 import {
   assertComposition,
   DEFAULT_BEZIER,
@@ -11,11 +11,6 @@ import {
   newLayer,
   setKey,
 } from "./composition-model.js";
-import { planCompositionEdit } from "./composition-ai.js";
-import {
-  canUseGenerativeModel,
-  planGenerativeEdit,
-} from "./generative-planner.js";
 import { bindLayerOrder } from "./layer-order.js";
 import { layerAxes, linkedScale, maxScale, resizeLayer } from "./layer-resize.js";
 import { drawFrame } from "./renderer.js";
@@ -172,18 +167,11 @@ function transformMarkup(layer, props) {
     scaleAxes.map(row).join("");
   return position + '<div class="cp-scale">' + lock + size + '</div>' + row("rotation") + row("reveal");
 }
-const sampleRequest =
-  "Crie um quadrado coral que gira, se abre e revela o título “Nova coleção”.";
-const scopeRequest = "Faça o giro desacelerar antes de abrir.";
-const titleRequest = "Faça o título entrar suavemente.";
-
 export function createCompositionUI({
   getState,
   change,
   seek,
-  undo,
-  canUndo,
-  replay,
+  openTemplates,
   notify,
   setPanel,
   showDialog,
@@ -206,29 +194,7 @@ export function createCompositionUI({
     bezierDrag = null,
     drag = null,
     resizeGesture = null,
-    request = null,
-    requestProgress = "",
-    pending = null,
-    downloadOffer = null;
-  const supportsQwen = canUseGenerativeModel();
-  const preferenceKey = "mare.assistente.modo";
-  let preference;
-  try {
-    preference = localStorage.getItem(preferenceKey);
-  } catch {}
-  let modelCached = false;
-  const automatic = () => supportsQwen && preference === "native";
-  if (supportsQwen)
-    hasCachedModel().then(cached => {
-      modelCached = cached;
-      if (cached && activeId && !request && !pending && !inspector.contains(document.activeElement)) render();
-    });
-  const sessions = new Map();
-  function session() {
-    if (!sessions.has(activeId))
-      sessions.set(activeId, { prompt: "", messages: [], undoAfter: null, feedback: null });
-    return sessions.get(activeId);
-  }
+    recent = null;
   function current() {
     const { clip, time, playing } = getState();
     const doc = clip?.composition;
@@ -240,15 +206,6 @@ export function createCompositionUI({
       layer: doc?.layers.find(l => l.id === selectedId),
       limit: clip ? clip.trim + clip.duration : 0,
     };
-  }
-  function invalidateRequest() {
-    pending = null;
-    downloadOffer = null;
-    requestProgress = "";
-    if (request) {
-      request.abort();
-      request = null;
-    }
   }
   function apply(edit) {
     const { doc } = current();
@@ -263,13 +220,11 @@ export function createCompositionUI({
       return false;
     }
     if (JSON.stringify(next) === JSON.stringify(doc)) return false;
-    invalidateRequest();
     change(next);
     return true;
   }
   function selectLayer(id, openInspector = false) {
     if (id !== selectedId) {
-      invalidateRequest();
       activeKey = null;
     }
     selectedId = id;
@@ -301,9 +256,6 @@ export function createCompositionUI({
   const cancelLibrarySort = bindLayerOrder(library, dropLayer);
   const cancelTrackSort = bindLayerOrder(track, dropLayer);
   const grip = '<span class="cp-grip" aria-hidden="true">' + svg("GripVertical") + '</span>';
-  function scopeText(layer) {
-    return layer ? layer.name : "Composição inteira";
-  }
   let category = "Formas";
   function libraryMarkup(doc) {
     const choices = category === "Formas" ? Object.entries(basicShapes) : [];
@@ -353,109 +305,67 @@ export function createCompositionUI({
       "</div></div>"
     );
   }
-  function assistantMarkup(doc, layer) {
-    const state = session(),
-      example =
-        layer?.type === "text"
-          ? titleRequest
-          : layer?.type === "square" && layer.keys.rotation?.length
-          ? scopeRequest
-          : !layer && !doc.layers.length
-            ? sampleRequest
-            : null;
-    const feedback = state.feedback;
-    return (
-      '<section class="cp-assistant"><div class="cp-heading">' +
-      svg("Sparkles") +
-      ' Assistente de movimento</div>' +
-      (doc.layers.length
-        ? '<label class="cp-scope"><span>Editar</span><select data-cp-scope aria-label="O que editar">' +
-      option("", "Composição inteira", !layer) +
-      doc.layers.map(l => option(l.id, l.name, l.id === selectedId)).join("") +
-          "</select></label>"
-        : "") +
-      '<form data-cp-form><textarea rows="2" maxlength="' + (automatic() ? 1800 : 650) +
-      '" data-cp-prompt aria-label="Pedido ao assistente" placeholder="' +
-      (layer ? "O que você quer mudar nesta camada?" : "Ex.: crie um título “Nova coleção” e faça o título entrar suavemente") +
-      '"' + (request ? " disabled" : "") + ">" +
-      safeText(state.prompt) +
-      '</textarea><div class="cp-assistant-actions"><button class="cp-apply" type="submit" ' +
-      (request ? "disabled" : "") +
-      ">" +
-      svg("Sparkles") +
-      (request ? "Interpretando…" : automatic() ? "Preparar edição" : "Aplicar pedido") +
-      "</button>" +
-      (example
-        ? '<button type="button" class="cp-example" ' + (request ? "disabled " : "") + 'data-cp-example="' +
-          safeText(example) +
-          '">' +
-          (layer?.type === "text" ? "Testar entrada suave" : layer ? "Testar giro suave" : "Testar exemplo") +
-          "</button>"
-        : "") +
-      "</div></form>" +
-      (feedback
-        ? '<p class="cp-result" data-cp-feedback tabindex="-1" role="' + (feedback.error ? "alert" : "status") +
-          '">' + safeText(feedback.text) + "</p>"
-        : "") +
-      (request
-        ? '<div role="status" class="cp-progress">' +
-          safeText(requestProgress || "Interpretando pedido…") +
-          '</div><button type="button" data-cp-cancel>Cancelar pedido</button>'
-        : "") +
-      (downloadOffer
-        ? '<div class="cp-plan" data-cp-download-offer><strong>Preparar com o Qwen</strong><p>A edição rápida não conseguiu interpretar este pedido. Para tentar com o Qwen, baixe 398 MB. O modelo funciona neste navegador.</p>' +
-          '<button type="button" data-cp-download>Baixar 398 MB e preparar</button> <button type="button" data-cp-cancel>Cancelar</button></div>'
-        : "") +
-      (pending
-        ? '<div class="cp-plan" data-cp-plan><strong>Revisar edição</strong><p>' +
-          safeText(pending.interpreter + " · " + pending.result.summary) +
-          '</p><button type="button" data-cp-confirm>Aplicar edição</button> <button type="button" data-cp-cancel>Descartar</button></div>'
-        : "") +
-      (supportsQwen
-        ? '<details class="cp-assistant-options" data-cp-options ' + (state.optionsOpen ? "open" : "") +
-          '><summary>Opções do assistente</summary><label class="cp-scope"><span>Modo</span><select data-cp-engine aria-label="Modo do assistente">' +
-          option("local", "Edição rápida", !automatic()) +
-          option("native", modelCached ? "Com Qwen" : "Com Qwen · 398 MB", automatic()) +
-          '</select></label><p data-cp-engine-hint>' +
-          (automatic()
-            ? "Tenta a edição rápida e recorre ao Qwen quando necessário. Você revisa as mudanças antes de aplicar. " +
-              (modelCached ? "O Qwen já está neste navegador." : "O download de 398 MB pede sua confirmação.")
-            : "Edite textos, cores e movimentos conhecidos no navegador, sem baixar um modelo.") +
-          "</p></details>"
-        : "") +
-      (state.messages.length
-        ? '<details class="cp-log" ' +
-          (state.open ? "open" : "") +
-          "><summary>Histórico de pedidos (" +
-          state.messages.length +
-          ")</summary>" +
-          state.messages
-            .slice(-6)
-            .map(
-              m =>
-                "<div><small>" +
-                safeText(m.interpreter + " · " + m.scope) +
-                "</small><p>" +
-                safeText(m.prompt) +
-                "</p><p>" +
-                safeText(m.summary) +
-                "</p></div>"
-            )
-            .join("") +
-          "</details>"
-        : "") +
-      (state.messages.some(message => message.applied) && doc.layers.length
-        ? '<button type="button" class="cp-command-undo" data-cp-replay>' +
-          svg("Play") +
-          " Reproduzir composição do início</button>"
-        : "") +
-      (state.undoAfter === JSON.stringify(doc) && canUndo()
-        ? '<button type="button" class="cp-command-undo" data-cp-undo>' +
-          svg("Undo2") +
-          " Desfazer pedido</button>"
-        : "") +
-      "</section>"
-    );
+  function quickMarkup(doc, layer) {
+    const {actions, next} = quickChoices(doc, layer, current().limit, recent);
+    const action = id => '<button type="button" class="btn" data-quick="' + id + '">' + safeText(quickLabel(id)) + '</button>';
+    return '<section class="cp-quick" aria-label="Ações rápidas"><div class="cp-heading">Ações rápidas</div>' +
+      (next ? '<div class="cp-next"><small>Sugestão</small>' + action(next) + '</div>' : '') +
+      '<div class="cp-quick-list">' + actions.map(action).join('') +
+      '<button type="button" class="btn" data-quick-assistant>' + svg("Sparkles") + ' Pedir à IA</button></div></section>';
+  }
+  function quickClick(id) {
+    if (id === "templates") return openTemplates();
+    const {clip, doc, layer, limit} = current();
+    const before = doc, target = layer?.id ?? null;
+    function commit(options) {
+      if (current().doc !== before || current().clip?.id !== clip.id || selectedId !== target)
+        throw Error("A seleção mudou. Abra a ação novamente.");
+      const next = structuredClone(doc);
+      const focus = runQuickAction(next,target,id,limit,recent,options);
+      assertComposition(next);
+      if (JSON.stringify(next) === JSON.stringify(doc)) return;
+      change(next);
+      recent = {layerId:focus, action:id};
+      selectedId = focus;
+      activeKey = null;
+      render();
+      notify(quickLabel(id) + " · aplicado");
+    }
+    const dialog = $("#dialog");
+    const field = (label, input) => '<label class="field">' + label + input + '</label>';
+    let body = "";
+    if (id === "rotate") {
+      const available = Math.max(0, layer.end - layer.start - (layer.keys.rotation.at(-1)?.t ?? 0));
+      body = field("Ângulo (°)", '<input name="angle" type="number" min="-3600" max="3600" value="90" step="any" required>') +
+        field("Duração (s)", '<input name="duration" type="number" min="0.033" max="' + available + '" step="any" value="' + Math.min(.8,available) + '" required>');
+    } else if (id === "title" || id === "bandTitle" || id === "intro") {
+      body = field("Texto do título", '<input name="text" maxlength="180" value="Seu título" required>');
+    } else if (id === "copy") {
+      body = field("Iniciar", '<select name="when"><option value="same">Junto com o título</option><option value="after">Logo depois</option></select>');
+    } else if (id === "sequence") {
+      const photos = doc.layers.filter(l => l.type === "image" && !l.keys.opacity.length && l.props.opacity > 0);
+      body = '<fieldset><legend>Fotos da sequência</legend>' + photos.map(l =>
+        '<label><input type="checkbox" name="photo" value="' + safeText(l.id) + '" ' +
+        (!recent?.images || recent.images.includes(l.id) ? 'checked' : '') + '> ' + safeText(l.name) + '</label>').join('') + '</fieldset>' +
+        field("Ordem", '<select name="order"><option>Da esquerda para a direita</option><option value="reverse">Da direita para a esquerda</option></select>') +
+        field("Intervalo entre entradas (s)", '<input name="gap" type="number" min="0.034" step="any" max="10" value="0.2" required>');
+    }
+    if (!body) {
+      try { commit({}); } catch (error) { notify(error.message); }
+      return;
+    }
+    showDialog(quickLabel(id), '<form id="quick-settings">' + body + '<p role="alert"></p></form>',
+      '<button type="button" class="btn" data-quick-cancel>Cancelar</button><button class="btn primary" form="quick-settings">Aplicar</button>');
+    dialog.querySelector("[data-quick-cancel]").onclick = () => dialog.close();
+    dialog.querySelector("form").onsubmit = event => {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      try {
+        commit({angle:Number(data.get("angle")), duration:Number(data.get("duration")), text:data.get("text"),
+          ids:data.getAll("photo"), gap:Number(data.get("gap")), reverse:data.get("order")==="reverse", after:data.get("when")==="after"});
+        dialog.close();
+      } catch (error) { event.target.querySelector('[role="alert"]').textContent = error.message; }
+    };
   }
   function inspectorMarkup(doc, layer, time) {
     const template = animationTemplateFor(doc);
@@ -465,8 +375,8 @@ export function createCompositionUI({
         '</div><button type="button" class="btn" data-cp-open-layers>Editar camadas</button>' :
         '<div class="cp-heading">Composição</div>') +
       '<label class="cp-color">Fundo<input type="color" data-cp-background value="' +
-      doc.background +
-      '"></label>';
+      (doc.background==="transparent"?"#14151a":doc.background) +
+      '"></label><label class="cp-color"><input type="checkbox" data-cp-transparent '+(doc.background==="transparent"?"checked":"")+'> Fundo transparente</label>';
     if (layer) {
       const props = evaluateLayer(layer, time);
       controls =
@@ -481,7 +391,7 @@ export function createCompositionUI({
         safeText(layer.name) +
         '"></label>' +
         (layer.type === "text"
-          ? '<label class="cp-field"><span>Texto da camada</span><input data-cp-prop="text" maxlength="180" value="' +
+          ? '<label class="cp-field"><span>Texto da camada</span><input data-cp-prop="text" maxlength="2000" value="' +
             safeText(layer.text) +
             '"></label>' +
             numField(
@@ -531,8 +441,7 @@ export function createCompositionUI({
         "</button></div>";
     }
     const manual = '<div class="cp-manual">' + controls + "</div>";
-    const assistant = assistantMarkup(doc, layer);
-    return '<div class="cp-inspector">' + (!doc.layers.length ? assistant + manual : manual + assistant) + "</div>";
+    return '<div class="cp-inspector">' + quickMarkup(doc,layer) + manual + "</div>";
   }
   function timingRows(clip, layers) {
     return (
@@ -699,14 +608,12 @@ export function createCompositionUI({
       return;
     }
     if (activeId !== clip.id) {
-      invalidateRequest();
+      recent = null;
       activeId = clip.id;
       selectedId = null;
       activeKey = null;
       channel = "position";
     }
-    const plan = pending ?? downloadOffer;
-    if (plan && JSON.stringify(doc) !== plan.before) invalidateRequest();
     if (selectedId && !doc.layers.some(l => l.id === selectedId)) {
       selectedId = null;
       activeKey = null;
@@ -764,7 +671,6 @@ export function createCompositionUI({
     cancelLibrarySort();
     cancelTrackSort();
     if (!activeId) return;
-    invalidateRequest();
     document.body.classList.remove("composition-active");
     activeId = null;
     selectedId = null;
@@ -842,23 +748,12 @@ export function createCompositionUI({
       else render();
       return;
     }
-    if (el.matches("[data-cp-engine]")) {
-      invalidateRequest();
-      preference = el.value;
-      try {
-        localStorage.setItem(preferenceKey, preference);
-      } catch {}
-      render();
-      inspector.querySelector("[data-cp-engine]")?.focus({ preventScroll: true });
+    if (el.matches("[data-cp-transparent]")) {
+      apply(doc => (doc.background = el.checked ? "transparent" : "#14151a"));
       return;
     }
     if (el.matches("[data-cp-background]")) {
       apply(doc => (doc.background = el.value));
-      return;
-    }
-    if (el.matches("[data-cp-scope]")) {
-      selectLayer(el.value || null);
-      inspector.querySelector("[data-cp-scope]")?.focus({ preventScroll: true });
       return;
     }
     if (!layer) return;
@@ -941,133 +836,6 @@ export function createCompositionUI({
     }
     apply(doc => setTemplateControl(doc, index, value));
   }
-  function isCurrentPlan(plan) {
-    const { doc, clip } = current();
-    return plan && clip?.id === plan.id && selectedId === plan.scope && JSON.stringify(doc) === plan.before;
-  }
-  async function send(allowDownload = false) {
-    if (request) return;
-    const { doc, layer, time, limit, clip } = current(),
-      state = session(),
-      prompt = state.prompt.trim();
-    if (!prompt) {
-      state.feedback = { text: "Escreva o que você quer mudar ou teste um exemplo.", error: true };
-      render();
-      inspector.querySelector("[data-cp-prompt]")?.focus();
-      return;
-    }
-    if (!selectedId && requestProjectEdit?.(prompt)) return;
-    const review = automatic();
-    if (allowDownload && (!review || downloadOffer?.prompt !== prompt || !isCurrentPlan(downloadOffer))) return;
-    pending = null;
-    downloadOffer = null;
-    requestProgress = "";
-    state.feedback = null;
-    const ctrl = new AbortController(),
-      plan = { id: clip.id, scope: selectedId, before: JSON.stringify(doc), prompt };
-    request = ctrl;
-    render();
-    let interpreter = "Edição rápida";
-    let focusAfter;
-    try {
-      const params = {
-        prompt,
-        composition: structuredClone(doc),
-        selectedId: plan.scope,
-        duration: limit,
-        time,
-        signal: ctrl.signal,
-        onProgress: text => {
-          if (request === ctrl) {
-            if (
-              text.startsWith("Carregando o modelo") ||
-              text.startsWith("Interpretando o pedido")
-            )
-              modelCached = true;
-            requestProgress = text;
-            const el = inspector.querySelector(".cp-progress");
-            if (el) el.textContent = text;
-          }
-        },
-      };
-      let result;
-      try {
-        result = await planCompositionEdit(params);
-      } catch (error) {
-        if (!review || ctrl.signal.aborted) throw error;
-        if (!isCurrentPlan(plan)) return;
-        if (!modelCached && !allowDownload) {
-          downloadOffer = plan;
-          focusAfter = "[data-cp-download]";
-          return;
-        }
-        interpreter = "Qwen";
-        result = await planGenerativeEdit(params);
-      }
-      if (ctrl.signal.aborted || !isCurrentPlan(plan)) return;
-      const changed = JSON.stringify(result.composition) !== plan.before;
-      assertComposition(result.composition);
-      if (!changed) throw new Error("O pedido não alterou a composição.");
-      const ready = { ...plan, result, interpreter };
-      if (review) {
-        pending = ready;
-        focusAfter = "[data-cp-confirm]";
-      } else if (commitPlan(ready) === "inline") focusAfter = "[data-cp-feedback]";
-    } catch (err) {
-      if (ctrl.signal.aborted) return;
-      const message = err.message || "Tente descrever uma alteração por vez.";
-      state.messages.push({
-        prompt,
-        interpreter,
-        scope: scopeText(layer),
-        summary: message,
-      });
-      state.feedback = { text: message, error: true };
-      focusAfter = "[data-cp-feedback]";
-    } finally {
-      if (request === ctrl) request = null;
-      if (activeId === plan.id) {
-        render();
-        if (focusAfter) inspector.querySelector(focusAfter)?.focus();
-      }
-    }
-  }
-  function commitPlan(plan) {
-    const { doc, layer, clip } = current();
-    const state = session();
-    if (!isCurrentPlan(plan)) {
-      invalidateRequest();
-      state.feedback = { text: "A composição mudou. Envie o pedido novamente.", error: true };
-      render();
-      return "inline";
-    }
-    const { prompt, result } = plan;
-    const firstAnimation = !doc.layers.length && result.composition.layers.length > 0;
-    state.messages.push({
-      prompt,
-      interpreter: plan.interpreter,
-      scope: scopeText(layer),
-      summary: result.summary,
-      applied: true,
-    });
-    state.prompt = "";
-    state.feedback = { text: result.summary, error: false };
-    state.undoAfter = JSON.stringify(result.composition);
-    selectedId = result.selectedId || null;
-    activeKey = null;
-    pending = null;
-    request = null;
-    change(result.composition);
-    if (firstAnimation) {
-      setPanel("preview");
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-        seek(clip.trim + clip.duration - Math.min(1 / 30, clip.duration / 2));
-      else replay();
-      $("#play")?.focus({ preventScroll: true });
-      return "preview";
-    }
-    return "inline";
-  }
   function attach(container, event, fn) {
     container.addEventListener(
       event,
@@ -1083,19 +851,6 @@ export function createCompositionUI({
       true
     );
   }
-  attach(inspector, "submit", e => {
-    e.preventDefault();
-    send();
-  });
-  attach(inspector, "input", e => {
-    if (!e.target.matches("[data-cp-prompt]")) return;
-    const state = session();
-    state.prompt = e.target.value;
-    state.feedback = null;
-    invalidateRequest();
-    for (const el of inspector.querySelectorAll("[data-cp-feedback], [data-cp-download-offer], [data-cp-plan]"))
-      el.remove();
-  });
   attach(inspector, "change", e => changeField(e.target));
   attach(inspector, "keydown", e => {
     const { cpChannel, cpTextBox } = e.target.dataset;
@@ -1115,17 +870,11 @@ export function createCompositionUI({
       inspector.querySelector('input[data-cp-template-field="' + index + '"]')?.focus({ preventScroll: true });
       return;
     }
-    if (
-      e.target.matches("[data-cp-prompt]") &&
-      e.key === "Enter" &&
-      (e.ctrlKey || e.metaKey)
-    ) {
-      e.preventDefault();
-      send();
-    }
   });
   // Blurring a field rebuilds the inspector. Commit it after the click is captured.
   inspector.addEventListener("pointerdown", e => {
+    if (e.target.closest("[data-quick],[data-quick-assistant]") &&
+        document.activeElement?.matches(".cp-inspector input,.cp-inspector select")) e.preventDefault();
     if (e.target.closest("[data-cp-diamond],[data-cp-lock]") &&
         document.activeElement?.matches("[data-cp-channel],[data-cp-text-box]"))
       e.preventDefault();
@@ -1170,40 +919,15 @@ export function createCompositionUI({
       inspector.querySelector('[data-cp-diamond="' + property + '"]')?.focus({ preventScroll: true });
       return;
     }
-    if (button.hasAttribute("data-cp-replay")) {
-      setPanel("preview");
-      replay();
-      return;
+    if (button.dataset.quick || button.hasAttribute("data-quick-assistant")) {
+      const field = document.activeElement;
+      if (field?.matches(".cp-inspector input,.cp-inspector select")) {
+        if (!field.reportValidity()) return;
+        field.blur();
+      }
+      if (button.dataset.quick) return quickClick(button.dataset.quick);
     }
-    if (button.hasAttribute("data-cp-confirm")) {
-      if (commitPlan(pending) === "inline") inspector.querySelector("[data-cp-feedback]")?.focus();
-      return;
-    }
-    if (button.hasAttribute("data-cp-download")) {
-      send(true);
-      return;
-    }
-    if (button.hasAttribute("data-cp-cancel")) {
-      invalidateRequest();
-      render();
-      inspector.querySelector("[data-cp-prompt]")?.focus();
-      return;
-    }
-    if (button.matches("summary")) {
-      const options = button.parentElement.hasAttribute("data-cp-options");
-      session()[options ? "optionsOpen" : "open"] = !button.parentElement.open;
-    }
-    if (button.dataset.cpExample) {
-      session().prompt = button.dataset.cpExample;
-      send();
-      return;
-    }
-    if (button.hasAttribute("data-cp-undo")) {
-      const state = session();
-      state.undoAfter = null;
-      state.feedback = null;
-      undo();
-    }
+    if (button.hasAttribute("data-quick-assistant")) return requestProjectEdit();
     if (button.hasAttribute("data-cp-delete")) removeLayer(selectedId);
     if (button.dataset.cpOrder) {
       const delta = Number(button.dataset.cpOrder);
@@ -1239,8 +963,8 @@ export function createCompositionUI({
             });
             draft.layers.push(...updates.values());
           })) {
-            selectLayer(arranged.at(-1).id);
-            setPanel("preview");
+            recent = {images:arranged.map(l => l.id)};
+            selectLayer(arranged.at(-1).id, true);
           }
         },
       });

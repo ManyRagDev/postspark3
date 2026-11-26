@@ -6,7 +6,7 @@ import type { RecentDesignSelection } from './designSelection';
 export const FAMILY_NEUTRALITY_POLICY = Object.freeze({version:1 as const, axes:['organization','density','typography','imageRole'] as const, candidateUnit:'family', excessCapacityBonus:0, inventorySizeBonus:0});
 export const FAMILY_AXES_RECONCILIATION_VERSION = 2 as const;
 export const PROPOSAL_SELECTION_POLICY = Object.freeze({ version: 1 as const, suitabilityGap: 0.4, recentRequests: 3 });
-export type FamilyNeutrality = {version:1; seed:string; planningVersion?:2 | 3; proposalSelectionVersion?:1; deliveryRecoveryVersion?:1 | 2; creativeFlexibility?:1; selectionPolicy?:"capability_v1"; axesVersion?:2};
+export type FamilyNeutrality = {version:1; seed:string; planningVersion?:2 | 3; proposalSelectionVersion?:1; deliveryRecoveryVersion?:1 | 2 | 3; creativeFlexibility?:1; selectionPolicy?:"capability_v1"; axesVersion?:2};
 export type FamilyAxes = Record<(typeof FAMILY_NEUTRALITY_POLICY.axes)[number],string>;
 const SERIF_FONT_REGEX = /\b(serif|cinzel|playfair|lora|cormorant|merriweather|garamond|bodoni|baskerville|didot|times)\b/i;
 

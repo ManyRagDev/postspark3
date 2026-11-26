@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getDb } from "../../server/db";
 import { uploadArsenalAsset } from "../../server/designCatalog/arsenalAssets";
-import { prepareComponentDraft } from "../../server/designCatalog/componentStore";
+import { prepareComponentDraft, checkNewDesignTextCohesion } from "../../server/designCatalog/componentStore";
 import { arsenalHash } from "../../shared/arsenalContent";
 import type { ComponentPackage } from "./extract";
 
@@ -16,6 +16,7 @@ if(admin.data.role!=="admin")throw new Error("O import exige administrador exist
 const inventory=JSON.parse(await fs.readFile(path.join(root,"inventory.json"),"utf8"));
 const packages:ComponentPackage[]=await Promise.all(inventory.rows.filter((r:any)=>r.package).map(async(r:any)=>JSON.parse(await fs.readFile(path.join(root,r.package),"utf8"))));
 const assets=new Map(packages.flatMap(p=>p.assetFiles.map(a=>[a.manifest.id,a] as const))),components=new Map(packages.flatMap(p=>p.components.map(c=>[c.id,c] as const)));
+await checkNewDesignTextCohesion(Array.from(components.values()));
 for(const a of Array.from(assets.values())){
   const bytes=await fs.readFile(path.join(root,a.relativePath));
   const stored=await uploadArsenalAsset(bytes,{weight:a.manifest.weight,license:a.manifest.license},actor);

@@ -6,7 +6,7 @@ import {
 import { adaptArsenalTextToFreeSpace } from "./arsenalAdaptiveTextFit";
 import { textFontFlexibility, largestFittingTextFont } from "./textFieldFlexibility";
 import { subpixelTextOverflowLimit } from "./arsenalReadiness";
-import { arsenalPaintOrder, type PhysicalRect } from "./arsenalPhysicalContract";
+import { arsenalPaintOrder, isCanvasBackdrop, type PhysicalRect, type PhysicalWorld } from "./arsenalPhysicalContract";
 import {
   orderArsenalRelations,
   fragmentContentText,
@@ -29,12 +29,15 @@ export type ArsenalTextMeasureInput = {
   lineHeight?: number;
   letterSpacing?: number;
   wordBreak?: "word";
+  /** Use a conservative bound on glyph advances for text inside a fixed surface. */
+  roundGlyphAdvances?: boolean;
 };
 export type ArsenalTextMeasurement = {
   height: number;
   lines: Array<{ width: number }>;
   runs: Array<{ fill: string; fontSize: number; fontStyle: string }>;
   inkBoxes?: PhysicalRect[];
+  lineInk?: Array<{ top: number; bottom: number } | null>;
 };
 export type ArsenalTextMeasurer = (
   input: ArsenalTextMeasureInput
@@ -51,6 +54,9 @@ export type ArsenalGeometryOptions = {
   respectAuthoredTextBox?: boolean;
   /** New admissions only: largest real font fit within the declared interval. */
   textFlexibilityVersion?: 1;
+  /** Check measured glyph clearance and retain any geometric fit as native overrides. */
+  guardTextSpacing?: boolean;
+  auditTextSpacingOnly?: boolean;
 };
 /** A generated adaptive box is a persisted authorial override. Historical
  * scenes retain their original authored-box audit, including font-only overrides. */
@@ -66,7 +72,8 @@ function elementOverrides(patch: ArsenalComposition["overrides"][string] = {}) {
 }
 export function measureArsenalElement(
   e: ArsenalElement,
-  measureText: ArsenalTextMeasurer
+  measureText: ArsenalTextMeasurer,
+  roundGlyphAdvances = false
 ) {
   return measureText({
     text: e.text,
@@ -80,6 +87,7 @@ export function measureArsenalElement(
     lineHeight: e.lineHeight,
     letterSpacing: e.letterSpacing,
     wordBreak: "word",
+    ...(roundGlyphAdvances ? { roundGlyphAdvances: true } : {}),
   });
 }
 function contrastRatio(a: string, b: string): number {
@@ -149,6 +157,7 @@ export function resolveArsenalGeometry(
   } = options;
   const c = structuredClone(source),
     issues: string[] = [];
+  const availableLineWidth = (width: number) => options.guardTextSpacing ? widthWithWrapClearance(width) : width + .01;
   const textOverflowTolerance = (element: ArsenalElement) =>
     allowSubpixelTextOverflow
       ? subpixelTextOverflowLimit(arsenalWorldGeometry(element, c.groups).scale)
@@ -298,7 +307,7 @@ export function resolveArsenalGeometry(
           ? overrideText
           : fragmentContentText(
               typeof value === "string" ? value : "",
-              e.contentFragment
+              e.contentFragment, c.measuredSplits?.[b.id]
             );
         if (!c.richText[e.id] && e.textFragments)
           e.richText = textFragmentRuns(e.text, e.textFragments);
@@ -395,8 +404,8 @@ export function resolveArsenalGeometry(
             const chosen=largestFittingTextFont(range,size=>{
               e.fontSize=size;
               layout=measureArsenalElement(e,measureText);
-              return layout.height<=maxHeight && layout.lines.every(line=>line.width<=e.width+.01) && !overflowsTokenWidth();
-            });
+              return layout.height<=maxHeight && layout.lines.every(line=>line.width<=availableLineWidth(e.width)) && !overflowsTokenWidth();
+            }, options.guardTextSpacing && layout.lines.length > 1);
             e.fontSize=chosen.fontSize;
             layout=measureArsenalElement(e,measureText);
             reduced ||= e.fontSize!==originalFont;
@@ -409,7 +418,7 @@ export function resolveArsenalGeometry(
             for (
               let attempt = 0;
               attempt < 64 &&
-              (layout.height > maxHeight || layout.lines.some(line => line.width > e.width + 0.01) || overflowsTokenWidth()) &&
+              (layout.height > maxHeight || layout.lines.some(line => line.width > availableLineWidth(e.width)) || overflowsTokenWidth()) &&
               e.fontSize > p.minFontSize;
               attempt++
             ) {
@@ -528,6 +537,14 @@ export function resolveArsenalGeometry(
       }
   }
   resolveArsenalShapePoints(c);
+  if (options.guardTextSpacing) {
+    const spacing = inspectArsenalTextSpacing(c, measureText, allowReduction && !options.auditTextSpacingOnly,
+      options.textFlexibilityVersion);
+    if (spacing.adjusted)
+      return resolveArsenalGeometry({ ...source, overrides: { ...source.overrides, ...spacing.overrides } },
+        { ...options, auditTextSpacingOnly: true });
+    issues.push(...spacing.issues);
+  }
   for (const e of c.elements) {
     if (e.kind === "text") {
       const layout = measureArsenalElement(e, measureText);
@@ -586,6 +603,340 @@ export function resolveArsenalGeometry(
         resolve: candidate => resolveArsenalGeometry(candidate, { ...options, adaptiveTextFit: false, respectAuthoredTextBox: true }),
       })
     : c;
+}
+
+const lineClearance = 0.75;
+const safeLeading = 1.15;
+// Chromium rounds per-glyph Canvas advances differently from Fontkit. Keep
+// space for that difference before a barely fitting word moves to a new row.
+export const widthWithWrapClearance = (width: number) => Math.max(1, width - Math.max(1, width * .02));
+
+function horizontalTextObstacles(c: ArsenalComposition) {
+  return c.elements.flatMap(element => {
+    if (!element.opacity || (element.kind !== "line" && element.kind !== "rect")) return [];
+    const world = arsenalWorldGeometry(element, c.groups);
+    if (Math.abs(world.rotation) > .01) return [];
+    if (element.kind === "rect") {
+      if (element.opacity !== 1 || !/^#[a-f\d]{6}$/i.test(element.fill) ||
+        element.height * world.scale > 8 || element.width < element.height * 8) return [];
+      return [{ element, top: world.y, bottom: world.y + element.height * world.scale,
+        left: world.x, right: world.x + element.width * world.scale }];
+    }
+    const points = element.points;
+    if (!element.strokeWidth || points?.length !== 4 ||
+        Math.abs(points[1] - points[3]) > .01) return [];
+    const y = world.y + points[1] * world.scale, half = element.strokeWidth * world.scale / 2;
+    return [{ element, top: y - half, bottom: y + half,
+      left: world.x + Math.min(points[0], points[2]) * world.scale,
+      right: world.x + Math.max(points[0], points[2]) * world.scale }];
+  });
+}
+
+/** Carousel variants may expand the opaque surface while its four authored
+ * border strokes still describe the smaller native frame. */
+function expandedTextFrame(c: ArsenalComposition, line: ArsenalElement) {
+  const same = (a: number, b: number) => Math.abs(a - b) <= .01;
+  const border = c.elements.filter(element => element.kind === "line" && element.opacity > 0 &&
+    element.parentId === line.parentId && same(element.rotation, line.rotation) &&
+    same(element.x, line.x) && same(element.y, line.y) &&
+    same(element.width, line.width) && same(element.height, line.height) &&
+    same(element.strokeWidth, line.strokeWidth) && element.stroke === line.stroke);
+  if (border.length !== 4) return;
+  const edges = new Set(border.map(element => {
+    const [a, b, x, y] = element.points ?? [];
+    if (same(a, x) && same(Math.abs(b - y), line.height)) return same(a, 0) ? "left" : same(a, line.width) ? "right" : null;
+    if (same(b, y) && same(Math.abs(a - x), line.width)) return same(b, 0) ? "top" : same(b, line.height) ? "bottom" : null;
+    return null;
+  }));
+  if (edges.size !== 4 || edges.has(null)) return;
+  const surfaces = c.elements.filter(element => element.kind === "rect" && element.opacity === 1 &&
+    /^#[a-f\d]{6}$/i.test(element.fill) && element.parentId === line.parentId &&
+    same(element.rotation, line.rotation) && same(element.x, line.x) && same(element.width, line.width) &&
+    element.y <= line.y && element.y + element.height >= line.y + line.height && element.height > line.height + .01);
+  if (surfaces.length !== 1) return;
+  return { border, surface: surfaces[0] };
+}
+
+function positionInSurface(text: PhysicalWorld, surface: PhysicalWorld) {
+  const angle = surface.rotation * Math.PI / 180;
+  const dx = (text.x - surface.x) / surface.scale;
+  const dy = (text.y - surface.y) / surface.scale;
+  return {
+    x: dx * Math.cos(angle) + dy * Math.sin(angle),
+    y: dy * Math.cos(angle) - dx * Math.sin(angle),
+    scale: text.scale / surface.scale,
+  };
+}
+
+function insideSurface(surface: ArsenalElement, x: number, y: number, inset: number) {
+  const right = surface.width - inset, bottom = surface.height - inset;
+  if (x < inset || x > right || y < inset || y > bottom) return false;
+  const radius = Math.max(0, Math.min(surface.cornerRadius, surface.width / 2, surface.height / 2) - inset);
+  const dx = x - Math.max(inset + radius, Math.min(right - radius, x));
+  const dy = y - Math.max(inset + radius, Math.min(bottom - radius, y));
+  return Math.hypot(dx, dy) <= radius + .01;
+}
+
+function inspectArsenalTextSpacing(
+  c: ArsenalComposition, measureText: ArsenalTextMeasurer, adjust: boolean, textFlexibilityVersion?: 1
+) {
+  const overrides: ArsenalComposition["overrides"] = {};
+  const issues: string[] = [];
+  const elements = c.elements.filter(element => element.kind === "text" && element.text.trim() && element.opacity > 0);
+  const byId = new Map(elements.map(element => [element.id, element]));
+  const authored = new Map(c.base.instances.map(instance => [instance.id, instance]));
+  const metrics = new Map(elements.map(element => [element.id, measureArsenalElement(element, measureText)]));
+  const needsLeading = new Set<string>();
+  const nearWrap = new Set<string>();
+  const textObstacles = horizontalTextObstacles(c);
+  const paintOrder = arsenalPaintOrder(c);
+  const worldOf = (element: ArsenalElement) => arsenalWorldGeometry(element, c.groups);
+  const surfaces = c.elements.filter(element => element.kind === "rect" && element.opacity > 0 &&
+    /^#[a-f\d]{6}$/i.test(element.fill) && !isCanvasBackdrop(c, element, worldOf, paintOrder))
+    .sort((a, b) => a.width * a.height * worldOf(a).scale ** 2 - b.width * b.height * worldOf(b).scale ** 2);
+  const textSurfaces = new Map<string, ArsenalElement>();
+  const surfaceOverflows = new Set<string>();
+  const obstaclesByText = new Map<string, typeof textObstacles>();
+  const inkRects = (element: ArsenalElement, layout: ArsenalTextMeasurement): PhysicalRect[] =>
+    layout.inkBoxes ?? (layout.lineInk ?? []).flatMap(line => line
+      ? [{ x: 0, width: element.width, y: line.top, height: line.bottom - line.top }] : []);
+  const overflowsSurface = (element: ArsenalElement, surface: ArsenalElement, offset = 0) => {
+    const world = worldOf(surface);
+    const origin = positionInSurface(worldOf(element), world);
+    const layout = measureArsenalElement(element, measureText, true);
+    const ink = inkRects(element, layout);
+    const width = Math.max(0, ...layout.lines.map(line => line.width));
+    const x = element.align === "right" ? element.width - width : element.align === "center" ? (element.width - width) / 2 : 0;
+    const boxes = layout.inkBoxes || layout.lineInk ? ink : [{ x, width, y: 0, height: layout.height }];
+    const padding = (element.stroke ? element.strokeWidth / 2 : 0) * origin.scale;
+    const inset = surface.strokeWidth / 2 + lineClearance / world.scale;
+    return boxes.some(box =>
+      [box.x * origin.scale - padding, (box.x + box.width) * origin.scale + padding].some(x =>
+        [(box.y + offset) * origin.scale - padding, (box.y + offset + box.height) * origin.scale + padding].some(y =>
+          !insideSurface(surface, origin.x + x, origin.y + y, inset))));
+  };
+  const fontFit = (element: ArsenalElement) => {
+    const fit = c.relations.find(relation => relation.enabled && relation.kind === "textFit" &&
+      relation.outputs.some(output => output.targetId === element.id && output.properties.includes("fontSize")));
+    if (fit?.kind !== "textFit") return;
+    if (textFlexibilityVersion !== 1) return { min: fit.parameters.minFontSize, max: Infinity };
+    const instance = authored.get(element.id);
+    return textFontFlexibility({
+      preferredFontSize: instance ? c.pieces[instance.pieceHash].fontSize : element.fontSize,
+      authoredMinFontSize: fit.parameters.minFontSize,
+      authored: fit.parameters.flexibility,
+      artboardWidth: c.artboard.width,
+      worldScale: worldOf(element).scale,
+    });
+  };
+  const crosses = (element: ArsenalElement, ink: PhysicalRect, obstacle: typeof textObstacles[number], offset = 0) => {
+    const world = arsenalWorldGeometry(element, c.groups);
+    return world.x + (ink.x + ink.width) * world.scale > obstacle.left &&
+      world.x + ink.x * world.scale < obstacle.right &&
+      world.y + (ink.y + offset + ink.height) * world.scale > obstacle.top &&
+      world.y + (ink.y + offset) * world.scale < obstacle.bottom;
+  };
+  const moveFrame = ({ border, surface }: NonNullable<ReturnType<typeof expandedTextFrame>>) => {
+    for (const line of border) {
+      overrides[line.id] = { ...c.overrides[line.id], y: surface.y, height: surface.height };
+    }
+  };
+  if (adjust) for (const obstacle of textObstacles) {
+    if (overrides[obstacle.element.id]) continue;
+    const frame = expandedTextFrame(c, obstacle.element);
+    if (!frame) continue;
+    const surface = arsenalWorldGeometry(frame.surface, c.groups);
+    const seen = new Map<string, { above: boolean; below: boolean }>();
+    for (const element of elements) {
+      if (!element.bindingId || !element.contentFragment) continue;
+      const world = arsenalWorldGeometry(element, c.groups);
+      if (Math.abs(world.rotation) > .01 || world.x >= obstacle.right || world.x + element.width * world.scale <= obstacle.left) continue;
+      for (const ink of inkRects(element, metrics.get(element.id)!)) {
+        const top = world.y + ink.y * world.scale;
+        const bottom = top + ink.height * world.scale;
+        if (top < surface.y || bottom > surface.y + frame.surface.height * surface.scale) continue;
+        const previous = seen.get(element.bindingId) ?? { above: false, below: false };
+        seen.set(element.bindingId, { above: previous.above || bottom <= obstacle.top, below: previous.below || top >= obstacle.bottom });
+      }
+    }
+    if (Array.from(seen.values()).some(placement => placement.above && placement.below)) moveFrame(frame);
+  }
+  const stackedPairs = new Map<string, [ArsenalElement, ArsenalElement]>();
+  const fragments = new Map<string, ArsenalElement[]>();
+  for (const binding of c.base.bindings) {
+    if (binding.kind !== "text") continue;
+    const targets = binding.targetIds.flatMap(id => {
+      const element = byId.get(id);
+      return element?.contentFragment ? [element] : [];
+    });
+    fragments.set(binding.source, [...(fragments.get(binding.source) ?? []), ...targets]);
+  }
+  for (const targets of Array.from(fragments.values())) {
+    targets.sort((a, b) => a.contentFragment!.index - b.contentFragment!.index);
+    for (let index = 1; index < targets.length; index++) {
+      const a = targets[index - 1], b = targets[index];
+      const first = authored.get(a.id), next = authored.get(b.id);
+      if (!first || !next || first.parentId !== next.parentId ||
+          Math.abs(a.rotation) > .01 || Math.abs(b.rotation) > .01) continue;
+      const gap = next.y - (first.y + first.height);
+      if (next.y <= first.y ||
+          Math.min(first.x + first.width, next.x + next.width) <= Math.max(first.x, next.x)) continue;
+      stackedPairs.set(a.id + "/" + b.id, [a, b]);
+      const firstSize = c.pieces[first.pieceHash].fontSize, nextSize = c.pieces[next.pieceHash].fontSize;
+      if (Math.abs(gap) <= .75 && (first.height <= firstSize * 1.12 || next.height <= nextSize * 1.12)) {
+        needsLeading.add(a.id);
+        needsLeading.add(b.id);
+      }
+    }
+  }
+  const linesTouch = (layout: ArsenalTextMeasurement, scale: number) => {
+    const lines = layout.lineInk?.filter(line => line !== null) ?? [];
+    return lines.some((line, index) => index > 0 && (line.top - lines[index - 1].bottom) * scale <= lineClearance);
+  };
+  for (const element of elements) {
+    const world = arsenalWorldGeometry(element, c.groups);
+    const scale = world.scale;
+    const layout = metrics.get(element.id)!;
+    if (element.bindingId && layout.lines.some(line => line.width > widthWithWrapClearance(element.width) + .01)) {
+      nearWrap.add(element.id);
+      issues.push("overflow:wrap_clearance:" + element.id);
+    }
+    if (layout.lines.length > 1 && element.lineHeight <= 1.12) needsLeading.add(element.id);
+    if (linesTouch(layout, scale)) {
+      needsLeading.add(element.id);
+      issues.push("vertical_collision:" + element.id);
+    }
+    const instance = authored.get(element.id);
+    if (instance) {
+      // Containment is inferred from the authored rectangle, before text fit
+      // changes its dimensions. This leaves deliberate edge overlaps alone.
+      const nominal = arsenalWorldGeometry({ ...element, ...instance }, c.groups);
+      const surface = surfaces.find(background => {
+        if ((paintOrder.get(background.id) ?? Infinity) >= (paintOrder.get(element.id) ?? -1)) return false;
+        const frame = worldOf(background);
+        if (Math.abs(frame.rotation - nominal.rotation) > .01 || Math.abs(frame.rotation - world.rotation) > .01) return false;
+        const { x, y, scale } = positionInSurface(nominal, frame);
+        return x >= -.01 && y >= -.01 && x + instance.width * scale <= background.width + .01 &&
+          y + instance.height * scale <= background.height + .01;
+      });
+      if (surface) {
+        textSurfaces.set(element.id, surface);
+        if (overflowsSurface(element, surface)) {
+          surfaceOverflows.add(element.id);
+          issues.push("overflow:surface:" + element.id + "/" + surface.id);
+        }
+      }
+    }
+    if (element.bindingId && Math.abs(world.rotation) <= .01) {
+      const obstacles = textObstacles.filter(({ element: stroke }) =>
+        !overrides[stroke.id] &&
+        !c.base.intentionalOverlaps.some(([a, b]) =>
+          (a === stroke.id && (b === element.id || b === element.parentId)) ||
+          (b === stroke.id && (a === element.id || a === element.parentId))) &&
+        ((paintOrder.get(stroke.id) ?? 0) > (paintOrder.get(element.id) ?? 0) ||
+          contrastRatio(element.fill, stroke.stroke ?? stroke.fill) < 3));
+      const touches = obstacles.filter(obstacle => inkRects(element, layout).some(ink => crosses(element, ink, obstacle)));
+      if (touches.length) {
+        const fixable = new Set<string>();
+        for (const { element: stroke } of touches) {
+          const frame = adjust ? expandedTextFrame(c, stroke) : undefined;
+          if (!frame) continue;
+          moveFrame(frame);
+          frame.border.forEach(line => fixable.add(line.id));
+        }
+        if (touches.some(({ element: stroke }) => !fixable.has(stroke.id)))
+          obstaclesByText.set(element.id, obstacles.filter(({ element: stroke }) => !fixable.has(stroke.id)).sort((a, b) => a.top - b.top));
+        issues.push(...touches.map(obstacle => "vertical_collision:" + element.id + "/" + obstacle.element.id));
+      }
+    }
+  }
+  for (const [pair, [a, b]] of Array.from(stackedPairs)) {
+    if (b.y <= a.y) continue;
+    const aInk = metrics.get(a.id)?.lineInk?.filter(line => line !== null);
+    const bInk = metrics.get(b.id)?.lineInk?.filter(line => line !== null);
+    if (!aInk?.length || !bInk?.length) continue;
+    const scale = arsenalWorldGeometry(a, c.groups).scale;
+    const bottom = a.y + Math.max(...aInk.map(line => line.bottom));
+    const top = b.y + Math.min(...bInk.map(line => line.top));
+    if (Math.min(b.y - bottom, top - (a.y + a.height), top - bottom) * scale <= lineClearance) {
+      needsLeading.add(a.id);
+      needsLeading.add(b.id);
+      issues.push("vertical_collision:" + pair);
+    }
+  }
+  if (adjust) for (const id of Array.from(new Set([
+    ...Array.from(needsLeading), ...Array.from(nearWrap), ...Array.from(obstaclesByText.keys()), ...Array.from(surfaceOverflows),
+  ]))) {
+    const element = byId.get(id)!;
+    const instance = authored.get(id);
+    if (!instance) continue;
+    const min = fontFit(element)?.min ?? element.fontSize;
+    const world = arsenalWorldGeometry(element, c.groups);
+    const scale = world.scale;
+    const protectLeading = needsLeading.has(id);
+    const lineHeight = protectLeading ? Math.max(element.lineHeight, safeLeading) : element.lineHeight;
+    const inset = (lineClearance + .25) / scale;
+    // Keep glyphs inside the authored row. Retain the layout's real line box
+    // height for flow/anchors, and offset only for ink above the first baseline.
+    const trial = (fontSize: number) => {
+      const layout = measureArsenalElement({ ...element, fontSize, lineHeight }, measureText);
+      const ink = layout.lineInk?.filter(line => line !== null) ?? [];
+      const top = ink.length ? Math.min(...ink.map(line => line.top)) : inset;
+      const bottom = ink.length ? Math.max(...ink.map(line => line.bottom)) : layout.height;
+      let offset = protectLeading ? Math.max(0, inset - top) : 0;
+      for (const obstacle of obstaclesByText.get(id) ?? []) {
+        const affected = inkRects(element, layout).filter(ink => crosses(element, ink, obstacle, offset));
+        if (affected.length)
+          offset = Math.max(offset, ...affected.map(ink => (obstacle.bottom - world.y) / scale + inset - ink.y));
+      }
+      const height = Math.max(layout.height, protectLeading ? bottom + inset : 0) + offset;
+      const surface = textSurfaces.get(id);
+      return { offset, fits: height <= instance.height + .01 && !linesTouch(layout, scale) &&
+        layout.lines.every(line => line.width <= widthWithWrapClearance(Math.min(element.width, instance.width))) &&
+        (!surface || !overflowsSurface({ ...element, fontSize, lineHeight }, surface, offset)) };
+    };
+    if (min > element.fontSize) continue;
+    const best = largestFittingTextFont({ min, max: element.fontSize, preferred: element.fontSize }, size => trial(size).fits, metrics.get(id)!.lines.length > 1);
+    if (!best.fits) continue;
+    const { offset } = trial(best.fontSize);
+    if (best.fontSize !== element.fontSize || lineHeight !== element.lineHeight || offset > .01) {
+      overrides[id] = {
+        ...c.overrides[id], fontSize: best.fontSize, lineHeight,
+        ...(offset > .01 ? { y: element.y + offset } : {}),
+      };
+    }
+  }
+  for (const binding of c.base.bindings) {
+    if (binding.kind !== "text") continue;
+    const byBaseSize = new Map<number, ArsenalElement[]>();
+    for (const id of binding.targetIds) {
+      const element = byId.get(id), instance = authored.get(id);
+      if (!element?.contentFragment || !instance) continue;
+      const fontSize = c.pieces[instance.pieceHash].fontSize;
+      const siblings = byBaseSize.get(fontSize) ?? [];
+      siblings.push(element);
+      byBaseSize.set(fontSize, siblings);
+    }
+    for (const [baseSize, siblings] of Array.from(byBaseSize)) {
+      const sizes = siblings.map(element => {
+        const fitted = overrides[element.id]?.fontSize;
+        return typeof fitted === "number" ? fitted : element.fontSize;
+      });
+      const smallest = Math.min(...sizes);
+      if (smallest >= baseSize - .01 || Math.max(...sizes) - smallest <= .01) continue;
+      const minimum = Math.max(smallest, ...siblings.map(element => fontFit(element)?.min ?? smallest));
+      const maximum = Math.min(...siblings.map(element => fontFit(element)?.max ?? baseSize));
+      if (!adjust || minimum > maximum) {
+        issues.push("font_fragment_mismatch:" + siblings[0].id);
+        continue;
+      }
+      siblings.forEach((element, index) => {
+        if (Math.abs(sizes[index] - minimum) > .00001)
+          overrides[element.id] = { ...c.overrides[element.id], ...overrides[element.id], fontSize: minimum };
+      });
+    }
+  }
+  return { issues, overrides, adjusted: Object.keys(overrides).length > 0 };
 }
 
 export function auditArsenalGeometry(

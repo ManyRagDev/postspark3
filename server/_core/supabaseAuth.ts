@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { PLAN_COOKIE } from "./planImpersonation";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
@@ -76,6 +77,7 @@ export function registerSupabaseAuthRoutes(app: Express) {
    */
   app.post("/api/auth/supabase-logout", (req: Request, res: Response) => {
     const cookieOptions = getSessionCookieOptions(req);
+    res.clearCookie(PLAN_COOKIE, cookieOptions);
     res.clearCookie(COOKIE_NAME, cookieOptions);
     res.json({ ok: true });
   });

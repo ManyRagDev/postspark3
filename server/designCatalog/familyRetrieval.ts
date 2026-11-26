@@ -2,6 +2,7 @@ import { familyAxes, familyDistance, familyTie, requestedIntentAffinity, type Fa
 import { arsenalHash } from "@shared/arsenalContent";
 import type { FamilySelectionCandidate } from "@shared/designFamilySelection";
 import type { GenerationIntent } from "@shared/generationPlan";
+import type { DesignFamilyRepertoire } from "@shared/designRepertoire";
 import type { FrozenEditorialCatalog } from "@shared/editorialIntent";
 import {
   FAMILY_RETRIEVAL_POLICY as policy,
@@ -16,7 +17,20 @@ import {
 } from "./familySearchIndex";
 import type { EmbeddingEngine } from "../ai/editorialAffinity/embeddingEngine";
 import { retrieveSemanticFamilyCandidates, type AutomaticSemanticOptions } from "./semanticFamilyRetrieval";
+import { repertoireCapacityIssues } from "./designCapacity";
 export { semanticFamilyQuery, semanticFamilySources } from "./semanticFamilyRetrieval";
+
+/** The same pool feeds semantic retrieval, editorial assessment and reserves. */
+export function filterRepertoiresByCapacity(repertoires: DesignFamilyRepertoire[], intent: GenerationIntent) {
+  const rejected: Array<{ sourceId: string; family: string; reasons: string[] }> = [];
+  const eligible = !intent.designRequirements ? repertoires : repertoires.filter(repertoire => {
+    const reasons = repertoireCapacityIssues(repertoire, intent);
+    if (!reasons.length) return true;
+    rejected.push({ sourceId: repertoire.sourceId, family: repertoire.family, reasons });
+    return false;
+  });
+  return { eligible, rejected };
+}
 
 export function familyCorpusHash(families: FamilySelectionCandidate[]) {
   return arsenalHash(

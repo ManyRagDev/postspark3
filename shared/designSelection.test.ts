@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { compactComponentCard } from "./componentAssembly";
+import { arsenalHash } from "./arsenalContent";
+import { compactComponentCard, createComponentDefinition } from "./componentAssembly";
 import { completeDesignTestDefinitions } from "./completeDesignGeneration.fixture";
 import { FAMILIES } from "./creative/families";
 import {
@@ -77,16 +78,22 @@ describe("common design descriptions", () => {
     expect(profile.capacity.join(" ")).toContain("not a character limit");
     expect(JSON.stringify(card)).toBe(before);
   });
-  it("makes the existing native minimum-word guidance visible to selection", () => {
-    const card = compactComponentCard(completeDesignTestDefinitions()[0]);
-    card.capacity.textRegions[0].minWords = 2;
-    const profile = describeCompleteDesign(card);
-    expect(profile.capacity.join(" ")).toContain(
-      "2 fragments share this canonical field"
-    );
-    expect(profile.capacity.join(" ")).toContain(
-      "never expand visual_only text"
-    );
+  it("describes whole-field targets and word partitions from their authored text pieces", () => {
+    const design = completeDesignTestDefinitions()[0];
+    const binding = design.fragment.bindings[0];
+    binding.targetIds = design.fragment.instances.map(instance => instance.id);
+    design.fragment.bindings = [binding];
+    const describe = () => describeCompleteDesign(compactComponentCard(createComponentDefinition(design))).capacity.join(" ");
+    expect(describe()).toContain("whole_value_per_target");
+    expect(describe()).not.toContain("fragments share this canonical field");
+    design.fragment.instances.forEach((instance, index) => {
+      const piece = { ...design.pieces[instance.pieceHash], contentFragment: {index, count: 2, unit: "words" as const} };
+      instance.pieceHash = arsenalHash(piece);
+      design.pieces[instance.pieceHash] = piece;
+    });
+    const partition = describe();
+    expect(partition).toContain("2 fragments share this canonical field");
+    expect(partition).toContain("never expand visual_only text");
   });
   it("uses authored construction and editorial/media instructions without trusting family names", () => {
     const card = compactComponentCard(completeDesignTestDefinitions()[0]);

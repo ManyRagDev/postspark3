@@ -3,8 +3,11 @@ import { arsenalHash } from "@shared/arsenalContent";
 import type { RequestRecord } from "./generationStore";
 
 /** Counts persisted outcomes only; telemetry never changes readiness or review evidence. */
-export function generationDeliveryMetrics(record: Pick<RequestRecord, "proposals">) {
-  const deliveredCount = record.proposals.filter(p => p.status === "ready").length;
+export function generationDeliveryMetrics(record: Pick<RequestRecord, "proposals"> &
+  Partial<Pick<RequestRecord, "createdAt" | "input" | "generationConfig">>) {
+  const delivered = record.proposals.filter(p => p.status === "ready");
+  const deliveredCount = delivered.length;
+  const completedThree = record.proposals.length === 3 && deliveredCount === 3;
   const failedCount = record.proposals.filter(p => p.status === "failed" || p.status === "expired").length;
   const cancelledCount = record.proposals.filter(p => p.status === "cancelled").length;
   const normalizedReviews = new Set<string>();
@@ -17,10 +20,24 @@ export function generationDeliveryMetrics(record: Pick<RequestRecord, "proposals
     normalizedReviews.add(JSON.stringify([proposal.proposalId, proposal.revision, review.round, review.inputHash]));
     recoveredProposals.add(proposal.proposalId);
   }
+  const trackTrio = record.generationConfig?.trioDeliveryVersion === 1 && !record.input?.fixedDesign;
+  const layouts = trackTrio
+    ? delivered.flatMap(p => p.diagnostics.filter(d => d.code === "proposal_layout_signature").map(d => d.evidence))
+    : [];
+  const families = new Set(delivered.flatMap(p => p.bundle ? [p.bundle.family] : []));
+  const deliveredTimes = delivered.flatMap(p => p.completedAt === undefined ? [] : [p.completedAt]).sort((a, b) => a - b);
   return {
     deliveredCount, failedCount, cancelledCount,
     pendingCount: record.proposals.length - deliveredCount - failedCount - cancelledCount,
-    completedThree: record.proposals.length === 3 && deliveredCount === 3,
+    completedThree,
+    ...(trackTrio ? {
+      trioDeliveryVersion: 1,
+      completedDistinctThree: completedThree && families.size === 3 && layouts.length === 3 && new Set(layouts).size === 3,
+      ...(record.createdAt === undefined || !deliveredTimes.length ? {} : {
+        firstDeliveryMs: Math.max(0, deliveredTimes[0] - record.createdAt),
+        ...(completedThree && deliveredTimes.length === 3 ? { thirdDeliveryMs: Math.max(0, deliveredTimes[2] - record.createdAt) } : {}),
+      }),
+    } : {}),
     localNormalizedReviewCount: normalizedReviews.size,
     localRecoveredProposalCount: recoveredProposals.size,
   };

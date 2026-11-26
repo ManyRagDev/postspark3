@@ -125,7 +125,7 @@ function validLayer(layer) {
       "src",
       "width",
       "height",
-      "fontSize",
+      "fontSize","fontFamily","fontWeight","italic","align",
       "wrap",
       "lockAspectRatio",
       "fit",
@@ -150,6 +150,10 @@ function validLayer(layer) {
     within(layer.width, 1, 8000) &&
     within(layer.height, 1, 8000) &&
     within(layer.fontSize, 1, 960) &&
+    (layer.fontFamily===undefined || (layer.type==="text" && typeof layer.fontFamily==="string" && /^[\p{L}\d -]{1,80}$/u.test(layer.fontFamily))) &&
+    (layer.fontWeight===undefined || (layer.type==="text" && Number.isInteger(layer.fontWeight) && within(layer.fontWeight,100,900))) &&
+    (layer.italic===undefined || (layer.type==="text" && typeof layer.italic==="boolean")) &&
+    (layer.align===undefined || (layer.type==="text" && ["left","center","right"].includes(layer.align))) &&
     (layer.wrap === undefined || (layer.type === "text" && typeof layer.wrap === "boolean")) &&
     (layer.lockAspectRatio === undefined || typeof layer.lockAspectRatio === "boolean") &&
     (layer.fit === undefined || (layer.type === "image" && ["cover", "contain"].includes(layer.fit))) &&
@@ -175,10 +179,12 @@ function validLayer(layer) {
 }
 export function assertComposition(composition) {
   if (
-    !onlyFields(composition, ["version", "background", "layers", "template"]) ||
+    !onlyFields(composition, ["version", "background", "layers", "template","sourceSize"]) ||
     composition.version !== 1 ||
+    (composition.sourceSize!==undefined && (!onlyFields(composition.sourceSize,["width","height"]) ||
+      !within(composition.sourceSize.width,1,8192) || !within(composition.sourceSize.height,1,8192))) ||
     typeof composition.background !== "string" ||
-    !colorPattern.test(composition.background) ||
+    (composition.background !== "transparent" && !colorPattern.test(composition.background)) ||
     (composition.template !== undefined &&
       (typeof composition.template !== "string" || !/^[a-z-]{1,40}$/.test(composition.template))) ||
     !Array.isArray(composition.layers) ||

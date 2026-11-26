@@ -15,6 +15,7 @@ let directory: string;
 
 beforeAll(async () => {
   directory = await mkdtemp(path.join(tmpdir(), "postspark-http-auth-"));
+  await symlink(path.join(root, "labs"), path.join(directory, "labs"), "dir");
   await symlink(path.join(root, "node_modules"), path.join(directory, "node_modules"), "dir");
   await symlink(path.join(root, "shared/typography/fonts/files"), path.join(directory, "files"), "dir");
   await build({

@@ -17,9 +17,9 @@ import { decodeReviewExceptionsV10 } from "./proposalReviewExceptionsPolicyV10";
 import { inspectModernReviewEvidence } from "../../modernGenerationReviewEvidence";
 import { providerRejectionErrorFromReceipt } from "../../_core/llm";
 const id="00000000-0000-4000-8000-000000000001";
-function setup(amend?:(response:any,data:any,call:number)=>any, count=1){
+function setup(amend?:(response:any,data:any,call:number)=>any, count=1, artworkBriefPolicyVersion?:1){
  const definition=completeDesignTestDefinitions()[0];const input:any={requestId:id,runId:id,proposalId:"exceptions",revision:1,slot:0,prompt:"Convide para conhecer o serviço.",contextContent:"Teste gratuito por sete dias.",platform:"instagram",postMode:count>1?"carousel":"static",reviewPolicyVersion:10,
-  reviewExecutionConfig:resolveReviewExecutionConfigV10(undefined,resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy)};
+  reviewExecutionConfig:resolveReviewExecutionConfigV10(undefined,resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy,{artworkBriefPolicyVersion})};
  input.editorialContext=editorialContextV9(input);input.editorialContextHash=input.editorialContext.hash;
  const copy:any={caption:"Conheça o serviço",hashtags:[],slides:Array.from({length:count},()=>({values:[{fieldId:"field-0",value:"Venha conhecer"},{fieldId:"field-1",value:"Saiba mais"}],mediaPrompts:[]}))};
  const compositions=copy.slides.map((s:any,i:number)=>resolveArsenalGeometry(instantiateCompleteDesign({definition,values:s.values,mediaPrompts:[],runId:id,slot:0,slide:i,planHash:"a".repeat(64),experimental:true}),{measureText:()=>({height:20,lines:[{width:100}],runs:[]})}));
@@ -42,7 +42,54 @@ describe("automatic exceptions review v4",()=>{
   const s=setup(r=>({...r,status,reviewedSlides:[],limitation:"Não consegui inspecionar a imagem."}));const r:any=await s.review();expect(r.status).toBe("inconclusive");expect(r.inspectionStatus).toBe(status);expect(s.generateText).toHaveBeenCalledTimes(1);
  });
  it("cannot pass a visibly broken editorial title",async()=>{const s=setup((r,d)=>({...r,findings:[issue(d)]}));const r:any=await s.review();expect(r.status).toBe("correction_required");expect(r.findings[0]).toMatchObject({category:"visible_text_loss",effect:"blocking"});});
+ it.each([
+  { category: "visible_text_loss", detail: "Os dois planos aparecem em parágrafo corrido, dificultando a comparação.", expected: "Separe os planos.", effect: "advisory" },
+  { category: "explicit_requirement", detail: "Os preços estão no corpo, com pouca hierarquia visual.", expected: "Destaque os preços.", effect: "advisory" },
+  { category: "explicit_requirement", detail: "A instrução não aparece como título, mas o texto visível cumpre o requisito.", expected: "Nenhuma correção material necessária.", effect: "advisory" },
+  { category: "explicit_requirement", detail: "A arte não contém o convite para salvar. Ele aparece apenas na legenda.", expected: "Inclua o convite na última lâmina.", effect: "blocking" },
+  { category: "visible_text_loss", detail: "A faixa cobre as letras finais do texto do preço.", expected: "Deixe o preço inteiro visível.", effect: "blocking" },
+ ])("assigns $effect to $detail",async ({category,detail,expected,effect})=>{
+  const s=setup((r,d)=>({...r,findings:[issue(d,{category,detail,expected,
+    consequence:category==="visible_text_loss"?"meaning_loss":"explicit_requirement",
+    evidenceIds:category==="explicit_requirement"?[d.editorial.sourceEvidence.find((e:any)=>e.kind==="content").id]:[],
+  })]}),1,1);
+  const result=await s.review();
+  expect(result).toMatchObject({status:effect==="blocking"?"correction_required":"passed",findings:[{effect}]});
+  expect(s.generateText.mock.calls[0][0].messages[0].content).toContain("Relate somente defeitos que exigem correção para publicar");
+  expect(s.generateText).toHaveBeenCalledTimes(1);
+ });
  it("treats visible_text_loss as advisory aesthetic when detail explicitly states text is not cut",async()=>{const s=setup((r,d)=>({...r,findings:[issue(d,{category:"visible_text_loss",consequence:"meaning_loss",detail:"O título está visualmente quebrado, mas o texto não aparece cortado.",expected:"Manter estilo uniforme."})]}));const r:any=await s.review();expect(r.status).toBe("passed");expect(r.findings[0]).toMatchObject({category:"aesthetic",effect:"advisory"});});
+ it("checks an explicit legibility assertion on the structural intent path",async()=>{
+  const s=setup((r,d)=>({...r,findings:[issue(d,{detail:"O título ocupa três linhas, mas o texto em si permanece legível.",expected:"Nenhum reparo textual necessário."})]}));
+  s.input.generationIntent={version:1,objective:"Convidar para conhecer o serviço.",adaptation:"controlled",
+    tone:{description:"Direto",origin:"inferred",rationale:"Convite."},requirements:[],content:[],designRequirements:{version:1}};
+  const result=await s.review();
+  expect(result).toMatchObject({status:"passed",findings:[{category:"aesthetic",effect:"advisory"}]});
+ });
+ it.each([
+  ["R$ 69/mês + 2 oficinas mensais + kit de sementes", "passed", "aesthetic"],
+  ["R$ 79/mês + 2 oficinas mensais + kit de sementes", "correction_required", "factual_contradiction"],
+  ["R$ 69/ano + 2 oficinas mensais + kit de sementes", "correction_required", "factual_contradiction"],
+ ])("calibrates monetary notation against the actual source (%s)", async (value, status, category) => {
+  const source = "R$ 69 por mês, 2 oficinas mensais e kit de sementes.";
+  const s = setup((review, data) => ({ ...review, findings: [issue(data, {
+   targetId: data.targets.find((unit: { text: string }) => unit.text === value).id,
+   category: "factual_contradiction", consequence: "false_claim",
+   evidenceIds: [data.editorial.sourceEvidence.find((entry: { kind: string; text: string }) =>
+    entry.kind === "content" && entry.text.includes("R$ 69")).id],
+   detail: "A revisão descreveu o preço como equivalente.", expected: source,
+  })] }));
+  s.input.contextContent = source;
+  s.input.generationIntent = { version: 1, objective: "Comparar os planos.", adaptation: "controlled",
+   tone: { description: "Direto", origin: "inferred", rationale: "Comparação." },
+   requirements: [], content: [], designRequirements: { version: 1 } };
+  s.input.editorialContext = editorialContextV9(s.input);
+  s.input.editorialContextHash = s.input.editorialContext.hash;
+  s.copy.slides[0].values[0].value = value;
+  const result = await s.review();
+  expect(result).toMatchObject({ status, findings: [{ category }] });
+  expect(s.generateText.mock.calls[0][0].messages[0].content).toContain("R$ 69/mês, R$ 69 por mês");
+ });
  it("keeps genuine factual uncertainty inconclusive",async()=>{const s=setup((r,d)=>({...r,findings:[issue(d,{category:"unsupported_claim",consequence:"false_claim",certainty:"uncertain",detail:"Não é possível confirmar o alcance da promessa.",expected:"Esclarecer o alcance com a fonte."})]}));expect((await s.review()).status).toBe("inconclusive");});
  it("blocks a grounded changed condition instead of certifying it as style",async()=>{const s=setup((r,d)=>({...r,findings:[issue(d,{category:"factual_contradiction",consequence:"lost_condition",evidenceIds:[d.editorial.sourceEvidence.find((e:any)=>e.kind==="content"&&e.text?.includes("sete dias")).id],detail:"A oferta omite o limite de sete dias.",expected:"Preservar sete dias na oferta utilizada."})]}));expect((await s.review()).status).toBe("correction_required");});
  it.each(["unknown_target","unknown_evidence","duplicate_slide","missing_slide","missing_limitation","inconsistent_category","narrative_false_claim","guidance_as_fact"])("rejects %s and exhausts only the existing formal repair",async mode=>{

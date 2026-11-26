@@ -11,11 +11,12 @@ const context = canvas => canvas.getContext("2d", {alpha: false, willReadFrequen
 const surface = height => Object.assign(document.createElement("canvas"), {width, height});
 const directCut = {name: "Corte direto", group: ""};
 
-async function samplePainter() {
-  const portraits = await Promise.all(["coast", "tide"].map(async name => {
+async function samplePainter(loadPictures) {
+  const blobs = await loadPictures?.();
+  const portraits = await Promise.all(["coast", "tide"].map(async (name,i) => {
     const image = new Image();
-    image.src = new URL(`./assets/${name}.jpg`, import.meta.url).href;
-    await image.decode();
+    image.src = blobs ? URL.createObjectURL(blobs[i]) : new URL(`./assets/${name}.jpg`, import.meta.url).href;
+    try { await image.decode(); } finally { if (blobs) URL.revokeObjectURL(image.src); }
     const picture = surface(portraitHeight);
     context(picture).drawImage(image, 0, 0, width, portraitHeight);
     return picture;
@@ -43,7 +44,7 @@ async function samplePainter() {
   };
 }
 
-export function openTransitionGallery({dialog, showDialog, icon, from, to, max, current, privateLab, onApply}) {
+export function openTransitionGallery({dialog, showDialog, icon, from, to, max, current, privateLab, loadPictures, onApply}) {
   const presets = [["", directCut], ...Object.entries(transitionPack).filter(([, preset]) => !preset.overlay || privateLab)];
   const effects = new Map(presets);
   const groups = new Set(presets.map(([, preset]) => preset.group));
@@ -53,7 +54,7 @@ export function openTransitionGallery({dialog, showDialog, icon, from, to, max, 
       <div class="transition-filters" role="group" aria-label="Filtrar transições">
         ${[...groups].map(group => `<button type="button" data-transition-filter="${group}" aria-pressed="${!group}">${group || "Todos"}</button>`).join("")}
       </div>
-      <p class="transition-hint">Passe o mouse ou toque em um efeito para ver a prévia com cenas do Maré.</p>
+      <p class="transition-hint">Passe o mouse ou toque em um efeito para ver a prévia do corte.</p>
       <div class="transition-cards" role="group" aria-label="Efeitos de transição">
         ${presets.map(([type, preset]) => `
           <button type="button" class="transition-card" data-transition="${type}" aria-pressed="false">
@@ -101,9 +102,9 @@ export function openTransitionGallery({dialog, showDialog, icon, from, to, max, 
   let applying = false;
 
   function getPainter() {
-    painter ??= samplePainter().catch(err => {
-      painter = undefined;
-      throw err;
+    painter ??= samplePainter(loadPictures).catch(() => {
+      if (alive()) root.querySelector(".transition-hint").textContent = "Prévia ilustrativa. Um dos clipes está indisponível.";
+      return samplePainter();
     });
     return painter;
   }

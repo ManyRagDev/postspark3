@@ -1,3 +1,4 @@
+import { temporalClipFromImage } from "./temporalPlayback";
 import type { CarouselSlideItem, CanvasPostModel } from "../components/types";
 import { COMPOSITION_BACKGROUND_ID, COMPOSITION_LOGO_ID, getArsenalElementState } from "./editorElementState";
 import type { ArsenalComposition } from "@shared/designArsenal";
@@ -27,7 +28,7 @@ export function renderedCompositionImageCount(composition: ArsenalComposition): 
 type ExportImageNode = {
   isVisible?: () => boolean;
   getAbsoluteOpacity?: () => number;
-  image?: () => { complete?: boolean; naturalWidth?: number } | undefined;
+  image?: () => { complete?: boolean; naturalWidth?: number; readyState?: number; videoWidth?: number } | undefined;
 };
 
 /** Konva visibility includes parent visibility; absolute opacity includes every ancestor. */
@@ -37,6 +38,9 @@ export function visibleExportImageNodes<T extends ExportImageNode>(nodes: readon
 
 export function exportImageNodeReady(node: ExportImageNode): boolean {
   const image = node.image?.();
+  const clip = image && temporalClipFromImage(image as HTMLCanvasElement);
+  if (clip) return clip.video.readyState>=2;
+  if (image?.videoWidth) return (image.readyState ?? 0) >= 2;
   return Boolean(image?.complete && image.naturalWidth && image.naturalWidth > 0);
 }
 

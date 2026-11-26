@@ -20,9 +20,9 @@ Ele cuida de:
 No PostSpark, exemplos de frontend:
 
 - `client/src/App.tsx`: define rotas da aplicacao;
-- `client/src/pages/Home.tsx`: coordena parte do fluxo principal;
-- `client/src/components/views/TheVoid.tsx`: entrada criativa do usuario;
-- `client/src/components/views/WorkbenchV2/WorkbenchV2.tsx`: editor visual.
+- `PublicLandingRoute` em `client/src/App.tsx`: coordena parte do fluxo principal;
+- `client/src/pages/StudioApp/StudioAppV2BPage.tsx`: fluxo autenticado do Studio;
+- `client/src/pages/CanvasLab/CanvasLabPage.tsx`: editor visual.
 
 ## Backend
 

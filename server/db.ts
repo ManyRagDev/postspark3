@@ -817,6 +817,16 @@ export async function saveBrandProjectIdentity(owner: string, project: { id?: st
   return data as BrandProjectRecord;
 }
 
+/** Publish only the identity if the kit and previous edits are still the ones we read. */
+export async function saveExtractedProjectIdentity(owner: string, project: BrandProjectRecord, identity: NonNullable<BrandProjectRecord["visual_identity"]>) {
+  const { data, error } = await getSupabaseDbClient().from("brand_projects")
+    .update({ visual_identity: identity, updated_at: new Date().toISOString() })
+    .eq("id", project.id).eq("user_uuid", owner).eq("updated_at", project.updated_at)
+    .select("id,visual_identity").maybeSingle();
+  if (error) throw new Error("Não foi possível salvar a identidade visual do projeto.");
+  return data as Pick<BrandProjectRecord, "id" | "visual_identity"> | null;
+}
+
 export async function deleteBrandProject(
   id: string,
   userUuid: string,
@@ -989,10 +999,10 @@ export async function getGenerationRunById(
 export async function getUserPostSummaries(userUuid:string,limit=20,offset=0,search='') {
  const clean=search.replace(new RegExp('[^\\p{L}\\p{N}\\s-]','gu'),' ').trim().slice(0,120);
  let query=getSupabaseDbClient().from('posts')
-  .select('id,headline,platform,postMode,layout,createdAt,designFamily:canvas_model->completeDesign->>family,designName:canvas_model->completeDesign->>name'+(ENV.localDemandEnabled?',gallery_preview':''),{count:'exact'})
+  .select('id,headline,platform,postMode,layout,createdAt,designFamily:canvas_model->completeDesign->>family,designName:canvas_model->completeDesign->>name'+(process.env.POSTSPARK_CANVAS_VIDEO_ENABLED==="true"||process.env.POSTSPARK_MARE_ENABLED==="true"?',has_temporal_media':'')+(ENV.localDemandEnabled?',gallery_preview':''),{count:'exact'})
   .eq('user_uuid',userUuid);
  if(clean){const family=acervo82FamilyFromCode(clean);query=query.or(`headline.ilike.%${clean}%,canvas_model->completeDesign->>name.ilike.%${clean}%${family?`,canvas_model->completeDesign->>family.eq.${family}`:''}`);}
  const {data,error,count}=await query.order('createdAt',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
  if(error)throw error;
- return {items:(data??[]) as Array<{id:number;headline:string;designFamily:string|null;designName:string|null;gallery_preview?:string|null;platform:string;postMode:string;layout:string;createdAt:string}>,total:count??0};
+ return {items:(data??[]) as Array<{id:number;headline:string;designFamily:string|null;designName:string|null;gallery_preview?:string|null;has_temporal_media?:boolean;platform:string;postMode:string;layout:string;createdAt:string}>,total:count??0};
 }

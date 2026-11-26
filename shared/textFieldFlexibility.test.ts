@@ -92,3 +92,9 @@ describe('opt-in local text flexibility',()=>{
   const relation=fixture().fragment.relations[0];expect(arsenalRelationSchema.safeParse({...relation,parameters:{...relation.parameters,flexibility:{version:1,minFontSize:40,maxFontSize:20}}}).success).toBe(false);
  });
 });
+
+it("finds an intermediate fit when wrapping at the minimum leaves insufficient right margin", () => {
+  const result = largestFittingTextFont({ min: 20, preferred: 40, max: 40 }, size => size >= 28 && size <= 32, true);
+  expect(result.fits).toBe(true);
+  expect(result.fontSize).toBeCloseTo(32, 4);
+});

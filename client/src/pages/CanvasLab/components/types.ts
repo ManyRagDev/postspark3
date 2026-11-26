@@ -305,6 +305,9 @@ export interface CanvasCustomText {
   fontFamily?: string;
   fontWeight?: "normal" | "bold" | number;
   fontStyle?: "normal" | "italic";
+  lineHeight?: number;
+  letterSpacing?: number;
+  contentRole?: "brand" | "headline" | "support" | "callToAction" | "footer" | "marker";
   color?: string;
   align?: TextAlignType;
   textGradient?: TextGradient | null;
@@ -344,6 +347,23 @@ export interface CanvasCustomShape {
   width: number;
   height: number;
   color: string;
+  cornerRadius?: number;
+  strokeColor?: string;
+  strokeWidth?: number;
+  shadowOffset?: number;
+}
+
+export interface CanvasBackgroundTreatment {
+  kind: "solid" | "linear" | "spotlight";
+  tint: string;
+  x: number;
+  y: number;
+  texture: "none" | "dots" | "grid" | "grain";
+}
+
+export function customTextFontStyle(text: Pick<CanvasCustomText, "fontStyle" | "fontWeight">): string {
+  const weight = String(text.fontWeight ?? "normal");
+  return text.fontStyle === "italic" ? `italic ${weight}` : weight;
 }
 
 export type SplitBgPosition = "bottom" | "top" | "full";
@@ -386,6 +406,8 @@ export interface InitialVisualReference {
 }
 
 export interface CarouselSlideItem {
+  mareSelections?: Record<string, import("@shared/mareSelection").MareSelection>;
+  temporalMedia?: import("@shared/canvasTemporalMedia").CanvasTemporalMedia;
   /** Slide-local authoring state; absent entries are visible and unlocked. */
   elementStates?: import("@shared/designArsenal").CanvasElementStates;
   /** Back-to-front native/extra sibling order. Missing IDs retain natural order. */
@@ -398,6 +420,7 @@ export interface CarouselSlideItem {
   composition?: import("@shared/designArsenal").ArsenalComposition;
   guidedComposition?: GuidedComposition;
   suppressFamilyDecorations?: boolean;
+  backgroundTreatment?: CanvasBackgroundTreatment;
   extraShapes?: CanvasCustomShape[];
   initialVisual?: InitialVisualReference;
   id: string;
@@ -558,6 +581,7 @@ export interface CanvasCopyAngle {
 }
 
 export interface CanvasPostModel {
+  temporalMediaVersion?: 1;
   /** Frozen identity plus choices completed for this piece; never updates the project. */
   visualIdentityUsage?: import("zod").infer<typeof import("@shared/identityComposition").visualIdentityUsageSchema>;
   /** Small provenance; compositions contain the complete pinned editable documents. */

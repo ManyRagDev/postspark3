@@ -10,11 +10,19 @@ import { compactComponentCard } from "@shared/componentAssembly";
 import { authorFamilyCarouselRepertoire } from "../designCatalog/familyCarouselRepertoire";
 const originalProviderKey=ENV.openRouterApiKey;
 const originalStrategy=ENV.generationStrategyVersion;
+const originalWorkerMode = ENV.generationWorkerMode;
+const originalArtworkPrice = ENV.artworkCarouselSparks;
 beforeEach(()=>{ENV.openRouterApiKey="offline-test-configured";});
 afterEach(()=>{ENV.openRouterApiKey=originalProviderKey;});
 const state = vi.hoisted(() => ({
   plan: "DEV",
   available: true,
+  supportsTextRecovery: false,
+  supportsFinalFitRepair: false,
+  supportsTrioDelivery: false,
+  supportsEditorialSelection: true,
+  supportsEditorialTeam: false,
+  supportsArtworkCarousel: true,
   preparationAvailable: true,
   taskRoutingAvailable: true,
   reviewExceptionsAvailable: true,
@@ -32,6 +40,7 @@ const state = vi.hoisted(() => ({
 vi.mock("../billing", async importOriginal => ({
   ...await importOriginal<typeof import("../billing")>(),
   getBillingProfile: async (_email: string, id: string) => ({ id, plan: state.plan }),
+  getRealBillingProfile: async (_email: string, id: string) => ({ id, plan: state.plan }),
 }));
 vi.mock("../designCatalog/completeDesignStore", async () => {
   const { completeDesignTestDefinitions } = await import(
@@ -58,6 +67,7 @@ vi.mock("../ai/workflows/generationStore", () => ({
   createGenerationStore: () => ({
     isAvailable: async () => state.available,
     isFixedDesignAvailable: async () => true,
+    isArtworkCarouselAvailable: async () => true,
     isPreparationAvailable: async () => state.preparationAvailable,
     isTaskRoutingAvailable: async () => state.taskRoutingAvailable,
     isReviewExceptionsAvailable: async () => state.reviewExceptionsAvailable,
@@ -71,6 +81,9 @@ vi.mock("../ai/workflows/generationStore", () => ({
     cancel: state.cancel,
   }),
 }));
+vi.mock("../ai/workflows/workerReadiness", () => ({
+  readDemandWorkerReadiness: async () => state.available ? { supportsTextRecovery: state.supportsTextRecovery, supportsFinalFitRepair: state.supportsFinalFitRepair, supportsTrioDelivery: state.supportsTrioDelivery, supportsEditorialSelection: state.supportsEditorialSelection, supportsEditorialTeam: state.supportsEditorialTeam, supportsArtworkCarousel: state.supportsArtworkCarousel } : null,
+}));
 import { generationRouter } from "./generation";
 import { requestInputHash } from "../ai/workflows/generationRuntime";
 import { orchestratedGenerationInputSchema, type OrchestratedGenerationInput } from "@shared/generationRequest";
@@ -79,9 +92,17 @@ const owner = "00000000-0000-4000-8000-000000000001",
   id = "00000000-0000-4000-8000-000000000002";
 afterEach(() => {
   ENV.generationAdmissionPaused = false;
+  ENV.generationWorkerMode = originalWorkerMode;
   ENV.generationStrategyVersion = originalStrategy;
+  ENV.artworkCarouselSparks = originalArtworkPrice;
   state.plan = "DEV";
   state.available = true;
+  state.supportsTextRecovery = false;
+  state.supportsFinalFitRepair = false;
+  state.supportsEditorialTeam = false;
+  state.supportsArtworkCarousel = true;
+  state.supportsTrioDelivery = false;
+  state.supportsEditorialSelection = true;
   state.preparationAvailable = true;
   state.taskRoutingAvailable = true;
   state.reviewExceptionsAvailable = true;
@@ -168,6 +189,24 @@ function record() {
 }
 
 describe("orchestrated authenticated API", () => {
+  it("pins editorial selection for new requests and inherits the stored strategy when continuing", async () => {
+    ENV.generationWorkerMode = "external";
+    const automatic = { ...input, generationModel: "auto" as const };
+    state.admission.mockResolvedValue({ record: record(), created: true });
+    state.supportsEditorialSelection = false;
+    await expect(caller().start(automatic)).rejects.toMatchObject({ code: "PRECONDITION_FAILED", message: expect.stringContaining("seleção editorial") });
+    expect(state.admission).not.toHaveBeenCalled();
+    state.supportsEditorialSelection = true;
+    await caller().start(automatic);
+    const pinned = state.admission.mock.lastCall![0].input;
+    expect(pinned.selectionStrategy).toBe("editorial_v1");
+    state.get.mockResolvedValue({ ...record(), input: pinned });
+    await caller().start({ ...automatic, generationParentRequestId: id });
+    expect(state.admission.mock.lastCall![0].input.selectionStrategy).toBe("editorial_v1");
+    state.get.mockResolvedValue(record());
+    await caller().start({ ...automatic, generationParentRequestId: id, selectionStrategy: "editorial_v1" });
+    expect(state.admission.mock.lastCall![0].input.selectionStrategy).toBeUndefined();
+  });
   it("pins the inactive trial only for its administrator and preserves ordinary admission", async () => {
     const previous = { trialCatalogRevision: ENV.trialCatalogRevision, trialCatalogAdminUuid: ENV.trialCatalogAdminUuid, generationWorkerMode: ENV.generationWorkerMode };
     Object.assign(ENV, { trialCatalogRevision: "23", trialCatalogAdminUuid: owner, generationWorkerMode: "external" });
@@ -236,13 +275,71 @@ describe("orchestrated authenticated API", () => {
     await caller().start({...input,content:"duas propostas com foto e uma tipográfica",postMode:"carousel",slideCount:5});
     expect(state.admission).toHaveBeenCalledOnce();
   });
+  it("negotiates the automatic receipt before admission and preserves versioned retries", async () => {
+    state.admission.mockResolvedValue({ record: record(), created: true });
+    const automatic = { ...input, generationModel: "auto" as const, postMode: "static" as const };
+    await caller().start(automatic);
+    expect(state.admission.mock.calls[0][0].generationConfig).not.toHaveProperty("textRecoveryVersion");
+    state.supportsTextRecovery = true;
+    await caller().start(automatic);
+    const versioned = state.admission.mock.calls[1][0].generationConfig;
+    expect(versioned.textRecoveryVersion).toBe(1);
+    expect(versioned.finalFitRepairVersion).toBeUndefined();
+    state.supportsFinalFitRepair = true;
+    await caller().start(automatic);
+    const withFinalFit = state.admission.mock.calls[2][0].generationConfig;
+    expect(withFinalFit.finalFitRepairVersion).toBe(1);
+    state.get.mockResolvedValue({ ...record(), generationConfig: withFinalFit });
+    state.supportsFinalFitRepair = false;
+    await expect(caller().start({ ...automatic, generationParentRequestId: id })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    state.get.mockResolvedValue({ ...record(), generationConfig: versioned });
+    state.supportsTextRecovery = false;
+    await expect(caller().start({ ...automatic, generationParentRequestId: id })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(state.admission).toHaveBeenCalledTimes(3);
+  });
+
+  it("pins the writer on admission, preserves it for continuations and rolls back fresh requests", async () => {
+    state.admission.mockResolvedValue({ record: record(), created: true });
+    const automatic = { ...input, generationModel: "auto" as const, content: "Uma crônica da cafeteria" };
+    state.supportsEditorialTeam = true;
+    try {
+      vi.stubEnv("POSTSPARK_EDITORIAL_TEAM", "v1");
+      await caller().start(automatic);
+      const pinned = state.admission.mock.calls[0][0].generationConfig;
+      expect(pinned.editorialTeam.writer).toBe("qwen/qwen4-max");
+      vi.stubEnv("POSTSPARK_EDITORIAL_TEAM", "legacy");
+      await caller().start(automatic);
+      expect(state.admission.mock.calls[1][0].generationConfig.editorialTeam).toBeUndefined();
+      state.get.mockResolvedValue({ ...record(), generationConfig: pinned });
+      await caller().start({ ...automatic, generationParentRequestId: id });
+      expect(state.admission.mock.calls[2][0].generationConfig).toEqual(pinned);
+      state.supportsEditorialTeam = false;
+      await expect(caller().start({ ...automatic, generationParentRequestId: id })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it("pins the trio protocol only when the worker supports it and checks it on a child request", async () => {
+    state.admission.mockResolvedValue({ record: record(), created: true });
+    const automatic = { ...input, generationModel: "auto" as const, postMode: "static" as const };
+    state.supportsTextRecovery = true;
+    state.supportsFinalFitRepair = true;
+    state.supportsTrioDelivery = true;
+    await caller().start(automatic);
+    const config = state.admission.mock.calls[0][0].generationConfig;
+    expect(config.trioDeliveryVersion).toBe(1);
+    state.get.mockResolvedValue({ ...record(), generationConfig: config });
+    state.supportsTrioDelivery = false;
+    await expect(caller().start({ ...automatic, generationParentRequestId: id })).rejects.toMatchObject({code:"PRECONDITION_FAILED"});
+    expect(state.admission).toHaveBeenCalledOnce();
+  });
+
   it("admits an explicit GPT receipt without changing the client input hash", async () => {
     state.admission.mockResolvedValue({ record: record(), created: true });
     const parsed = orchestratedGenerationInputSchema.parse({ ...input, generationModel: "gpt" });
     await caller().start(parsed);
     const admitted = state.admission.mock.calls[0][0];
     expect(admitted.generationConfig).toMatchObject({ choice: "gpt", model: "openai/gpt-6.1-sol", reasoningEffort: "medium", structuredOutputMode: "native_schema" });
-    expect(admitted.input).toEqual({ ...parsed, selectionPolicy: "legacy" });
+    expect(admitted.input).toEqual({ ...parsed, selectionPolicy: "legacy", selectionStrategy: "editorial_v1" });
     expect(admitted.inputHash).toBe(requestInputHash(parsed));
     expect(admitted.input).not.toHaveProperty("generationConfig");
   });
@@ -676,6 +773,30 @@ describe("orchestrated authenticated API", () => {
       code: "FORBIDDEN",
     });
   });
+});
+
+it("quotes the current carousel price and requires fresh confirmation before admission", async () => {
+  ENV.generationWorkerMode = "external";
+  ENV.artworkCarouselSparks = 0;
+  expect(await caller().artworkCarouselQuote()).toEqual({ status: "ready", sparks: 0 });
+  state.plan = "PRO";
+  expect(await caller().artworkCarouselQuote()).toEqual({ status: "price_pending" });
+  ENV.artworkCarouselSparks = 23;
+  expect(await caller().artworkCarouselQuote()).toEqual({ status: "ready", sparks: 23 });
+  const request = {
+    ...input, postMode: "carousel" as const, slideCount: 3, projectId: id,
+    fixedDesign: { kind: "project" as const, id, postId: 31 },
+    creationMode: "execution" as const,
+    executionBrief: { creationMode: "execution" as const, format: "carousel" as const, platform: "instagram" as const,
+      rawInput: input.content, contentSourceType: "carousel_topics" as const, interventionLevel: "light_optimize" as const },
+  };
+  await expect(caller().start({ ...request, artworkCarousel: { confirmedSparks: 21 } }))
+    .rejects.toMatchObject({ code: "PRECONDITION_FAILED", message: expect.stringContaining("custo atual") });
+  state.supportsArtworkCarousel = false;
+  expect(await caller().artworkCarouselQuote()).toEqual({ status: "unavailable" });
+  await expect(caller().start({ ...request, artworkCarousel: { confirmedSparks: 23 } }))
+    .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+  expect(state.admission).not.toHaveBeenCalled();
 });
 
  it("pauses only new admissions before reserve, preserving idempotent returns, get and cancel",async()=>{

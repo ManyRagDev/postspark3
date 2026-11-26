@@ -1,10 +1,12 @@
+import {prepareSelection,readCanvasImage,selectionPreview,selectionViewport} from "./canvas-selection.js";
 import { createEditorSession } from "./editor-session.js";
-import { mediaOperations, previewFrame, serverExport } from "./editor-media.js";
-import { isProjectRequest } from "./project-requests.js";
+import { integrated, openPostSpark, listAccountProjects, assetBytes, saveAccountProject, returnToPostSpark,queueProjectRender,returnProjectVideo } from "./postspark-session.js";
+import { mediaOperations, previewFrame, serverExport, renderScope } from "./editor-media.js";
+
 import { openProjectAssistant } from "./project-assistant.js";
 import { openTransitionGallery } from "./transition-gallery.js";
 import { durationOf, FPS, trackCount, TRACK_LIMIT, transitionFrames } from "./montage-model.js";
-import { interpretGroupDuration } from "./composition-ai.js";
+
 import { imageLayerFromFile, newComposition } from "./composition-model.js";
 import { createCompositionUI } from "./compose-ui.js";
 import { findTemplates, openAnimationCatalog } from "./animation-catalog.js";
@@ -20,8 +22,10 @@ import {
 } from "./project-model.js";
 import {
   MediaEngine,
+  setProjectCacheScope,
   saveProject,
   loadProject,
+  importLegacyProject,legacyProjectPresent,
   packProject,
   unpackProject,
   downloadBlob,
@@ -103,6 +107,54 @@ const sample = () => ({
     enabled: true,
   },
 });
+let account;
+if (location.pathname.startsWith("/previa-mare/")) {
+  const response = await fetch("/api/mare/capabilities", {credentials:"same-origin", cache:"no-store"});
+  const caps = response.ok && await response.json();
+  if (!caps?.localPreview || !caps.previewActorId) {
+    document.body.textContent = "Entre com uma conta autorizada para abrir a prévia do Maré.";
+    throw Error("Prévia indisponível para esta sessão.");
+  }
+  setProjectCacheScope(caps.previewActorId, "previa-local", "editor");
+}
+if (integrated) {
+  document.body.inert = true;
+  try {
+    account = await openPostSpark();
+    document.title="Maré Studio · PostSpark";
+    setProjectCacheScope(account.actorId, account.projectId, account.anchor?.id || account.projectId);
+    if (account.speech){const flag=document.createElement("meta");flag.name="mare-speech";document.head.append(flag);}
+    if (account.paid) {
+      for (const name of ["mare-narration","mare-edit","mare-director"]) {
+        const flag = document.createElement("meta");
+        flag.name = name;
+        document.head.append(flag);
+      }
+    }
+  } catch (error) {
+    const notice = document.createElement("p");
+    notice.textContent = error.message;
+    const back = document.createElement("a");
+    back.href = "/thevoid";
+    back.textContent = error.status===401 ? "Entrar no PostSpark" : "Abrir o PostSpark";
+    document.body.replaceChildren(notice, back);
+    if(error.status===401){
+      notice.textContent="Entre na sua conta para retomar esta edição.";
+      back.target="_blank";back.rel="noopener";
+      const retry=document.createElement("button");
+      retry.textContent="Retomar edição após entrar";
+      retry.onclick=()=>location.reload();
+      document.body.append(retry);
+    }
+    for(const item of error.recoverable || []){
+      const link=document.createElement("a");
+      link.textContent="Baixar "+item.name;link.download=item.name+".mare";
+      link.href="/api/mare/assets/"+encodeURIComponent(item.revisionId);
+      document.body.append(document.createElement("p"),link);
+    }
+    throw error;
+  } finally { document.body.inert = false; }
+}
 const engine = new MediaEngine($("#screen"), drawFrame);
 const silent = {enabled: false, assetId: null, volume: 0};
 let project = normalizeProject(sample()),
@@ -248,21 +300,12 @@ const compositionUI = createCompositionUI({
   getState: () => ({ clip: compositionClip(), time, playing, media: engine.media }),
   change: document => editingComposition() && manualCommand({id:"composition.apply",compositionId:animation.draft.id,document}),
   seek,
-  undo: () => stepHistory(false),
-  canUndo: () => Boolean(animation?.undo.length),
-  replay: () => {
-    seek(0);
-    safe(play)();
-  },
+  openTemplates: () => showAnimationCatalog(),
   notify: info,
   setPanel,
   showDialog,
   pausePreview: stop,
-  requestProjectEdit(prompt) {
-    if (!isProjectRequest(prompt)) return false;
-    showProjectAssistant(prompt);
-    return true;
-  },
+  requestProjectEdit: () => showProjectAssistant("", true),
 });
 function timeUI() {
   $("#current").textContent = clock(time);
@@ -346,7 +389,7 @@ const timeline = mountTimeline($("#timeline"), {
     if (groupIds?.size > 1) setPanel("props");
   },
   onSeek: t => seek(t),
-  onSelect: id => select(id),
+  onSelect: id => {select(id);if(matchMedia("(max-width:760px)").matches && document.body.dataset.mobileView==="contextual")setPanel("props");},
   onOpenComposition: id => {
     const clip = project.clips.find(item => item.id === id);
     if (clip?.compositionId) openAnimation(clip.compositionId, {clip});
@@ -479,6 +522,15 @@ function editTransition(index) {
   openTransitionGallery({
     dialog, showDialog, icon, max, from: previous.name, to: clip.name,
     current: frames ? {type: clip.transitionIn.type, frames} : null,
+    loadPictures: async () => {
+      const pictures = [];
+      for (const [item, local] of [[previous, Math.max(0,previous.duration - 1/FPS)], [clip, Math.min(clip.duration/2, .12)]]) {
+        const clean = {...project, clips:[{...item,transitionIn:undefined}], extraTracks:[], sound:{enabled:false,volume:0}};
+        const blob = await previewFrame(clean, {}, local);
+        pictures.push(blob);
+      }
+      return pictures;
+    },
     privateLab: Boolean($('meta[name="mare-processor"]')),
     onApply: (type, length) => {
       if (project.clips[index] !== clip || project.clips[index - 1] !== previous)
@@ -542,6 +594,8 @@ function refreshEnvironment() {
   document.body.dataset.environment = motion ? "animation" : "montage";
   $("#environment-label").textContent = motion ? "Animação" : "Montagem";
   $("#environment-item").textContent = motion ? draft?.name ?? "Composições do projeto" : clip?.name ?? "Linha do tempo";
+  $("#mobile-library-label").textContent=motion?"Camadas":"Biblioteca";
+  $("#mobile-fine").textContent=motion?"Keyframes e ajustes finos":"Ajustes finos";
   $("#library-label").textContent = motion ? "Composições e camadas" : "Mídias do projeto";
   $("#inspector-label").textContent = motion ? "Propriedades da composição" : "Propriedades do clipe";
   $("#screen").setAttribute("aria-label", motion ? "Prévia da composição" : "Prévia da montagem");
@@ -833,6 +887,23 @@ function applyGroupDuration(value) {
     clips.length + " clipes ajustados para " + seconds(value) + " no total."
   );
 }
+function holdFinalScene(clip) {
+  const source = compositionForClip(project, clip);
+  if (!clip || clip !== project.clips.at(-1) || !source?.document ||
+      Math.abs(clip.trim + clip.duration - source.duration) > 1e-6 ||
+      project.extraTracks?.some(t => t.clips.some(c => c.start + c.duration > sum(project.clips) + 1e-6))) return [];
+  const end = source.duration + 1;
+  const visible = source.document.layers.filter(l => l.start < source.duration && l.end >= source.duration - 1e-6);
+  if (!visible.length || end > 3600 || visible.some(l => l.end > source.duration + 1e-6)) return [];
+  const shared = project.clips.some(c => c !== clip && c.compositionId === source.id);
+  const compositionId = shared ? crypto.randomUUID() : source.id;
+  return [
+    ...(shared ? [{id:"composition.duplicate",compositionId:source.id,newId:compositionId,clipId:clip.id}] : []),
+    {id:"composition.duration",compositionId,duration:end},
+    ...visible.map(l => ({id:"layer.set",compositionId,layerId:l.id,fields:{end}})),
+    {id:"clip.set",clipId:clip.id,fields:{duration:clip.duration+1}}
+  ];
+}
 function renderInspector() {
   if (mode === "motion") {
     $("#inspector").innerHTML = activeWave() ? waveProperties() :
@@ -860,8 +931,7 @@ function renderInspector() {
         Number(duration.toFixed(2)) +
         '"></label>' +
         btn("group-apply", "Clock3", "Aplicar duração") +
-        '<hr><label class="field"><span class="field-label">Pedido para a seleção</span><input class="text-input" id="group-prompt" placeholder="Encurte para seis segundos"></label>' +
-        btn("group-ask", "Sparkles", "Aplicar pedido");
+        btn("group-ask", "Sparkles", "Pedir à IA");
     html += btn("group-done", "Check", "Concluir seleção");
   } else if (selected === "audio") {
     html =
@@ -932,9 +1002,16 @@ function renderInspector() {
         0.01,
         seconds(c.duration)
       ) +
+      slider("clip-volume","Volume do clipe",c.volume??1,0,1,.01,Math.round((c.volume??1)*100)+"%") +
       btn("split", "Clapperboard", "Dividir no marcador");
   } else {
     html = '<p class="group-help">Adicione uma mídia ou composição à pista principal para começar.</p>';
+  }
+  if (!groupIds && selected !== "audio" && c) {
+    const index = project.clips.indexOf(c);
+    const transition = index > 0 ? btn("quick-transition", "Clapperboard", "Experimentar uma transição") : "";
+    const hold = holdFinalScene(c).length ? btn("quick-hold", "Clock3", "Segurar a cena final por mais 1 s") : "";
+    if (transition || hold) html += '<section class="cp-quick"><div class="cp-heading">Ações rápidas</div>' + hold + transition + '</section>';
   }
   $("#inspector").innerHTML = html;
 }
@@ -1085,6 +1162,7 @@ function fieldInput(el) {
       "speed",
       "entry",
       "volume",
+      "clip-volume",
       "custom-color",
       "trim",
       "clip-length",
@@ -1123,6 +1201,10 @@ function fieldInput(el) {
     case "entry":
       sc.entry = n;
       label = seconds(n);
+      break;
+    case "clip-volume":
+      c.volume=n;
+      label=Math.round(n*100)+"%";
       break;
     case "volume":
       project.sound.volume = n;
@@ -1179,16 +1261,19 @@ $("#inspector").onclick = e => {
     refresh();
     return;
   }
-  if (action === "group-apply" || action === "group-ask") {
+  if (action === "group-ask") return showProjectAssistant();
+  if (action === "quick-transition") return editTransition(project.clips.indexOf(chosen()));
+  if (action === "quick-hold") {
     try {
-      applyGroupDuration(
-        action === "group-apply"
-          ? Number($("#group-seconds").value)
-          : interpretGroupDuration($("#group-prompt").value)
-      );
-    } catch (err) {
-      problem(err);
-    }
+      const commands = holdFinalScene(chosen());
+      if (!commands.length) throw Error("O encerramento mudou.");
+      projectEditor.prepare(editorRevision, commands).apply();
+      info("Cena final prolongada em 1 s.");
+    } catch (error) { problem(error); }
+    return;
+  }
+  if (action === "group-apply") {
+    try { applyGroupDuration(Number($("#group-seconds").value)); } catch (err) { problem(err); }
     return;
   }
   const b = e.target.closest("button");
@@ -1370,13 +1455,15 @@ function stepHistory(redo) {
 async function save() {
   if (!applyAnimation()) return;
   const snapshot = structuredClone(project);
-  await saveProject(snapshot);
+  if (account) {
+    await saveAccountProject(snapshot, await packProject(snapshot));
+  } else await saveProject(snapshot);
   if (JSON.stringify(project) === JSON.stringify(snapshot)) {
     dirty = false;
-    projectStatus = "Salvo neste navegador";
+    projectStatus = account ? "Salvo no PostSpark" : "Salvo neste navegador";
     updateHistory();
   }
-  info("Projeto salvo neste navegador.");
+  info(account ? "Projeto salvo no PostSpark." : "Projeto salvo neste navegador.");
 }
 function showDialog(title, body, footer = "") {
   const d = $("#dialog");
@@ -1408,6 +1495,19 @@ function editSpeech(trigger) {
   openSpeechEditor({clip, project, at: time >= at && time < at + duration ? time - at : 0,
     dialog: $("#dialog"), showDialog, esc, icon, trigger,
     available: Boolean($('meta[name="mare-speech"]')),
+    catalog: projectEditor.catalog(),
+    insertExcerpt(talk, excerpt) {
+      if (draftOwner !== project || chosen() !== clip || clip.trim !== trim || clip.duration !== duration)
+        throw Error("O clipe mudou. Abra a edição novamente.");
+      const id = crypto.randomUUID();
+      projectEditor.prepare(editorRevision, [
+        {id:"clip.duplicate",clipId:clip.id,newId:id},
+        {id:"clip.set",clipId:id,fields:{trim:excerpt.start,duration:excerpt.end-excerpt.start}},
+        {id:"speech.apply",clipId:id,talk,cuts:[],ripple:false},
+      ]).apply();
+      select(id,true);
+      info("Trecho inserido após o clipe.");
+    },
     apply(talk, plan, ripple) {
       if (draftOwner !== project || chosen() !== clip || clip.trim !== trim || clip.duration !== duration)
         throw Error("O clipe mudou. Abra a edição automática novamente.");
@@ -1459,6 +1559,17 @@ async function exportVideo() {
   const snapshot = structuredClone(liveScope());
   const cursor = time;
   if (!snapshot.clips.length) return;
+  const compositionId=isComposition?animation?.draft.id:undefined;
+  const size=account?.anchor?.sourceComposition || (compositionId && findComposition(compositionId)?.document?.sourceSize);
+  const frame=size?{width:size.width,height:size.height}:undefined;
+  const viewport=frame?selectionViewport(frame):undefined;
+  const outputHeight=viewport?2*Math.round(540*viewport.height/viewport.width):1920;
+  async function exportFromAccount(signal,progress){
+    if(!applyAnimation())throw Error("Revise as alterações da animação.");
+    const full=structuredClone(project);
+    const receipt=await queueProjectRender(full,await packProject(full),{compositionId,format:"mp4",frame,signal,progress});
+    return assetBytes(receipt.videoAssetId);
+  }
   const processor = document.querySelector('meta[name="mare-processor"]');
   const nativeId = isComposition ? "native-render" : "native-montage";
   const subtitles = isComposition ? "" : montageSrt(snapshot.clips);
@@ -1467,12 +1578,13 @@ async function exportVideo() {
     showDialog(
       "Baixar vídeo",
       "<p>" + esc(snapshot.name) + " · " + seconds(durationOf(snapshot)) + "</p>" +
-      "<p>MP4 vertical em 1080 × 1920, quadro a quadro a 30 fps.</p>" +
+      "<p>MP4 em 1080 × "+outputHeight+", quadro a quadro a 30 fps.</p>" +
       (message ? '<p role="alert">' + esc(message) + "</p>" : "") +
       '<details class="export-options"' + (expanded ? " open" : "") + '><summary>Mais opções</summary>' +
       '<div class="export-option-list"><button type="button" class="btn" id="export-project">Baixar projeto editável (.mare)</button>' +
       '<button type="button" class="btn" id="realtime-video">Gravar MP4 em tempo real</button><p>Mantenha a aba visível durante a gravação em tempo real.</p>' +
       (subtitles ? '<button type="button" class="btn" id="export-srt">Baixar legendas (.srt)</button>' : "") +
+      (account?.projectRender ? '<button type="button" class="btn" id="account-render">Preparar MP4 no servidor do PostSpark</button>' : "") +
       (processor ? '<button type="button" class="btn" id="' + nativeId + '">Preparar MP4 no servidor</button>' +
         "<p>540 × 960 com pacote editável. Até 60 s, 48 clipes e 128 MiB por envio.</p>" : "") +
       "</div></details>",
@@ -1494,12 +1606,13 @@ async function exportVideo() {
     };
     if (subtitles) $("#export-srt").onclick = () => downloadBlob(new Blob([subtitles], {type: "application/x-subrip"}), slug(snapshot.name) + ".srt");
     if (processor) $("#" + nativeId).onclick = () => exportNative(snapshot, cursor, isComposition, showOptions);
+    if(account?.projectRender)$("#account-render").onclick=()=>prepareMP4(false,true);
     $("#render-video").onclick = () => prepareMP4(false);
     $("#realtime-video").onclick = () => prepareMP4(true);
     $("#render-video").focus();
   }
 
-  async function prepareMP4(realtime) {
+  async function prepareMP4(realtime,onServer=false) {
     busy = true;
     const ctl = new AbortController();
     exportAbort = ctl;
@@ -1511,33 +1624,33 @@ async function exportVideo() {
     $("#cancel-export").onclick = () => $("#dialog").close();
     try {
       const encode = realtime ? engine.exportMP4.bind(engine) : (await import("./precise-export.js")).exportPreciseMP4;
-      const blob = await encode(snapshot, {
-        signal: ctl.signal,
-        width: 1080,
-        height: 1920,
-        onProgress: n => {
-          const bar = $("progress");
-          if (bar) {
-            bar.value = n;
-            $("#progress-label").textContent =
-              "Preparando o MP4 · " + Math.round(n * 100) + "%";
-          }
-        },
+      const renderRemote=()=>exportFromAccount(ctl.signal,message=>{const label=$("#progress-label");if(label)label.textContent=message;});
+      const local=()=>encode(snapshot, {
+        signal: ctl.signal, width:1080,height:outputHeight,viewport,
+        onProgress:n=>{
+          const bar=$("progress");
+          if(bar){bar.value=n;$("#progress-label").textContent="Preparando o MP4 · "+Math.round(n*100)+"%";}
+        }
       });
+      let blob;
+      if(onServer)blob=await renderRemote();
+      else{
+        try{blob=await local();}
+        catch(error){
+          if(ctl.signal.aborted||!account?.projectRender)throw error;
+          blob=await renderRemote();
+        }
+      }
       if (ctl.signal.aborted) return;
-      const opus = blob.type.toLowerCase().includes("opus");
-      const alternateAudio = opus && processor;
       showDialog(
         "Vídeo pronto",
-        "<p>MP4 vertical · 1080 × 1920 · " +
+        "<p>MP4 · 1080 × "+outputHeight+" · " +
           (blob.size / 1048576).toFixed(1) +
-          " MB</p>" + (opus ? "<p>Áudio em Opus neste navegador.</p>" : ""),
-        (alternateAudio ? '<button class="btn" id="export-more">Ver opção com áudio AAC</button>' : "") +
+          " MB</p>",
         '<button class="btn primary" id="download-video">' +
           icon("Download") +
           "Baixar MP4</button>"
       );
-      if (alternateAudio) $("#export-more").onclick = () => showOptions("", true);
       $("#download-video").onclick = () => downloadBlob(blob, slug(snapshot.name) + ".mp4");
       $("#download-video").focus();
     } catch (err) {
@@ -1603,14 +1716,16 @@ async function importMedia(files) {
   info("Mídia importada.");
 }
 function showStart(open) {
-  document.body.toggleAttribute("data-start", open);
-  $("#studio-start").hidden = !open;
-  $("#studio-editor").hidden = open;
+  const chooser = $("#studio-start");
+  $("#studio-editor").hidden = false;
+  $("#start-actions").hidden = false;
+  $("#start-sources").hidden = true;
+  $("#start-title").textContent = "Projetos";
   $("#start-continue").hidden = !hasOpenProject;
-  if (open) {
-    window.scrollTo(0, 0);
-    $("#start-title").focus({preventScroll: true});
-  }
+  $("#start-return").hidden = hasOpenProject || !account?.anchor;
+  if (open && !chooser.open) chooser.showModal();
+  if (!open && chooser.open) chooser.close();
+  if (open) $("#start-blank").focus({preventScroll:true});
 }
 function showProject(p, at = Math.min(1.9, (p.clips[0]?.duration ?? 0) / 2)) {
   projectEditor.reset();
@@ -1699,25 +1814,36 @@ $("#start-continue").onclick = () => {
   $("#open-start").focus({preventScroll: true});
   redraw();
 };
-$("#start-templates").onclick = () => showAnimationCatalog("all", {newProject: true});
+$("#studio-start").oncancel = event => { if (!hasOpenProject) event.preventDefault(); };
 $("#start-blank").onclick = $("#new-art").onclick = () => startAnimationProject();
-$("#start-video").onclick = () => $("#first-video").click();
-$("#start-open").onclick = () => $("#project-file").click();
-$("#start-demo").onclick = () => {
-  if (hasOpenProject) {
-    $("#reset").click();
-    return;
+$("#start-file").onclick = () => $("#project-file").click();
+$("#start-return").onclick = () => $("#send-postspark").click();
+$("#start-back").onclick = () => showStart(true);
+$("#start-open").onclick = $("#unpack").onclick = async () => {
+  showStart(true);
+  $("#start-actions").hidden = true;
+  $("#start-sources").hidden = false;
+  $("#start-title").textContent = "Abrir projeto existente";
+  $("#project-file-error").textContent = "";
+  $("#start-file").focus();
+  const status = $("#account-project-status"), list = $("#account-projects");
+  list.hidden = true;
+  status.textContent = account ? "Carregando projetos da conta…" : "Nesta prévia, abra um arquivo .mare do computador.";
+  if (!account) return;
+  try {
+    const projects = await listAccountProjects();
+    list.replaceChildren(new Option("Selecione um projeto salvo", ""));
+    for (const item of projects) list.add(new Option(item.name, item.anchorId || item.id));
+    list.hidden = !projects.length;
+    status.textContent = projects.length ? "Projetos salvos na minha conta" : "Você ainda não salvou projetos nesta conta.";
+  } catch {
+    status.textContent = "Não foi possível carregar seus projetos. Volte e tente novamente.";
   }
-  projectStatus = "Projeto de exemplo";
-  showProject(normalizeProject(sample()));
-  setPanel("preview");
-  $("#project-menu").focus({preventScroll: true});
 };
 $("#starter-template").onclick = () => showAnimationCatalog();
 $("#starter-prompt").onclick = () => {
   if (!animation) createCompositionClip();
-  setPanel("props");
-  $("#inspector [data-cp-prompt]")?.focus();
+  showProjectAssistant();
 };
 $("#starter-text").onclick = () => {
   if (!animation) createCompositionClip();
@@ -1769,12 +1895,23 @@ $("#rename-animation").onclick = () => {
 $("#pack").onclick = safe(async () => {
   if (applyAnimation()) downloadBlob(await packProject(project), slug() + ".mare");
 });
-$("#unpack").onclick = () => $("#project-file").click();
+async function readProjectFile(file) {
+  if (!file?.name || !/\.mare$/i.test(file.name)) throw Error("Selecione um arquivo .mare.");
+  const opened = await unpackProject(file);
+  if (account && !account.anchor) opened.id = uid();
+  return opened;
+}
 $("#project-file").onchange = safe(async e => {
   const f = e.target.files[0];
   e.target.value = "";
   if (f) {
-    const p = await unpackProject(f);
+    let p;
+    try { p = await readProjectFile(f); }
+    catch (error) {
+      if (!$("#studio-start").open) throw error;
+      $("#project-file-error").textContent = error.message;
+      return;
+    }
     if (replaceProject(p, {status: "Projeto aberto"})) {
       $("#project-menu").focus({preventScroll: true});
       info("Projeto aberto.");
@@ -1845,7 +1982,7 @@ export const projectEditor = createEditorSession({
     playing,
     fullscreen: Boolean(document.fullscreenElement || $("#stage").classList.contains("expanded")),
     soundSelected: selected === "audio",
-    home: !$("#studio-start").hidden,
+    home: $("#studio-start").open,
     timeline: mode === "montage" ? timeline.getViewport() : activeWave() ? {keyTime:activeWave().keys[keyIndex]?.t} : compositionUI.timelineView(),
   }),
   services: {
@@ -1880,9 +2017,9 @@ export const projectEditor = createEditorSession({
       ),
       "history.undo": action("Desfazer", {}, () => stepHistory(false)),
       "history.redo": action("Refazer", {}, () => stepHistory(true)),
-      "project.save": action("Salvar no navegador", {}, () => save()),
+      "project.save": action(account ? "Salvar na minha conta" : "Salvar no navegador", {}, () => save()),
       "project.open": action("Abrir arquivo editável", { file: "File .mare" }, async ({ file }, p, check) => {
-        const opened = await unpackProject(file);
+        const opened = await readProjectFile(file);
         check();
         replaceProject(opened, { status: "Projeto aberto" });
       }),
@@ -2005,9 +2142,11 @@ export const projectEditor = createEditorSession({
     },
   },
 });
-function showProjectAssistant(initialRequest = "") {
+let assistantHistory = [], historyEpoch;
+function showProjectAssistant(initialRequest = "", useLayerScope = false) {
   stop();
-  openProjectAssistant({ session: projectEditor, showDialog, dialog: $("#dialog"), esc, initialRequest });
+  if (historyEpoch !== projectEpoch) { assistantHistory = []; historyEpoch = projectEpoch; }
+  openProjectAssistant({ useLayerScope, history: assistantHistory, session: projectEditor, showDialog, dialog: $("#dialog"), esc, initialRequest });
 }
 $("#project-assistant").onclick = () => showProjectAssistant();
 $("#edit-speech").onclick = event => editSpeech(event.currentTarget);
@@ -2050,9 +2189,26 @@ all("[data-filter]").forEach(
       renderLibrary();
     })
 );
-all(".mobile-tabs button").forEach(
-  b => (b.onclick = () => setPanel(b.dataset.panel))
-);
+all(".mobile-tabs button[data-panel]").forEach(b=>{b.onclick=()=>setPanel(b.dataset.panel);});
+function setMobileView(contextual){
+  document.body.dataset.mobileView=contextual?"contextual":"advanced";
+  $("#context-view").setAttribute("aria-pressed",String(contextual));
+  $("#advanced-view").setAttribute("aria-pressed",String(!contextual));
+  try{sessionStorage.setItem("mare-mobile-view",document.body.dataset.mobileView);}catch{}
+}
+const offerContextual = !integrated || account?.mobileContextual === true;
+$(".mobile-view").hidden = !offerContextual;
+let initialContextual=false;
+try{initialContextual=offerContextual && sessionStorage.getItem("mare-mobile-view")==="contextual";}catch{}
+setMobileView(initialContextual);
+$("#context-view").onclick=()=>{setMobileView(true);setPanel("props");};
+$("#advanced-view").onclick=()=>setMobileView(false);
+$("#mobile-fine").onclick=()=>{
+  setMobileView(false);
+  setPanel("props");
+  const target=editingComposition()?$("#motion-track [data-cp-time]"):$(".inspector input");
+  target?.focus();
+};
 $("#motion-mode").onclick = () => setMode("motion");
 $("#montage-mode").onclick = () => setMode("montage");
 $("#undo").onclick = () => stepHistory(false);
@@ -2060,7 +2216,91 @@ $("#redo").onclick = () => stepHistory(true);
 $("#back").onclick = () => seek(0);
 $("#end").onclick = () => seek(currentDuration());
 $("#play").onclick = safe(play);
-$("#save").onclick = safe(save);
+$("#save").onclick = safe(async () => {
+  const button = $("#save");
+  if (button.disabled) return;
+  button.disabled = true;
+  try { await save(); } finally { button.disabled = false; }
+});
+if (account) {
+  $("#save").title = "Salvar no PostSpark";
+  $("#save").setAttribute("aria-label", "Salvar no PostSpark");
+  $("#save .save-long-label").textContent = "Salvar no PostSpark";
+  const legacy=$("#start-legacy");
+  legacyProjectPresent().then(available=>{legacy.hidden=!available;}).catch(()=>{});
+  legacy.onclick=safe(async()=>{replaceProject(await importLegacyProject(),{status:"Importado do navegador"});});
+  const list = $("#account-projects");
+  list.onchange = safe(async () => {
+    const item = account.projects.find(p => (p.anchorId || p.id) === list.value);
+    if (!item) return;
+    list.value = "";
+    if (account.anchor) {
+      const imported = await unpackProject(await assetBytes(item.revisionId));
+      replaceProject(imported, {status:"Projeto aberto"});
+    } else {
+      const route = new URL(location.href);
+      route.search = "";
+      route.hash = "";
+      route.searchParams.set(item.anchorId ? "anchor" : "project",item.anchorId || item.id);
+      location.assign(route);
+    }
+  });
+  const button = $("#send-postspark");
+  button.hidden = !account.anchor;
+  if (account.anchor) document.body.dataset.anchored = "";
+
+  button.onclick = safe(async () => {
+    if (button.disabled || !account.anchor) return;
+    if (!hasOpenProject || account.anchor.canEdit===false) {
+      location.assign((account.anchor.agencyProjectId?"/agency":"/thevoid")+"?mareReturn="+encodeURIComponent(account.anchor.id));
+      return;
+    }
+    if (!applyAnimation()) return;
+    const compositionId = mode === "motion" ? animation?.draft.id : undefined;
+    const snapshot = structuredClone(project);
+    const media = renderScope(snapshot, compositionId);
+    if (!media.clips.length) throw Error("Adicione uma composição ou um vídeo antes de enviar.");
+    button.disabled = true;
+    document.body.inert = true;
+    let navigating = false;
+    const controller = new AbortController();
+    try {
+      const {exportPreciseMP4,exportTransparentWebM} = await import("./precise-export.js");
+      const transparent=compositionId && findComposition(compositionId)?.document?.background==="transparent";
+      const encode=transparent?exportTransparentWebM:exportPreciseMP4;
+      const packed = await packProject(snapshot);
+      const size=account.anchor.sourceComposition || (compositionId && findComposition(compositionId)?.document?.sourceSize);
+      const viewport=size?selectionViewport(size):undefined;
+      const height=viewport?Math.round(540*viewport.height/viewport.width)*2:1920;
+      let video,url;
+      try {
+        video=await encode(media,{width:1080,height,viewport,signal:controller.signal,
+          onProgress:p=>button.textContent="Preparando "+Math.round(100*p)+"%"});
+      }catch(error){
+        if(controller.signal.aborted||!account.projectRender)throw error;
+        const receipt=await queueProjectRender(snapshot,packed,{compositionId,format:transparent?"webm":"mp4",
+          frame:size?{width:size.width,height:size.height}:undefined,signal:controller.signal,progress:message=>button.textContent=message});
+        url=await returnProjectVideo(receipt.revisionId,receipt.videoAssetId,compositionId);
+      }
+      if(video){
+        button.textContent="Enviando…";
+        url=await returnToPostSpark(packed,video,compositionId);
+      }
+      dirty = false;
+      location.assign(url);
+      navigating = true;
+    } catch (error) {
+      if ([403,404,410].includes(error.status)) button.hidden = true;
+      throw error;
+    } finally {
+      if (!navigating) {
+        document.body.inert = false;
+        button.disabled = false;
+        button.textContent = "Enviar ao PostSpark";
+      }
+    }
+  });
+}
 $("#export").onclick = exportVideo;
 function showStockLibrary({newProject = false} = {}) {
   const destination = project;
@@ -2089,7 +2329,7 @@ function showStockLibrary({newProject = false} = {}) {
   });
 }
 $("#stock-library").onclick = () => showStockLibrary();
-$("#start-stock-library").onclick = () => showStockLibrary({newProject: true});
+
 $("#import").onclick = () => {
   const el = $("#media-file");
   el.accept = "video/*,audio/*";
@@ -2180,17 +2420,47 @@ async function init() {
   let at = time;
   let saved;
   try {
-    saved = await loadProject();
+    if (account?.initialRevision) {
+      saved = await unpackProject(await assetBytes(account.initialRevision));
+      account.localProjectId=saved.id;
+    } else if (account?.anchor?.sourceComposition) {
+      const imported=await prepareSelection(account.anchor.sourceComposition);
+      showStart(false);
+      showDialog("Animar seleção do CanvasLab",
+        '<canvas id="canvas-selection-preview" aria-label="Prévia da seleção"></canvas><p id="canvas-selection-description"></p>',
+        '<button class="btn primary" id="use-canvas-selection">Abrir em Animação</button>');
+      selectionPreview($("#canvas-selection-preview"),imported);
+      $("#canvas-selection-description").textContent=imported.document.layers.length+" camada(s) editável(is). As camadas originais continuam no design. Escolha Enviar ao PostSpark para aplicar a animação."+
+        (imported.unavailable.length?" A prévia usa uma fonte alternativa para "+imported.unavailable.join(", ")+".":"");
+      $("#use-canvas-selection").onclick=()=>{
+        $("#dialog").close();
+        startAnimationProject(imported.name,imported.document,imported.duration);
+      };
+      return;
+    } else if (account?.anchor?.sourceVideoAssetId) {
+      const blob = await assetBytes(account.anchor.sourceVideoAssetId);
+      await startVideoProject(new File([blob],"Vídeo do post",{type:blob.type}));
+      return;
+    } else if (account?.anchor?.sourceImageUrl) {
+      const blob=await readCanvasImage(account.anchor.sourceImageUrl),composition=newComposition();
+      composition.layers.push(await imageLayerFromFile(new File([blob],"Imagem do post",{type:blob.type}),4));
+      startAnimationProject("Imagem do post",composition);
+      return;
+    } else if (!account) saved = await loadProject();
     if (saved) {
       restored = saved;
       at = Math.min(1.9, (saved.clips[0]?.duration ?? 0) / 2);
-      projectStatus = "Salvo neste navegador";
+      projectStatus = account ? "Salvo no PostSpark" : "Salvo neste navegador";
     }
   } catch (err) {
+    if (account) throw err;
     problem(err);
   }
-  const route = location.hash;
+  const route = account?.anchor ? "" : location.hash;
   if (!saved && !["#transicoes", "#montagem", "#cafe-360", "#compor"].includes(route)) {
+    project = normalizeProject({id:uid(), name:"Novo projeto", clips:[], compositions:[], sound:{...silent}});
+    projectStatus = "Novo projeto";
+    refresh();
     showStart(true);
     if (["#modelos", "#novos-modelos"].includes(route)) {
       showAnimationCatalog(route === "#novos-modelos" ? "new" : "all", {newProject: true});
@@ -2232,6 +2502,11 @@ async function init() {
     window.history.replaceState(null, "", "#compor");
   }
   showProject(restored, at);
+  if (saved && !account && !route) showStart(true);
+  if (account?.anchor?.scope === "composition" && account.anchor.compositionId) {
+    openAnimation(account.anchor.compositionId,{panel:"props"});
+    return;
+  }
   if (["#compor", "#cafe-360"].includes(route)) {
     const existing = project.compositions.find(item => item.kind === "composition");
     if (existing) {
@@ -2252,7 +2527,10 @@ safe(async () => {
   try {
     await init();
   } catch (error) {
-    showProject(project);
+    if (account) {
+      $("#send-postspark").hidden = true;
+      showStart(true);
+    } else showProject(project);
     throw error;
   }
 })();

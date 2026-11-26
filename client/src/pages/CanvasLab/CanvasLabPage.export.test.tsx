@@ -9,11 +9,11 @@ import { INITIAL_POST } from "./components/types";
 import { createArsenalFixtureComposition } from "./lib/arsenalFixture";
 import { resolveArsenalComposition } from "./lib/arsenalComposition";
 
-const exports = vi.hoisted(() => ({ png: vi.fn(), zip: vi.fn() }));
+const exports = vi.hoisted(() => ({ prepareFonts: vi.fn(), png: vi.fn(), zip: vi.fn() }));
 vi.mock("./components/CanvasPostStage", async () => {
   const React = await import("react");
   return { CanvasPostStage: React.forwardRef((_, ref) => {
-    React.useImperativeHandle(ref, () => ({ exportPng4K: exports.png, exportZip4K: exports.zip }));
+    React.useImperativeHandle(ref, () => ({ prepareExportFonts: exports.prepareFonts, exportPng4K: exports.png, exportZip4K: exports.zip }));
     return null;
   }) };
 });
@@ -37,6 +37,7 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:export"), revokeObjectURL: vi.fn() });
   exports.png.mockReset().mockReturnValue("data:image/png;base64,aW1hZ2U=");
+  exports.prepareFonts.mockReset().mockResolvedValue(undefined);
   exports.zip.mockReset().mockResolvedValue(new Blob(["zip"]));
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
@@ -96,4 +97,15 @@ it("downloads PNG as a file Blob with the exact renderer bytes, then releases th
   expect(anchor.href).toBe("blob:export");
   expect(anchor.download).toMatch(/^postspark-.*\.png$/);
   expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:export");
+});
+
+it("waits for the font used by the editor PNG before calling the renderer", async () => {
+  let finish: () => void = () => {};
+  exports.prepareFonts.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+  await act(async () => { root.render(<CanvasLabPage initialPost={structuredClone(INITIAL_POST)} />); });
+  await click("PNG");
+  expect(exports.prepareFonts).toHaveBeenCalledOnce();
+  expect(exports.png).not.toHaveBeenCalled();
+  await act(async () => { finish(); });
+  expect(exports.png).toHaveBeenCalledOnce();
 });

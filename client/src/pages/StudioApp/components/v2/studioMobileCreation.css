@@ -159,20 +159,6 @@
     max-width: 100%;
     font-size: 14px;
   }
-  .mobile-url-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    font-size: 12px;
-    color: var(--creation-muted);
-  }
-  .mobile-url-content input {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    accent-color: var(--creation-accent);
-  }
   .mobile-generation-status {
     display: block;
     margin-top: 4px;

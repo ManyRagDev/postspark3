@@ -1,3 +1,4 @@
+import { getImpersonatedPlan } from "./_core/planImpersonation";
 import { SPARK_REFILL } from "@shared/membership";
 /**
  * billing.ts — PostSpark billing module
@@ -119,6 +120,12 @@ const FREE_PROFILE_DEFAULTS: Omit<BillingProfile, "id" | "email"> = {
  * Busca pelo UUID autenticado. Chamadores legados sem UUID ainda podem usar e-mail.
  */
 export async function getBillingProfile(email: string, userId?: string): Promise<BillingProfile> {
+  const profile = await getRealBillingProfile(email, userId);
+  const effective = getImpersonatedPlan(userId);
+  return effective ? { ...profile, plan: effective } : profile;
+}
+
+export async function getRealBillingProfile(email: string, userId?: string): Promise<BillingProfile> {
   if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
     // Billing não configurado — retorna mock FREE
     return { id: "dev-mock", email, ...FREE_PROFILE_DEFAULTS };

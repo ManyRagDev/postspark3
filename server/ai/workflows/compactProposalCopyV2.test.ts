@@ -5,7 +5,8 @@ import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.
 import { instantiateCompleteDesign } from "@shared/completeDesignGeneration";
 import { arsenalHash } from "@shared/arsenalContent";
 import type { CopyResponse, ProposalExecutionInput } from "./proposalGraph";
-import { applyTargetedCopyRepair, enrichTargetedCopyRepairTargets, targetedCopyRepairPrompt, targetedCopyRepairSchema, targetedRepairAlternatives, targetedRepairSystemPrompt, targetedRepairSystemPromptV2, type TargetedCopyRepairTarget } from "./compactProposalCopy";
+import { applyTargetedCopyRepair, compactCopyValidationSchema, editorialRepairTargets, enrichTargetedCopyRepairTargets, normalizeCompactCopyPayload, targetedCopyRepairPrompt, targetedCopyRepairSchema, targetedRepairAlternatives, targetedRepairSystemPrompt, targetedRepairSystemPromptV2, type TargetedCopyRepairTarget } from "./compactProposalCopy";
+import type { ProposalReviewRecord } from "@shared/proposalReview";
 
 const originalDefinition = completeDesignTestDefinitions()[0];
 const definition = createComponentDefinition({ ...originalDefinition, fragment: { ...originalDefinition.fragment,
@@ -27,6 +28,20 @@ const compose = (copy = original, def = definition) => [instantiateCompleteDesig
 
 // Captured responses: gen-1793975881-odAPh573iuRb2DTMIARR and gen-1793975954-UJwSEiifclTueCFU4SlE.
 describe("compact targeted repair v2", () => {
+  it("keeps a factual correction but excludes a finding about typographic overlap", () => {
+    const geometry = {
+      category: "visible_text_loss", scope: "art", explanation: "O acento se sobrepõe à linha anterior.",
+      expected: "Ajustar o espaçamento entre linhas.", fieldId: "field-0", slideIndex: 0,
+      effect: "blocking", authority: "source_grounded",
+    };
+    const omission = {
+      ...geometry, category: "fact_omission", fieldId: "field-1",
+      explanation: "Falta o horário solicitado.", expected: "Mostrar o horário.",
+    };
+    const review = { findings: [geometry, omission] } as ProposalReviewRecord;
+    expect(editorialRepairTargets(original, review, true).map(target => target.fieldId)).toEqual(["field-1"]);
+    expect(editorialRepairTargets(original, review).map(target => target.fieldId)).toEqual(["field-0", "field-1"]);
+  });
   it("keeps estimated lengths advisory while retaining the native field and list contract", () => {
     const patch = {patches:[{slideIndex:0,fieldId:"field-1",itemIndex:null,value:"Conheça a Lume",alternatives:["Visite a Lume"]}]};
     expect(targetedCopyRepairSchema([targets[1]],[definition],1).safeParse(patch).success).toBe(false);
@@ -132,4 +147,53 @@ describe("targeted repair pending context", () => {
     applyTargetedCopyRepair(source, allowed.map(({ maxCharacters, ...target }) => target), response, undefined, fits, 1);
     expect(fits.mock.calls.every(call => call.length === 2)).toBe(true);
   });
+
+  it("keeps targetedCopyRepairSchema flat without union branches and normalizes benign copy drift", () => {
+    const schema = z.toJSONSchema(targetedCopyRepairSchema(targets, [definition], 2));
+    expect(JSON.stringify(schema)).not.toContain('"anyOf":[{"type":"object"');
+    const normalized = normalizeCompactCopyPayload({
+      caption: "Legenda",
+      hashtags: ["#Lume"],
+      slides: [{
+        values: [
+          { fieldId: "field-1", value: ["Linha 1", "Linha 2"] },
+          { fieldId: "field-99", value: "Inexistente" },
+        ],
+        mediaPrompts: [],
+      }],
+    }, [definition]);
+    const validated = compactCopyValidationSchema([definition]).safeParse(normalized);
+    expect(validated.success).toBe(true);
+    if (validated.success) {
+      expect(validated.data.slides[0].values).toEqual([
+        { fieldId: "field-1", value: "Linha 1\nLinha 2" },
+        { fieldId: "field-0", value: "" },
+      ]);
+    }
+  });
+  it("rejects ambiguous duplicate IDs and malformed text even when normalizing optionals", () => {
+    const schema = compactCopyValidationSchema([definition]);
+    const normalize = (values: unknown[]) => normalizeCompactCopyPayload({
+      slides: [{ values, mediaPrompts: [] }],
+    }, [definition]);
+    const required = { fieldId: "field-1", value: "Texto" };
+    for (const values of [[required, required], [{ ...required, value: [42] }], [{ ...required, value: null }], [required, null], []]) {
+      expect(schema.safeParse(normalize(values)).success).toBe(false);
+    }
+  });
+
+  it("keeps provider array drift reflowable for a partitioned field", () => {
+    const fragmented = structuredClone(definition);
+    const binding = fragmented.fragment.bindings.find(binding => binding.source === "block:headline:0:text")!;
+    const target = fragmented.fragment.instances.find(instance => instance.id === binding.targetIds[0])!;
+    fragmented.pieces[target.pieceHash].contentFragment = { index: 0, count: 2, unit: "words" };
+    const receipt = { slides: [{ values: [
+      { fieldId: "field-1", value: ["R$ 39 por mês", "1 oficina mensal"] },
+    ], mediaPrompts: [] }] };
+    const schema = compactCopyValidationSchema([fragmented]);
+    const parse = (reflow: boolean) => schema.parse(normalizeCompactCopyPayload(receipt, [fragmented], undefined, reflow));
+    expect(parse(true).slides[0].values[0].value).toBe("R$ 39 por mês 1 oficina mensal");
+    expect(parse(false).slides[0].values[0].value).toBe("R$ 39 por mês\n1 oficina mensal");
+  });
+
 });

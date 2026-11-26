@@ -1,3 +1,4 @@
+import { activeTemporalSlots } from "@/pages/CanvasLab/lib/activeTemporalSlots";
 import type { ExportQuality } from "@shared/aspectRatios";
 import {designLabel,savedDesignIdentity} from "@shared/acervo82Identity";
 import { generationAspectRatios, isPortraitRatio, aspectRatioHeight } from "@shared/aspectRatios";
@@ -221,12 +222,13 @@ export default function StudioGalleryView({
                   {projection.error ? <p className="p-4 text-sm text-amber-200">{projection.error}</p> : <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />}
                 </div>
 
+                {activeTemporalSlots(previewItem,previewItem.currentSlideIndex).length > 0 && <span className="text-xs text-white/70">Slide com vídeo</span>}
                 <StudioSlideNavigation count={item.slides.length} index={previewItem.currentSlideIndex}
                   onChange={index => slidePreviews.navigate(item, idx, index)} />
                 <StudioDirectionFeedback post={item} />
                 <PostReviewWarning warning={item.provenance?.reviewWarning} />
 
-                {allowDownload && <button type="button" disabled={!!projection.error} onClick={() => setDownloadPost(cleanItem)} className="mt-4 w-full rounded-xl bg-orange-300 px-4 py-2.5 text-xs font-bold text-black hover:bg-orange-200">Baixar</button>}
+                {allowDownload && <button type="button" disabled={!!projection.error} onClick={() => setDownloadPost(cleanItem)} className="mt-4 min-h-11 w-full rounded-xl bg-orange-300 px-4 py-2.5 text-xs font-bold text-black hover:bg-orange-200">Baixar</button>}
                 {/* Botão de Ação: Personalizar Post (mantido para a11y — o card inteiro também clica) */}
                 <button
                   type="button"
@@ -235,7 +237,7 @@ export default function StudioGalleryView({
                     e.stopPropagation();
                     onSelectVariation(cleanItem);
                   }}
-                  className="w-full mt-4 py-2.5 px-4 rounded-xl text-xs font-bold text-black bg-white hover:bg-[oklch(0.78_0.22_48)] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer group-hover:scale-[1.02]"
+                  className="w-full min-h-11 mt-4 py-2.5 px-4 rounded-xl text-xs font-bold text-black bg-white hover:bg-[oklch(0.78_0.22_48)] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer group-hover:scale-[1.02]"
                 >
                   <span>Personalizar Post</span>
                   <ArrowRight size={14} />

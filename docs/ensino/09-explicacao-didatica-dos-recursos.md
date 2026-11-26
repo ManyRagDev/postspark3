@@ -36,7 +36,7 @@ O frontend e a camada de apresentacao e interacao.
 
 No PostSpark, ele e construido com React e Vite. React ajuda a organizar a interface em componentes. Vite cuida do ambiente de desenvolvimento e do build do frontend.
 
-Quando o usuario navega pela aplicacao, preenche um formulario, abre o Workbench ou seleciona uma variacao gerada, ele esta interagindo principalmente com o frontend.
+Quando o usuario navega pela aplicacao, preenche um formulario, abre o CanvasLab ou seleciona uma variacao gerada, ele esta interagindo principalmente com o frontend.
 
 O frontend tambem guarda alguns estados temporarios. Por exemplo, durante a edicao de um post, a aplicacao precisa lembrar qual slide esta sendo editado, quais ajustes visuais foram feitos, quais imagens estao em uso e quais variacoes foram recebidas. Parte disso fica em estado de UI e parte pode ser persistida depois.
 
@@ -125,9 +125,9 @@ Por isso, integracoes precisam ser tratadas com cuidado:
 
 O backend e o lugar natural para coordenar essas integracoes.
 
-## O Workbench: edicao visual como estado estruturado
+## O CanvasLab: edicao visual como estado estruturado
 
-O Workbench e a area onde o usuario edita visualmente o post.
+O CanvasLab e a area onde o usuario edita visualmente o post.
 
 Para quem esta aprendendo, e util perceber que um editor visual nao e apenas uma imagem na tela. Ele precisa representar informacoes estruturadas: texto, secoes, layout, background, slides, ajustes de imagem, overlays e variacoes.
 
@@ -152,7 +152,7 @@ Build e a etapa que transforma o projeto de "codigo de desenvolvimento" em "codi
 
 Deploy e o processo de publicar a aplicacao em um ambiente acessivel.
 
-No PostSpark, a configuracao observada aponta para Vercel. O arquivo `vercel.json` informa como a plataforma deve lidar com a funcao Node, os arquivos estaticos e os redirecionamentos da aplicacao.
+No PostSpark, a [VPS](../contrato-integracao-supabase-vps.md) hospeda a web e o executor. O Caddy recebe as conexões públicas.
 
 Uma aplicacao local pode funcionar no computador do desenvolvedor, mas isso nao significa que ela esteja disponivel para usuarios. O deploy cria essa ponte entre o desenvolvimento e o uso real.
 
@@ -174,9 +174,9 @@ Docker entra como uma ferramenta para reduzir diferencas entre ambientes.
 
 Um projeto pode depender de uma versao especifica de Node, de um gerenciador de pacotes, de variaveis de ambiente e de comandos de inicializacao. Se cada pessoa configura isso manualmente, surgem diferencas. Uma maquina pode funcionar e outra nao.
 
-Docker permite descrever um ambiente mais previsivel. Ele nao substitui Vercel, Supabase, Stripe ou Git. Ele tambem nao elimina a necessidade de entender a aplicacao. Mas ajuda a tornar o processo de execucao mais padronizado.
+Docker permite descrever um ambiente mais previsivel. Supabase, Stripe e Git continuam tendo funções próprias. Ele tambem nao elimina a necessidade de entender a aplicacao. Mas ajuda a tornar o processo de execucao mais padronizado.
 
-No caso do PostSpark, Docker seria especialmente util para onboarding e reproducibilidade local. Ele ajudaria uma nova pessoa a rodar o projeto com menos dependencias instaladas diretamente na propria maquina.
+No PostSpark, o [Compose da VPS](../../ops/hostinger/compose.yml) organiza a execução da web e do worker.
 
 ## Como tudo se conecta
 
@@ -188,9 +188,9 @@ O PostSpark funciona porque suas partes cooperam:
 - a Stripe informa eventos de pagamento;
 - os provedores de IA geram ou analisam conteudo;
 - o build prepara o projeto;
-- a Vercel publica a aplicacao;
+- a VPS hospeda a aplicação e o executor;
 - o Git registra a evolucao;
-- Docker pode padronizar o ambiente de execucao.
+- Docker empacota o ambiente de execução.
 
 Nenhuma dessas partes, isoladamente, representa o produto inteiro. O produto nasce da composicao entre elas.
 

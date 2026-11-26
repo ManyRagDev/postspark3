@@ -1,6 +1,8 @@
-# Arsenal V2 — contratos fechados para implementação
+# Arsenal V2 — contratos históricos e de compatibilidade
 
-> 2026-10-01. Complemento normativo do [plano de implementação](./plano-arsenal-pgvector-thevoid.md). O estado implementado e as pendências de aceite estão reconciliados na seção 12 e no [relatório de execução](./relatorio-arsenal-v2.md). Não é uma receita importável no Admin2.
+A geração vigente está no [mapa do motor](./motor-integracao.md). Este registro descreve o piloto V2 e os formatos necessários para reabrir documentos criados nessa etapa.
+
+> 2026-10-01. Complemento histórico do [plano de implementação](./plano-arsenal-pgvector-thevoid.md). O estado implementado e as pendências daquela etapa estão na seção 12 e no relatório de execução histórico, arquivado no backup. Não é uma receita importável no Admin2.
 >
 > Esta revisão fecha os seis pontos da análise do Sol. Alterações de contrato durante a execução devem ser registradas aqui e no documento-mestre antes de afetar consumidores. Nomes internos de funções podem mudar; semântica, identidade persistida, limites e regras de compatibilidade não podem mudar silenciosamente.
 
@@ -300,7 +302,7 @@ Complemento remoto: `0023` adiciona as colunas do trace de geração, evitando p
 
 Este registro não reduz os critérios da seção 10 e não constitui aceite M3/M4. Estado, medidas e procedimentos: `relatorio-arsenal-v2.md` e `DOCUMENTO_MESTRE.md` §13.36.
 
-- Migrações `0019`–`0023` aplicadas ao projeto `spbuwcwmxlycchuwhfir`; pgvector 0.8.0 em `extensions`. Publicação V2 é protegida também na RPC histórica e no INSERT/UPDATE direto. Campos obrigatórios usam testes explícitos de presença/tipo, evitando bypass por SQL NULL. Evidência humana requer PNG e briefing hash.
+- Migrações `0019`–`0023` aplicadas em outubro de 2026 ao Supabase Cloud aposentado. O ambiente usava pgvector 0.8.0 em `extensions`. Publicação V2 é protegida também na RPC histórica e no INSERT/UPDATE direto. Campos obrigatórios usam testes explícitos de presença/tipo, evitando bypass por SQL NULL. Evidência humana requer PNG e briefing hash.
 - A métrica vigente continua `structural-weighted-l1-v1`, pesos/hash compartilhados e 48 eixos. O identificador do algoritmo de busca é `sql-exact-l1-pgvector-v1`: usa `<+>` nativo sobre vetores já pesados, sem ANN. A expressão anterior de soma de 48 componentes foi substituída depois de p95 528 ms para 5.000 linhas no benchmark isolado; o operador nativo ficou em 47,754 ms no mesmo tipo de ambiente. Não houve mudança matemática silenciosa.
 - Recuperação recebe cobertura semântica e cardinalidade do briefing; bindings factuais ausentes são excluídos, sem usar números de instruções como fatos quando há interpretação de conteúdo confiável. Estas pistas não substituem validação literal da copy. Não há chamada LLM adicional para seleção de perfil/geometria.
 - Recuperação, hidratação e entrega de grants consomem o mesmo orçamento acumulado de 2 s. Fontes/assets do navegador seguem 8 s e lote 15 s, no máximo seis tentativas. Tempo da LLM e gravação de fallback funcional têm tratamento próprio. Telemetria durável degradável não substitui gravação funcional.

@@ -1,3 +1,6 @@
+import { projectMareSelections } from "../lib/mareSelection";
+import { activeTemporalSlots } from "../lib/activeTemporalSlots";
+import { useSlideVideos, mediaWidth, mediaHeight, temporalClipFromImage, type TemporalClip } from "../lib/temporalPlayback";
 import { projectAdvancedImagePreview, type AdvancedImagePreview } from "../lib/advancedImageEditing";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import { ArsenalCompositionContents } from "./ArsenalCompositionContents";
@@ -10,9 +13,11 @@ import { canvasTypography } from "../lib/catalogTypography";
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
-import type { BgImageTransform, CanvasCustomImage, CanvasCustomShape, CanvasCustomText, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect, SplitBgPosition } from "./types";
-import { isDarkColor, resolveLegibleTextColor, normalizeHexColor } from "./types";
+import type { BgImageTransform, CanvasCustomImage, CanvasCustomShape, CanvasCustomText, CanvasPostModel, CarouselSlideItem, ElementPosition, LogoPositionType, TextLegibilityEffect, SplitBgPosition } from "./types";
+import { customTextFontStyle, isDarkColor, resolveLegibleTextColor, normalizeHexColor } from "./types";
+import { NativeBackgroundTreatment } from "./NativeBackgroundTreatment";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
+import { prepareCanvasFont } from "@/lib/fonts";
 import { containImageRect } from "../lib/imageContain";
 import { computeBackgroundGeometry } from "../lib/backgroundPlacement";
 import { resolveSlideAppearance } from "../lib/slideReplication";
@@ -37,15 +42,18 @@ import {
 } from "../lib/textResizeGeometry";
 import { registerUserFont } from "../lib/fontResources";
 import { COMPOSITION_BACKGROUND_ID, COMPOSITION_LOGO_ID, getEditorElementState, resolveEditorElementOrder } from "../lib/editorElementState";
-import { collectUsedFontsForSlide, collectUsedFontsForDocument, assertFontsReady } from "../lib/exportReadiness";
+import { assertFontsReady, collectUsedFontsForSlide, prepareFontsForExport } from "../lib/exportReadiness";
 import type { SelectionModifiers, SelectionTransform } from "../lib/editorSelection";
 import { withoutEditorGuides } from "../lib/exportEditorGuides";
 import { extraTextAppearance } from "../lib/nativeTextAppearance";
 
 export interface CanvasPostStageRef {
+  exportFrameAt?: (seconds: number, maxDimension: number) => Promise<HTMLCanvasElement>;
+  exportVideo?: () => Promise<Blob>;
   exportPng4K: (maxDimension?: number) => string;
   exportZip4K: (onProgress?: (current: number, total: number) => void, maxDimension?: number) => Promise<Blob>;
   exportThumbnail: () => Promise<string>;
+  prepareExportFonts: () => Promise<void>;
   commitDraft: () => void;
   cancelDraft: () => void;
   hasActiveDraft: () => boolean;
@@ -54,6 +62,8 @@ export interface CanvasPostStageRef {
 }
 
 interface CanvasPostStageProps {
+  workspaceId?: string;
+  showPlaybackControls?: boolean;
   post: CanvasPostModel;
   advancedImagePreview?: AdvancedImagePreview | null;
   onUpdateComposition?: (composition: ArsenalComposition) => void;
@@ -425,6 +435,7 @@ function NativeElementStack({ children, order }: { children: React.ReactNode; or
 // ─── COMPONENTE DE IMAGEM LIVRE ADICIONAL (FOTO / STICKER / ADESIVO) ───
 const CanvasCustomImageNode: React.FC<{
   item: CanvasCustomImage;
+  video?: HTMLCanvasElement;
   isInteractive: boolean;
   onSelect: (event: any) => void;
   onDragMove: (e: any) => void;
@@ -434,6 +445,7 @@ const CanvasCustomImageNode: React.FC<{
   setRef: (el: any) => void;
 }> = ({
   item,
+  video,
   isInteractive,
   onSelect,
   onDragMove,
@@ -442,7 +454,7 @@ const CanvasCustomImageNode: React.FC<{
   createSnapBoundFunc,
   setRef,
 }) => {
-  const [imageEl, setImageEl] = useState<HTMLImageElement | null>(null);
+  const [stillImage, setImageEl] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (!item.url) {
@@ -458,6 +470,7 @@ const CanvasCustomImageNode: React.FC<{
     return () => { active = false; };
   }, [item.url]);
 
+  const imageEl = video ?? stillImage;
   if (!imageEl) return null;
 
   return (
@@ -472,9 +485,9 @@ const CanvasCustomImageNode: React.FC<{
       opacity={item.opacity ?? 1}
       cornerRadius={item.cornerRadius || 0}
       crop={item.focalX === undefined && item.focalY === undefined ? undefined : (() => {
-        const scale = Math.max(item.width / imageEl.naturalWidth, item.height / imageEl.naturalHeight);
-        return { x: (imageEl.naturalWidth - item.width / scale) * (item.focalX ?? 0.5),
-          y: (imageEl.naturalHeight - item.height / scale) * (item.focalY ?? 0.5), width: item.width / scale, height: item.height / scale };
+        const scale = Math.max(item.width / mediaWidth(imageEl), item.height / mediaHeight(imageEl));
+        return { x: (mediaWidth(imageEl) - item.width / scale) * (item.focalX ?? 0.5),
+          y: (mediaHeight(imageEl) - item.height / scale) * (item.focalY ?? 0.5), width: item.width / scale, height: item.height / scale };
       })()}
       draggable={isInteractive}
       dragBoundFunc={isInteractive ? createSnapBoundFunc(item.width, item.height) : undefined}
@@ -491,6 +504,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
   (
     {
       post: documentPost,
+      workspaceId,
+      showPlaybackControls = false,
       advancedImagePreview,
       onUpdateComposition,
       diagnosticScene,
@@ -579,7 +594,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const previewActive = Boolean(previewProjection);
     const isInteractive = !isReadOnly && !previewActive && Boolean(onUpdateElementPosition || onUpdateComposition);
     const activeDocument = exportFrozenPost ?? previewProjection ?? documentPost;
-    const post = resolveSlideAppearance(activeDocument, exportSlideIndex ?? activeDocument.currentSlideIndex);
+    const activeIndex = exportSlideIndex ?? activeDocument.currentSlideIndex;
+    const displayedDocument = useMemo(() => projectMareSelections(activeDocument,activeIndex),[activeDocument,activeIndex]);
+    const post = resolveSlideAppearance(displayedDocument,activeIndex);
     const composition = post.slides[exportSlideIndex ?? post.currentSlideIndex]?.composition;
     const [arsenalFonts, setArsenalFonts] = useState<{key: string; ready: boolean; error?: string}>({key:"",ready:false});
     const arsenalFontKey = composition ? JSON.stringify(visibleCompositionAssets(composition).elements.filter(e=>e.kind === "text" || e.imageAssetId).map(e=>[e.fontAssetId,e.fontFamily,e.fontWeight,e.imageAssetId])) : "";
@@ -629,9 +646,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const editorWrapperRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const [bgImgElement, setBgImgElement] = useState<HTMLImageElement | null>(null);
+    const [stillBg, setBgImgElement] = useState<HTMLImageElement | null>(null);
     const [logoImgElement, setLogoImgElement] = useState<HTMLImageElement | null>(null);
-    const [, setCatalogFontRevision] = useState(0);
+    const [catalogFontRevision, setCatalogFontRevision] = useState(0);
     useEffect(() => {
       if (!post.catalogCompilation || post.catalogCompilation.status === "fallback") return;
       let active = true;
@@ -642,6 +659,25 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     }, [post.catalogCompilation?.versionId, post.catalogCompilation?.status, post.fontFamily, post.subtextFontFamily, post.headlineFontWeight, post.subtextFontWeight]);
     useDynamicFont(composition ? "Arial" : post.fontFamily, composition ? undefined : post.customFontUrl);
     useDynamicFont(composition ? "Arial" : post.subtextFontFamily ?? "Inter");
+
+    const importedSlide = post.slides[post.currentSlideIndex] ?? post.slides[0];
+    const importedHeadline = importedSlide?.backgroundTreatment && importedSlide.extraTexts?.find(item => item.contentRole === "headline");
+    const importedFamily = importedHeadline?.fontFamily;
+    const importedWeight = typeof importedHeadline?.fontWeight === "number" ? importedHeadline.fontWeight : 700;
+    const importedItalic = importedHeadline?.fontStyle === "italic";
+    const importedLabelFamily = importedSlide?.backgroundTreatment
+      ? importedSlide.extraTexts?.find(item => item.contentRole === "callToAction")?.fontFamily
+      : undefined;
+    useEffect(() => {
+      if (!importedFamily) return;
+      let mounted = true;
+      void Promise.allSettled([
+        prepareCanvasFont(importedFamily, importedWeight, importedItalic),
+        prepareCanvasFont(post.subtextFontFamily ?? "Inter", 400),
+        ...(importedLabelFamily ? [prepareCanvasFont(importedLabelFamily, 700)] : []),
+      ]).then(() => { if (mounted) setCatalogFontRevision(value => value + 1); });
+      return () => { mounted = false; };
+    }, [importedFamily, importedWeight, importedItalic, importedLabelFamily, post.subtextFontFamily]);
 
     useEffect(() => {
       if (post.userFonts && post.userFonts.length > 0) {
@@ -708,6 +744,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // este é o ÚNICO motor de renderização; nenhuma segunda máquina é criada.
     const currentSlide =
       post.slides[exportSlideIndex ?? post.currentSlideIndex] || post.slides[0];
+    const redrawVideo = React.useCallback(() => stageRef.current?.batchDraw(), []);
+    const visibleSlots=activeTemporalSlots(post,exportSlideIndex ?? post.currentSlideIndex);
+    const visibleMedia=Object.fromEntries(visibleSlots.map(id=>[id,currentSlide.temporalMedia![id]]));
+    const playback=useSlideVideos(visibleMedia,currentSlide.id,redrawVideo);
+    const {frames: videos,error:videoError}=playback;
+    const bgImgElement = videos.__background__ ?? stillBg;
     const activeBg = currentSlide?.bgImage ?? post.bgImage;
     const activeLogoUrl = currentSlide.logo ? currentSlide.logo.url : post.logoUrl;
     const bgTransform = currentSlide?.bgTransform !== undefined
@@ -843,29 +885,98 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       }
     }, [isEditingBackground, bgImgElement, currentSlide.elementStates, isReadOnly]);
 
+    const prepareSlideExportFonts = async (slide: CarouselSlideItem, model: CanvasPostModel) => {
+      if (slide.composition) await ensureArsenalCompositionAssets(visibleCompositionAssets(slide.composition));
+      const used = collectUsedFontsForSlide(slide, model);
+      await Promise.all(used.map(async use => {
+        const customFonts = model.userFonts?.filter(font => font.family.toLowerCase() === use.family.toLowerCase()) ?? [];
+        const font = customFonts.find(candidate => (candidate.weight ?? 400) === use.weight)
+          ?? (customFonts.length === 1 ? customFonts[0] : undefined);
+        if (font && !await registerUserFont(font))
+          throw new Error(`Não foi possível carregar a fonte "${use.family}" para exportar.`);
+      }));
+      await prepareFontsForExport(used);
+      setCatalogFontRevision(value => value + 1);
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    };
+
+    const workerFrames = useRef<{entries: TemporalClip[]; reader: import("../lib/temporalExport.js").TemporalFrameReader} | null>(null);
+    useEffect(() => () => {
+      void workerFrames.current?.reader.close().catch(() => {});
+      workerFrames.current = null;
+    }, []);
+    const preparedFrame = useRef<{document:CanvasPostModel; slideId:string; entries:TemporalClip[]; stage:any} | null>(null);
+    const prepareTemporalFrame = async (slide: CarouselSlideItem, model: CanvasPostModel) => {
+      const stage = stageRef.current;
+      if (!stage) throw Error("A prancheta não está pronta.");
+      if (preparedFrame.current?.document===activeDocument && preparedFrame.current.slideId===slide.id && preparedFrame.current.entries.every(c=>c.video.readyState>=2))
+        return preparedFrame.current;
+      await prepareSlideExportFonts(slide, model);
+      const index = model.slides.findIndex(s=>s.id===slide.id);
+      const slots = activeTemporalSlots(model,index);
+      const expected = slots.map(slot=>slide.temporalMedia![slot].assetId);
+      const deadline = Date.now()+15000;
+      let entries: TemporalClip[] = [];
+      let ready = false;
+      while (Date.now()<deadline) {
+        const nodes = visibleExportImageNodes(stage.find("Image") as any[]) as any[];
+        entries = nodes.map(n=>temporalClipFromImage(n.image())).filter((v): v is TemporalClip=>Boolean(v));
+        const stillCount = slide.composition ? renderedCompositionImageCount(slide.composition) : renderedNativeImageCount(slide, model);
+        ready = entries.length===expected.length && expected.every(id=>entries.some(v=>v.source.assetId===id)) && nodes.length>=stillCount && nodes.every(exportImageNodeReady);
+        if (ready) break;
+        await new Promise(r=>setTimeout(r,40));
+      }
+      if (!ready)
+        throw Error("Não foi possível carregar todas as camadas de vídeo.");
+      return preparedFrame.current = {document:activeDocument,slideId:slide.id,entries,stage};
+    };
+
+    const recordSlide = async (slide:CarouselSlideItem, model:CanvasPostModel) => {
+      const {entries,stage} = await prepareTemporalFrame(slide,model);
+      const {exportTemporalSlide} = await import("../lib/temporalExport.js");
+      try {
+        return await exportTemporalSlide(entries,()=>withoutEditorGuides(stage,()=>stage.toCanvas({pixelRatio:1080/baseWidth})));
+      } catch (error) {
+        if (!(error instanceof Error) || !("code" in error) || error.code !== "TEMPORAL_CODEC_UNAVAILABLE") throw error;
+        const {renderSlideOnServer} = await import("@/lib/mareRender");
+        return renderSlideOnServer(model,model.slides.findIndex(s=>s.id===slide.id),workspaceId);
+      }
+    };
+
     useImperativeHandle(ref, () => ({
+      exportVideo: async () => {
+        const position = playback.time;
+        playback.stop();
+        try { return await recordSlide(currentSlide,post); }
+        finally { await playback.scrub(position); }
+      },
+      exportFrameAt: async (seconds,maxDimension) => {
+        if (!Number.isFinite(seconds) || seconds<0 || !Number.isFinite(maxDimension) || maxDimension<2 || maxDimension>4096)
+          throw Error("Quadro ou dimensão inválida.");
+        const {entries,stage}=await prepareTemporalFrame(currentSlide,post);
+        if (workerFrames.current?.entries !== entries) {
+          await workerFrames.current?.reader.close();
+          const {openTemporalFrames} = await import("../lib/temporalExport.js");
+          workerFrames.current = {entries,reader:await openTemporalFrames(entries)};
+        }
+        await workerFrames.current.reader.draw(seconds);
+        return withoutEditorGuides(stage,()=>stage.toCanvas({pixelRatio:maxDimension/Math.max(baseWidth,baseHeight)}));
+      },
+      prepareExportFonts: async () => {
+        if (currentSlide) await prepareSlideExportFonts(currentSlide, post);
+      },
       exportThumbnail: async () => {
         if (previewActive) return "";
         const stage = stageRef.current;
         if (!stage) return "";
-        if (composition) { try { await ensureArsenalCompositionAssets(visibleCompositionAssets(composition)); } catch { return ""; } }
-
-        // Capture the same 360px composition used by the editor, after its
-        // font and image nodes have finished loading into Konva.
-        const fontsReady = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
-        if (fontsReady) {
-          const loaded = await Promise.race([
-            fontsReady.then(() => true).catch(() => false),
-            new Promise<false>(resolve => setTimeout(() => resolve(false), 4000)),
-          ]);
-          if (!loaded) return "";
-        }
+        try { if (currentSlide) await prepareSlideExportFonts(currentSlide, post); }
+        catch { return ""; }
 
         const expectedImages = composition ? renderedCompositionImageCount(composition) : renderedNativeImageCount(currentSlide, post);
         const started = Date.now();
         while (Date.now() - started < 4000) {
           const imageNodes = visibleExportImageNodes(stage.find("Image") as any[]);
-          if (imageNodes.length >= expectedImages && imageNodes.every(exportImageNodeReady)) {
+          if (imageNodes.length >= expectedImages && imageNodes.every(exportImageNodeReady) && visibleSlots.every(slot=>imageNodes.some((n:any)=>temporalClipFromImage(n.image())?.source.assetId===currentSlide.temporalMedia![slot].assetId))) {
             await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
             stage.getLayers().forEach((layer: any) => layer.draw());
             try {
@@ -903,9 +1014,6 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       exportZip4K: async (onProgress, maxDimension = 3840) => {
         if (previewActive) throw new Error("Aplique ou descarte a prévia da imagem antes de baixar.");
         if (editingTarget) throw new Error("Conclua a edição do texto antes de exportar.");
-        // Validação estrita de fontes usadas no documento
-        const usedFonts = collectUsedFontsForDocument(documentPost);
-        assertFontsReady(usedFonts);
         const zip = new JSZip();
         const stage = stageRef.current;
         if (!stage) return new Blob();
@@ -939,26 +1047,23 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             setExportSlideIndex(i);
             await awaitFrame();
             await awaitFrame();
-            try {
-              const fontReady = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
-              if (fontReady) {
-                await Promise.race([fontReady, new Promise(resolve => setTimeout(resolve, 3000))]);
-              }
-            } catch {
-              /* fontes não disponíveis — segue com o fallback do motor */
-            }
-            const slide = slidesSnapshot[i];
-            if (slide.composition) { await ensureArsenalCompositionAssets(visibleCompositionAssets(slide.composition)); await awaitFrame(); }
+            const slide = projectMareSelections(frozenPost,i).slides[i];
+            await prepareSlideExportFonts(slide, frozenPost);
             const expected = slide.composition ? renderedCompositionImageCount(slide.composition) : renderedNativeImageCount(slide, frozenPost);
             await awaitStageImagesLoaded(4000, expected);
 
+            const numbered = String(i+1).padStart(2,"0");
+            if (activeTemporalSlots(frozenPost,i).length) {
+              zip.file(numbered + ".mp4", await recordSlide(slide,frozenPost));
+              continue;
+            }
             let dataUrl: string;
             dataUrl = withoutEditorGuides(stage, () => stage.toDataURL({
               pixelRatio: Math.min(3840, Math.max(256, maxDimension)) / Math.max(baseWidth, baseHeight),
               mimeType: "image/png",
             }));
             const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-            zip.file(`slide-${i + 1}.png`, base64Data, { base64: true });
+            zip.file(frozenPost.slides.some((_,n)=>activeTemporalSlots(frozenPost,n).length) ? numbered + ".png" : `slide-${i + 1}.png`, base64Data, { base64: true });
           }
 
           return await zip.generateAsync({ type: "blob" });
@@ -1394,8 +1499,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const bgPlacement = currentSlide?.bgPlacement || post.bgPlacement;
     const computedBgLayout = bgImgElement
       ? computeBackgroundGeometry({
-          imageWidth: bgImgElement.naturalWidth || bgImgElement.width,
-          imageHeight: bgImgElement.naturalHeight || bgImgElement.height,
+          imageWidth: mediaWidth(bgImgElement) || bgImgElement.width,
+          imageHeight: mediaHeight(bgImgElement) || bgImgElement.height,
           baseWidth,
           baseHeight,
           placement: bgPlacement,
@@ -1849,6 +1954,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           }
         }}
       >
+        {videoError && !isReadOnly && <span role="alert" className="absolute top-1 left-1 z-10 bg-black px-2 text-white">{videoError}</span>}
+        {Object.keys(videos).length>0 && (!isReadOnly || showPlaybackControls) &&
+          <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2 rounded bg-black/80 px-2 text-white">
+            <button type="button" aria-label={playback.playing ? "Pausar vídeo" : "Reproduzir vídeo"} className="min-h-11 min-w-11 px-2 text-xs"
+              onClick={playback.toggle}>{playback.playing ? "Pausar" : "Reproduzir"}</button>
+            <input aria-label="Tempo do slide" type="range" min="0" max={playback.duration} step={1/30}
+              className="w-20" value={playback.time} onChange={e=>void playback.scrub(Number(e.target.value))} />
+          </div>}
         <div
           className={diagnosticScene && diagnosticNeutralFrame ? "overflow-hidden relative" : "rounded-[28px] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.9)] border border-white/15 relative"}
           style={{
@@ -1871,7 +1984,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             onTouchCancel={handleEditingPointerUp}
           >
             <Layer listening={isInteractive}>
-              {diagnosticScene ? <ReferenceSceneContents scene={diagnosticScene} stageWidth={baseWidth} textMode={diagnosticTextMode} layerStyles={diagnosticLayerStyles} mediaImages={diagnosticMediaImages} /> : composition ? (arsenalReady ? <ArsenalCompositionContents composition={displayComposition!}
+              {diagnosticScene ? <ReferenceSceneContents scene={diagnosticScene} stageWidth={baseWidth} textMode={diagnosticTextMode} layerStyles={diagnosticLayerStyles} mediaImages={diagnosticMediaImages} /> : composition ? (arsenalReady ? <ArsenalCompositionContents videos={videos} composition={displayComposition!}
                 interactive={isInteractive && arsenalReady}
                 createSnapBoundFunc={createSnapBoundFunc}
                 onDragMove={handleDragMove}
@@ -1915,7 +2028,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               )}
 
               {/* ─── 1. FUNDOS ESPECÍFICOS DE CADA FAMÍLIA ─── */}
-              {isBrutalSplit ? (
+              {currentSlide.backgroundTreatment ? (
+                <NativeBackgroundTreatment treatment={currentSlide.backgroundTreatment} color={post.palette.background}
+                  width={baseWidth} height={baseHeight} />
+              ) : isBrutalSplit ? (
                 // 1.A) BRUTAL SPLIT (@design.deb): 2 BLOCOS CROMÁTICOS LIMPOS SEM SELO
                 <>
                   <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.background || "#171717"} />
@@ -2406,6 +2522,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   width={shape.width}
                   height={shape.height}
                   fill={shape.color}
+                  cornerRadius={shape.cornerRadius}
+                  stroke={shape.strokeColor}
+                  strokeWidth={shape.strokeWidth}
+                  shadowEnabled={Boolean(shape.shadowOffset)}
+                  shadowColor={shape.strokeColor ?? "#111111"}
+                  shadowOffsetX={shape.shadowOffset}
+                  shadowOffsetY={shape.shadowOffset}
                   listening={canInteractWith(shape.id) && !isEditingBackground}
                   draggable={canInteractWith(shape.id) && !isEditingBackground && Boolean(onUpdateExtraShape)}
                   onClick={event => handleSelect(shape.id, event)}
@@ -2507,6 +2630,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   />
                 ))}
                 <RichTextRenderer
+                  key={catalogFontRevision}
                   text={displayHeadline}
                   richText={displayHeadlineChunks}
                   x={0}
@@ -2618,6 +2742,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   />
                 ))}
                 <RichTextRenderer
+                  key={catalogFontRevision}
                   text={displaySubtext}
                   richText={displaySubtextChunks}
                   x={0}
@@ -2685,6 +2810,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     : rawItemColor;
                 const itemFont = appearance.fontFamily;
                 const itemWidth = item.width || contentWidth;
+                const itemFontStyle = customTextFontStyle(item);
+                const itemLineHeight = item.lineHeight ?? 1.3;
 
                 const itemMetrics = layoutRichText({
                   text: itemText,
@@ -2692,17 +2819,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   width: itemWidth,
                   fontSize: itemSize,
                   fontFamily: itemFont,
-                  fontStyle:
-                    typeof item.fontWeight === "number"
-                      ? String(item.fontWeight)
-                    : item.fontWeight === "bold"
-                      ? "bold"
-                      : item.fontStyle === "italic"
-                      ? "italic"
-                      : "normal",
+                  fontStyle: itemFontStyle,
                   fill: itemColor,
                   align: itemAlign,
-                  lineHeight: 1.3,
+                  lineHeight: itemLineHeight,
+                  letterSpacing: item.letterSpacing,
                 });
                 const itemSelectionRects = editingTarget === item.id
                   ? getSelectionGeometry(itemMetrics, editingSelection.start, editingSelection.end)
@@ -2808,7 +2929,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                       accentColor: post.palette.accent,
                       customColor: item.effectColor,
                       lines: itemMetrics.lines.map(line => ({ text: "", width: line.width })),
-                      lineHeightPx: itemSize * 1.3,
+                      lineHeightPx: itemSize * itemLineHeight,
                       align: itemAlign,
                     })}
                     {itemSelectionRects.map(rect => (
@@ -2823,6 +2944,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                       />
                     ))}
                     <RichTextRenderer
+                      key={catalogFontRevision}
                       text={itemText}
                       richText={itemRich}
                       x={0}
@@ -2830,19 +2952,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                       width={itemWidth}
                       fontSize={itemSize}
                       fontFamily={itemFont}
-                      fontStyle={
-                        typeof item.fontWeight === "number"
-                          ? String(item.fontWeight)
-                        : item.fontWeight === "bold"
-                          ? "bold"
-                          : item.fontStyle === "italic"
-                          ? "italic"
-                          : "normal"
-                      }
+                      fontStyle={itemFontStyle}
                       fillGradient={item.textGradient ?? undefined}
                       fill={itemColor}
                       align={itemAlign}
-                      lineHeight={1.3}
+                      lineHeight={itemLineHeight}
+                      letterSpacing={item.letterSpacing}
                       opacity={1}
                       {...getTextEffectProps(
                         itemEffect,
@@ -2866,6 +2981,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 <CanvasCustomImageNode
                   key={imgItem.id}
                   item={imgItem}
+                  video={videos[imgItem.id]}
                   isInteractive={canInteractWith(imgItem.id) && !isEditingBackground}
                   createSnapBoundFunc={createSnapBoundFunc}
                   setRef={(el) => {

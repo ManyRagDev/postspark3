@@ -13,10 +13,11 @@
     <link rel="stylesheet" href="./composition.css" />
     <link rel="stylesheet" href="./speech.css" />
     <link rel="stylesheet" href="./start.css" />
+    <link rel="stylesheet" href="./mobile-context.css" />
     <link rel="stylesheet" href="./stock-library.css" />
     <link rel="stylesheet" href="./image-layouts.css" />
   </head>
-  <body data-start>
+  <body>
     <header class="mast">
       <div class="brand">
         <svg viewBox="0 0 38 34" aria-hidden="true">
@@ -40,6 +41,7 @@
         </button>
       </nav>
       <div class="file-actions">
+        <button class="btn" id="send-postspark" type="button" hidden>Enviar ao PostSpark</button>
         <button class="save" id="save" aria-label="Salvar no navegador" title="Salvar projeto neste navegador">
           <i data-i="Save"></i><span class="save-long-label">Salvar no navegador</span><span class="save-short-label" aria-hidden="true">Salvar</span></button
         ><button class="primary" id="export">
@@ -47,32 +49,27 @@
         </button>
       </div>
     </header>
-    <main class="studio-start" id="studio-start" aria-labelledby="start-title" hidden>
-      <div class="start-content">
-        <h1 id="start-title" tabindex="-1">Crie uma animação para suas redes</h1>
-        <p>Personalize um modelo animado ou crie do zero. Baixe sua criação em vídeo vertical.</p>
-        <div class="start-create">
-          <button type="button" class="btn primary" id="start-templates"><i data-i="SquareStack"></i>Escolher um modelo</button>
-          <button type="button" class="btn" id="start-blank"><i data-i="Plus"></i>Criar do zero</button>
-        </div>
-        <div class="start-options">
-          <button type="button" id="start-continue" hidden>Continuar edição</button>
-          <button type="button" id="start-open"><i data-i="FolderOpen"></i>Abrir projeto</button>
-          <button type="button" id="start-video"><i data-i="Film"></i>Começar com um vídeo</button>
-          <button type="button" id="start-stock-library" aria-haspopup="dialog"><i data-i="Layers"></i>Biblioteca de vídeos</button>
-        </div>
+    <dialog class="project-chooser" id="studio-start" aria-labelledby="start-title">
+      <h2 id="start-title" tabindex="-1">Projetos</h2>
+      <div id="start-actions">
+        <button type="button" class="btn primary" id="start-blank"><i data-i="Plus"></i>Novo projeto</button>
+        <button type="button" class="btn" id="start-open"><i data-i="FolderOpen"></i>Abrir projeto existente</button>
       </div>
-      <div class="start-example">
-        <button type="button" id="start-demo" class="start-example-link">
-          <img src="./assets/wave.jpg" alt="" width="540" height="960" />
-          <span><i data-i="Play"></i>Ver projeto de exemplo</span>
-        </button>
+      <div id="start-sources" hidden>
+        <p id="account-project-status" role="status"></p>
+        <select id="account-projects" aria-label="Projetos salvos na minha conta" hidden></select>
+        <p id="project-file-error" role="alert"></p>
+        <button type="button" class="btn" id="start-file">Abrir do computador (.mare)</button>
+        <button type="button" class="btn" id="start-legacy" hidden>Importar projeto antigo deste navegador</button>
+        <button type="button" class="btn" id="start-back">Voltar</button>
       </div>
-    </main>
+      <button type="button" id="start-return" hidden>Voltar ao design no PostSpark</button>
+      <button type="button" id="start-continue" hidden>Continuar edição</button>
+    </dialog>
     <main id="studio-editor" hidden>
       <div class="project-line">
         <div class="project-title">
-          <button type="button" class="breadcrumb" id="open-start"><i data-i="FolderOpen"></i>Início</button>
+          <button type="button" class="breadcrumb" id="open-start"><i data-i="FolderOpen"></i>Projetos</button>
           <span class="slash" aria-hidden="true">/</span>
           <button id="project-menu" aria-haspopup="menu" aria-controls="project-pop" aria-expanded="false">
             <b id="project-name">Maré alta</b><i data-i="ChevronDown"></i>
@@ -102,7 +99,7 @@
           ><button role="menuitem" id="pack">
             <i data-i="Download"></i>Baixar projeto editável</button
           ><button role="menuitem" id="unpack">
-            <i data-i="FolderOpen"></i>Abrir arquivo de projeto</button
+            <i data-i="FolderOpen"></i>Abrir projeto existente</button
           ><button role="menuitem" id="reset">
             <i data-i="RotateCcw"></i>Restaurar exemplo
           </button>
@@ -136,13 +133,18 @@
           </button>
         </div>
       </section>
+      <div class="mobile-view" role="group" aria-label="Apresentação do editor">
+        <button id="context-view" type="button" aria-pressed="false">Contextual</button>
+        <button id="advanced-view" type="button" aria-pressed="true">Avançada</button>
+      </div>
       <div class="mobile-tabs">
-        <button data-panel="media"><i data-i="Layers"></i>Biblioteca</button
+        <button data-panel="media"><i data-i="Layers"></i><span id="mobile-library-label">Biblioteca</span></button
         ><button data-panel="preview" aria-pressed="true">
           <i data-i="Film"></i>Prévia</button
         ><button data-panel="props">
           <i data-i="SlidersHorizontal"></i>Ajustes
         </button>
+        <button id="mobile-fine" type="button">Keyframes e ajustes finos</button>
       </div>
       <div class="workspace" data-panel="preview">
         <aside class="library">
@@ -244,7 +246,7 @@
       hidden
     /><input type="file" id="first-video" accept="video/*" hidden /><input
       type="file"
-      id="project-file"
+      id="project-file" accept=".mare"
       hidden
     />
     <script type="module" src="./app.js"></script>

@@ -38,6 +38,94 @@ describe("bounded delivery progression", () => {
         ? { ...relation, parameters: { ...relation.parameters, maxWidth: width } } : relation),
     } });
   }
+  it("fills a rejected planning slot and moves past a reserve with a duplicate layout", async () => {
+    const first = sized("first", 420), second = sized("second", 650);
+    const duplicate = sized("duplicate-of-first", 420), replacement = sized("third", 940);
+    const s = fixture([first, second, duplicate, replacement]);
+    const buildOffer = (def: ComponentDefinitionV1) =>
+      resolveDesignFamilyRepertoires([compactComponentCard(def)], {slideCount:1, contentMode:"compose"})[0].defaultOffer;
+    const planning = sealGenerationPlanningReceipt({
+      ...s.args.planning,
+      offers: [buildOffer(first), buildOffer(second), null],
+      slots: [s.plan(first), {...s.plan(second), slot:1}, {slot:2, status:"planning_failed", reason:"Candidato inválido"}],
+      deliveryReserves: [[], [], [duplicate, replacement].map(def => ({
+        family: def.completeDesign!.family, plan: {...s.plan(def), slot:2}, componentHashes:[def.hash],
+      }))],
+    });
+    const generateText = vi.fn(async () => ({choices:[{message:{content:JSON.stringify(originalCopy)}}]}));
+    const deliver = vi.fn(async () => {});
+    const generationConfig = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" }, true, true, true);
+    const snapshot = await new GenerationCoordinator({
+      ...s.args.input, actor, planning, generationConfig, selectedDefinitions:[[first], [second], []],
+    }, {
+      actor, measureText, generateText, deliver,
+      recoverDelivery: (input, reuseOriginal, context) => recoverGenerationDelivery({
+        ...s.args, ...context!, planning, input, reuseOriginal,
+        readOriginalCopy: async () => context!.recoveryAttempt > 1 ? originalCopy : undefined,
+      }),
+    }).start({maxConcurrency:1});
+    expect(snapshot.overallStatus).toBe("completed");
+    expect(snapshot.proposals.map(p => p.bundle?.family)).toEqual(["first", "second", "third"]);
+    expect(snapshot.proposals[2].attempt?.index).toBe(2);
+    expect(new Set(snapshot.proposals.flatMap(p => p.diagnostics.filter(d => d.code==="proposal_layout_signature").map(d => d.evidence))).size).toBe(3);
+    expect(deliver).toHaveBeenCalledTimes(3);
+    expect(generateText).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits for a compatible family to be released by a sibling before retrying a vacancy", async () => {
+    const first = sized("released", 420), second = sized("committed", 650), replacement = sized("replacement", 940);
+    const s = fixture([first, second, replacement]);
+    const offer = (def: ComponentDefinitionV1) =>
+      resolveDesignFamilyRepertoires([compactComponentCard(def)], {slideCount:1, contentMode:"compose"})[0].defaultOffer;
+    const reserve = (def: ComponentDefinitionV1, slot: number) => ({
+      family: def.completeDesign!.family, plan: {...s.plan(def), slot}, componentHashes: [def.hash],
+    });
+    const planning = sealGenerationPlanningReceipt({
+      ...s.args.planning,
+      offers: [offer(first), offer(second), null],
+      slots: [s.plan(first), {...s.plan(second), slot:1}, {slot:2, status:"insufficient_fit", reason:"Sem oferta", unmetRequirementIds:[]}],
+      deliveryReserves: [[reserve(replacement, 0)], [], [reserve(first, 2)]],
+    });
+    let allowFirstToFail!: () => void;
+    const firstVacancyProbe = new Promise<void>(resolve => { allowFirstToFail = resolve; });
+    const oversized = structuredClone(originalCopy);
+    oversized.slides[0].values[0].value = "LONG demais";
+    let failedOriginal = false;
+    const generateText = vi.fn(async (params: Parameters<ProposalGraphDeps["generateText"]>[0]) => {
+      if (!failedOriginal && params.traceLabel?.endsWith("-0_copy")) {
+        failedOriginal = true;
+        await firstVacancyProbe;
+        return { choices: [{ message: { content: JSON.stringify(oversized) } }] };
+      }
+      return { choices: [{ message: { content: JSON.stringify(originalCopy) } }] };
+    });
+    const measure: typeof measureText = value => ({ ...measureText(value), height: value.text.includes("LONG") ? 5000 : 20 });
+    const draftJournal = new Map<string, unknown>();
+    const generationConfig = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" }, true, true, true);
+    const snapshot = await new GenerationCoordinator({
+      ...s.args.input, actor, planning, generationConfig, deadlineMs:Date.now()+8_000, selectedDefinitions:[[first], [second], []],
+    }, {
+      actor, measureText:measure, generateText,
+      recoverDelivery: async (input, reuseOriginal, context) => {
+        const result = await recoverGenerationDelivery({
+          ...s.args, ...context!, planning, input, reuseOriginal, readOriginalCopy: async () => undefined,
+          operation: async (key, work) => {
+            const journalKey = input.proposalId + ":" + key;
+            const receipt = await work();
+            draftJournal.set(journalKey, receipt);
+            return receipt;
+          },
+        });
+        if (input.slot === 2 && context!.recoveryAttempt === 1) allowFirstToFail();
+        return result;
+      },
+    }).start();
+    expect(snapshot.overallStatus).toBe("completed");
+    expect(snapshot.proposals.map(p => p.bundle?.family)).toEqual(["replacement", "committed", "released"]);
+    expect(snapshot.proposals[2].attempt?.index).toBe(2);
+    expect(Array.from(draftJournal.values())).toContainEqual({localPreflightVersion:1, mode:"unavailable"});
+  });
+
   async function journey(options: { exhausted?: boolean; uncertain?: boolean; quota?: boolean; loseDelivery?: boolean } = {}) {
     const narrow = sized("narrow-reserve", 901), wide = sized("wide-reserve", 940);
     const s = fixture([narrow, wide]);
@@ -328,4 +416,13 @@ describe("local reserve preflight pinned to automatic review v2/v3", () => {
     expect(s.hydrate).toHaveBeenCalledTimes(1);
     s.assertImmutable();
   });
+});
+
+it("recovers the original copy on the last attempt when the most recent writing receipt was invalid", async () => {
+  const reserve=design("final-measured");
+  const s=fixture([reserve],{automaticReviewVersion:4,reuse:false,preserved:{invalid:true}});
+  const result=await recoverGenerationDelivery({...s.args,lastChance:true,recoveryAttempt:3,
+    originalAttempt:{definitions:[source],copy:originalCopy},excludedCandidateIds:[s.plan(source).candidateId]});
+  expect(result?.recoveryCopy).toEqual(originalCopy);
+  expect(result?.rewriteForRecovery).toBe(false);
 });

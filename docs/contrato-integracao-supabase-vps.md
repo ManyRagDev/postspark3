@@ -1,8 +1,10 @@
 # Contrato PostSpark ↔ Supabase próprio na VPS
 
-**Leitura vigente (12/11/2026):** os relatos abaixo preservam a evolução do alinhamento. Para integrar, prevalecem os adendos mais recentes: baseline reconciliado seguido de **0064 → 0065 → 0066 → 0067 → 0068 → 0069**, mais **0070 para o ensaio restrito de catálogo**, acesso próprio (sem ManyLabs) e [login por e-mail/senha](#login-por-e-mail-e-senha--12112026). Usar os hashes corrigidos de 0064/0065 e o procedimento de importação restrita ao fim deste arquivo. A prontidão local não comprova deploy nem aceite do ambiente remoto.
+O endpoint público do Supabase ativo é `https://api.postspark.com.br`. A implantação da web e do executor usa o [Compose da VPS](../ops/hostinger/compose.yml). Os registros de ensaio abaixo descrevem os ambientes e datas de cada validação.
 
-Conferência: **11/11/2026, 23h03, Brasília**. Escopo: alinhamento, sem deploy, aplicação de SQL, importação, início de worker ou chamadas pagas. Fontes: código local e [README da infraestrutura](../../infraestrutura-vps/README.md), incluindo atualizações das 22h42/22h55. Não foi feita nova consulta à VPS nesta conferência. As entradas mais recentes do README prevalecem sobre seus relatos históricos de falha de acesso.
+**Marco da integração em 12/11/2026.** A sequência de referência daquele ensaio era o baseline reconciliado seguido de **0064 → 0065 → 0066 → 0067 → 0068 → 0069**, mais **0070 para o ensaio restrito de catálogo**, acesso próprio (sem ManyLabs) e [login por e-mail/senha](#login-por-e-mail-e-senha--12112026). Os hashes corrigidos de 0064/0065 e o procedimento do ensaio restrito estão neste documento. Para uma intervenção atual, compare a cadeia de [migrações](../drizzle/) com o ambiente selecionado. A prontidão local não comprova deploy nem aceite do ambiente remoto.
+
+Conferência: **11/11/2026, 23h03, Brasília**. Escopo: alinhamento, sem deploy, aplicação de SQL, importação, início de worker ou chamadas pagas. Fontes: código local e registro da infraestrutura de 11/11/2026, incluindo atualizações das 22h42/22h55. Não foi feita nova consulta à VPS nesta conferência. Os adendos registram as verificações posteriores.
 
 ## Atualização: acesso próprio implementado localmente
 
@@ -56,7 +58,7 @@ apaga os dados do usuário. Suspensão global de identidade/sessões pertence ao
 Autoinscrição pública, se desejada futuramente, precisa de regra explícita; não
 foi introduzida implicitamente nesta migração de usuários existentes.
 
-## 1. Estado e bloqueios
+## 1. Estado observado no início da integração
 
 | Frente | Confirmado | Falta para ensaio real |
 | --- | --- | --- |

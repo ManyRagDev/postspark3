@@ -103,6 +103,14 @@ describe("automatic task routing PostgreSQL migration", () => {
   });
 
   describe.each(["configured", "staged"] as const)("%s admission", mode => {
+    it("retains the exact editorial team after rollback and idempotent replay", async () => {
+      const team = resolveGenerationModelConfig({postMode:"static", content:"Prepare um anúncio"}, true, true, true, true);
+      const first = await admit(team, mode);
+      const replay = await admit(config, mode);
+      expect(generationModelConfigSchema.parse(first.generation_config)).toEqual(team);
+      expect(replay.generation_config).toEqual(team);
+      expect(replay.billing_reservation_id).toEqual(first.billing_reservation_id);
+    });
     it("pins automatic stages and replays one reservation without replacing the original receipt", async () => {
       await pg.exec("SET ROLE service_role");
       let first: any; let replay: any;

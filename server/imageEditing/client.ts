@@ -1,3 +1,4 @@
+import { access, constants } from "node:fs/promises";
 import {
   imageEditResultSchema,
   IMAGE_EDITOR_TOOLS,
@@ -155,10 +156,13 @@ export async function advancedImageCapabilities() {
     process.env.ADVANCED_IMAGE_FINISHING_ENABLED === "true",
     process.env.ADVANCED_IMAGE_IRIS_ENABLED === "true"
   );
-  if (!enabled) return { available: false, tools: [] };
+  if (!enabled) return { available: false, tools: [], message: "O processamento de imagens não está configurado neste ambiente." };
   const endpoint = process.env.ADVANCED_IMAGE_PROCESSOR_URL;
-  if (!endpoint) return { available: true, tools };
   try {
+    if (!endpoint) {
+      await access(process.env.PHOTOCRAFT_BIN!, constants.X_OK);
+      return { available: true, tools };
+    }
     const response = await fetch(new URL("/capabilities", endpoint), {
       redirect: "error",
       signal: AbortSignal.timeout(5000),
@@ -177,6 +181,6 @@ export async function advancedImageCapabilities() {
       ),
     };
   } catch {
-    return { available: false, tools: [] };
+    return { available: false, tools: [], message: "O processador de imagens está indisponível. Tente conectar novamente." };
   }
 }

@@ -3,6 +3,7 @@ import { Sparkles, Layers } from "lucide-react";
 import type { CanvasPostModel } from "./types";
 import { BACKGROUND_SLOT, mediaTargets, type MediaUpdate } from "../lib/mediaSlots";
 import MediaSlotPanel from "./MediaSlotPanel";
+import { COMPOSITION_BACKGROUND_ID } from "../lib/editorElementState";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import type { SeamlessPanoramaMeta } from "../lib/seamlessCarousel";
 
@@ -14,6 +15,8 @@ export function CanvasMediaPanel({
   post,
   onMediaUpdate,
   workspaceId,
+  allowVideoUpload,
+  onSendToMare,
   allowAiGeneration,
   onApplySeamlessPanorama,
   onOpenGhostView,
@@ -29,6 +32,8 @@ export function CanvasMediaPanel({
 }: {
   post: CanvasPostModel;
   onMediaUpdate: MediaUpdate;
+  allowVideoUpload?: boolean;
+  onSendToMare?: (post: CanvasPostModel, target: import("../lib/mediaSlots").MediaTarget) => Promise<void>;
   workspaceId?: string;
   allowAiGeneration?: boolean;
   onApplySeamlessPanorama?: (panorama: SeamlessPanoramaMeta) => void;
@@ -45,7 +50,8 @@ export function CanvasMediaPanel({
     url: string,
     width?: number,
     height?: number,
-    slideId?: string
+    slideId?: string,
+    temporalSource?: import("@shared/canvasTemporalMedia").CanvasTemporalSource
   ) => boolean | void | Promise<boolean | void>;
 }) {
   const [manifest, setManifest] = useState<unknown>(null);
@@ -137,12 +143,14 @@ export function CanvasMediaPanel({
         post={post}
         onUpdate={onMediaUpdate}
         workspaceId={workspaceId}
+        allowVideoUpload={allowVideoUpload}
+        onSendToMare={onSendToMare}
         allowAiGeneration={allowAiGeneration}
         selectedId={selectedId}
         retainedPreview={mediaPreview}
         onRetainPreview={onMediaPreview}
         fixedTargetId={
-          mode === "background"
+          (mode === "background" || (mode === "replace" && (selectedId === "background" || selectedId === COMPOSITION_BACKGROUND_ID)))
             ? BACKGROUND_SLOT
             : mode === "replace" && selectedId
               ? selectedId

@@ -15,7 +15,7 @@ UMask=0077
 MemoryMax=4G
 CPUQuota=200%
 TasksMax=160
-Environment=MARE_DIRECTOR_MODEL=google/gemini-2.5-flash
+Environment=MARE_DIRECTOR_MODEL=google/gemini-4-hydrogen
 EnvironmentFile=-/etc/postspark/mare-narration.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=RAYON_NUM_THREADS=2

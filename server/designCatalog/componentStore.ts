@@ -1,3 +1,4 @@
+import { auditDesignTextCohesion, assertDesignTextCohesion } from "../../shared/designTextCohesion";
 import {publishCatalogIfEnabled,queueCatalogStagedComponent} from "./versionedCatalog";
 import { componentDefinitionV1Schema, compactComponentCard, componentCardV1Schema, componentKinds, type ComponentDefinitionV1, type ComponentCardV1 } from "../../shared/componentAssembly";
 import type { StudioPreferences } from "../../shared/studioPreferences";
@@ -33,13 +34,31 @@ function requestsExpressiveStyle(text:string) {
   if(requestsRestrainedStyle(text))return false;
   return /\b(express\w*|criativ\w*|ousad\w*|editorial|impactante|vibrante)\b/i.test(text);
 }
+/** Verify the whole import before assets or drafts are written. Identical existing
+ * versions may be replayed during restore without changing their pinned layout. */
+export async function checkNewDesignTextCohesion(definitions: ComponentDefinitionV1[]) {
+  const audits = definitions.map(definition => ({definition, findings:auditDesignTextCohesion(definition)}));
+  const flagged = audits.filter(({findings}) => findings.some(f => f.action === "consolidate"));
+  for (let i = 0; i < flagged.length; i += 50) {
+    const batch = flagged.slice(i, i + 50);
+    const existing = await getDb().from("design_components").select("id,definition_hash").in("id", batch.map(b => b.definition.id));
+    if (existing.error) throw existing.error;
+    for (const {definition, findings} of batch) {
+      if (!existing.data?.some((row: {id: string; definition_hash: string}) => row.id === definition.id && row.definition_hash === definition.hash))
+        assertDesignTextCohesion(definition, findings);
+    }
+  }
+  return audits;
+}
 export async function prepareComponentDraft(value:unknown,actor:string) {
   const definition=componentDefinitionV1Schema.parse(value);
   if(definition.assets.some(a=>a.kind!=="catalog"))throw new Error("Componentes usam assets catalog verificados");
+  const [audit] = await checkNewDesignTextCohesion([definition]);
+  const notes = audit.findings.length ? { textCohesion: audit.findings } : {};
   // The staging transaction validates every asset manifest atomically, alongside
   // existing canonical rows. Ordinary imports still verify before any write.
   const staged=queueCatalogStagedComponent(definition,actor);
-  if(staged)return staged;
+  if(staged)return {...staged,...notes};
   const db=getDb();
   if(definition.assets.length){
     const found=await db.from("design_catalog_assets").select("id,manifest").in("id",definition.assets.map(a=>a.id));
@@ -50,7 +69,7 @@ export async function prepareComponentDraft(value:unknown,actor:string) {
   if(stored.error)throw stored.error;
   const actual=await db.from("design_components").select("definition_hash,status").eq("id",definition.id).single();
   if(actual.error||actual.data.definition_hash!==definition.hash)throw new Error("Componente existente diverge do pacote");
-  if(actual.data.status!=="draft"){await publishCatalogIfEnabled();return {id:definition.id,hash:definition.hash,idempotent:true};}
+  if(actual.data.status!=="draft"){await publishCatalogIfEnabled();return {id:definition.id,hash:definition.hash,idempotent:true,...notes};}
   if(definition.assets.length){
     const links=await db.from("design_component_assets").upsert(definition.assets.map(a=>({component_id:definition.id,asset_id:a.id})),{onConflict:"component_id,asset_id",ignoreDuplicates:true});if(links.error)throw links.error;
   }
@@ -59,7 +78,7 @@ export async function prepareComponentDraft(value:unknown,actor:string) {
   const previous=await db.from("design_component_evidence").select("id").eq("component_id",definition.id).eq("definition_hash",definition.hash).eq("kind","technical").limit(1);if(previous.error)throw previous.error;
   if(!previous.data?.length){const evidence=await db.from("design_component_evidence").insert({component_id:definition.id,definition_hash:definition.hash,kind:"technical",decision:"verified",actor_id:actor,metrics:{descriptorVersion:COMPONENT_DESCRIPTOR_VERSION,piecesVerified:true,assetsVerified:true,graphVerified:true}});if(evidence.error)throw evidence.error;}
   await publishCatalogIfEnabled();
-  return {id:definition.id,hash:definition.hash,idempotent:!stored.data?.length};
+  return {id:definition.id,hash:definition.hash,idempotent:!stored.data?.length,...notes};
 }
 export async function hydrateComponents(ids:string[],experimental=false):Promise<ComponentDefinitionV1[]> {
   if(!ids.length)return[];

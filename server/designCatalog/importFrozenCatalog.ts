@@ -1,3 +1,4 @@
+import { assertDesignTextCohesion } from "../../shared/designTextCohesion";
 /** Offline package verification and explicit, non-activating administrative import. */
 import { readFile, realpath } from "node:fs/promises";
 import { resolve, sep } from "node:path";
@@ -188,6 +189,8 @@ export async function applyFrozenCatalog(
     )
       throw Error("frozen_import_existing_catalog_conflict");
   }
+  const existingIds = new Set(before.components.map(row => row.id));
+  for (const d of bundle.definitions) if (!existingIds.has(d.id)) assertDesignTextCohesion(d);
   for (const a of bundle.assets) await port.checkAsset(a.manifest);
   for (const a of bundle.assets) await port.upload(a.manifest, a.bytes, actor);
   const staged = await port.stage(bundle.definitions, actor);

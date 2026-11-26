@@ -3,9 +3,12 @@ import { projectEditorialDefaults } from "@shared/projectEditorial";
 import { motion } from "framer-motion";
 import { Sparkles, Globe, ChevronDown, ChevronUp, X, ArrowLeft } from "lucide-react";
 import type { CreationBrief } from "@shared/postspark";
+import type { ProjectArtworkSelection } from "../../lib/briefDraftStorage";
 
 interface BriefReviewModalProps {
   brief: CreationBrief;
+  projectArtwork?: ProjectArtworkSelection;
+  artworkCarouselQuote?: { status: "ready"; sparks: number } | { status: "loading" | "unavailable" | "price_pending" };
   onUpdateBrief: (updated: CreationBrief) => void;
   onConfirmGenerate: () => void;
   onBackToEditPrompt: () => void;
@@ -14,6 +17,8 @@ interface BriefReviewModalProps {
 
 export default function BriefReviewModal({
   brief,
+  projectArtwork,
+  artworkCarouselQuote,
   onUpdateBrief,
   onConfirmGenerate,
   onBackToEditPrompt,
@@ -22,6 +27,8 @@ export default function BriefReviewModal({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const project = projectEditorialDefaults(brief.projectDossier, brief.projectSnapshot);
   const [newUrlInput, setNewUrlInput] = useState("");
+  const slideCount = brief.slideCount ?? 5;
+  const artworkCarouselCost = artworkCarouselQuote?.status === "ready" ? artworkCarouselQuote.sparks : undefined;
 
   const handleSlideCountChange = (count: number) => {
     onUpdateBrief({
@@ -34,7 +41,7 @@ export default function BriefReviewModal({
     const updated = (brief.sourceUrls || []).filter((u) => u !== urlToRemove);
     onUpdateBrief({
       ...brief,
-      sourceUrls: updated.length > 0 ? updated : undefined,
+      sourceUrls: updated,
     });
   };
 
@@ -75,7 +82,9 @@ export default function BriefReviewModal({
               <h2 id="brief-review-title" className="text-lg font-bold tracking-tight text-white md:text-xl">Revisão do Briefing</h2>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              Revise a estrutura do carrossel antes de despender Sparks na criação.
+              {artworkCarouselQuote ? "A IA usa a arte como capa e cria as composições das outras páginas a partir do briefing."
+                : projectArtwork ? "Revise o conteúdo que será aplicado ao design escolhido."
+                : "Revise a estrutura do carrossel antes de despender Sparks na criação."}
             </p>
           </div>
           <button
@@ -88,7 +97,18 @@ export default function BriefReviewModal({
         </div>
 
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3 md:contents">
+        {projectArtwork && (
+          <section aria-label="Design do briefing" className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-3.5">
+            <p className="text-sm font-semibold text-white">{projectArtwork.name}</p>
+            <p className="mt-1 text-xs text-white/70">
+              {artworkCarouselQuote ? `Capa do carrossel de ${slideCount} slides`
+                : brief.format === "carousel" ? `Carrossel de ${projectArtwork.slideCount} slides` : "Post único"} · {projectArtwork.aspectRatio}
+            </p>
+            <p className="mt-3 max-h-28 overflow-y-auto whitespace-pre-wrap break-words text-sm text-white/90">{brief.rawInput}</p>
+          </section>
+        )}
         {/* CONTAGEM DO CARROSSEL — o formato já foi escolhido no The Void */}
+        {brief.format === "carousel" && (!projectArtwork || artworkCarouselQuote) && (
         <div className="flex flex-col gap-2 bg-white/[0.02] p-3.5 rounded-xl border border-white/5">
           <label className="text-xs font-semibold text-white/70 uppercase tracking-wider">
             Quantidade de slides do carrossel
@@ -113,12 +133,33 @@ export default function BriefReviewModal({
           </div>
           {brief.scriptMode === "preserve" && <p className="text-xs text-violet-200">A quantidade e a ordem dos slides seguem o seu roteiro. Os textos serão preservados.</p>}
         </div>
+        )}
+        {artworkCarouselQuote && (
+          <section aria-label="Resumo da sequência" className="rounded-xl border border-white/10 p-3.5 text-sm text-white/80">
+            <h3 className="mb-2 text-sm font-semibold text-white">Resumo da sequência</h3>
+            <ol className="space-y-1">
+              {brief.scriptSlides?.length === slideCount ? brief.scriptSlides.map((text, index) => (
+                <li key={index}><strong>{index + 1} · {index === 0 ? "Capa" : "Slide"}</strong> — {text.length > 120 ? text.slice(0, 119) + "…" : text}</li>
+              )) : <>
+                <li><strong>1 · Capa</strong> — {projectArtwork?.name} com a abertura do briefing.</li>
+                {slideCount > 2 && <li><strong>{slideCount === 3 ? "2" : `2–${slideCount - 1}`} · Desenvolvimento</strong> — a IA distribui o conteúdo em composições diferentes.</li>}
+                <li><strong>{slideCount} · Fechamento</strong> — {brief.callToAction || "conclusão ou chamada para ação de acordo com o briefing."}</li>
+              </>}
+            </ol>
+            <p role="status" className="mt-3 border-t border-white/10 pt-2 text-xs text-orange-200">
+              {artworkCarouselCost !== undefined ? `Total de ${artworkCarouselCost} Sparks. A geração começa após a confirmação.`
+                : artworkCarouselQuote.status === "loading" ? "Consultando o custo em Sparks…"
+                : artworkCarouselQuote.status === "price_pending" ? "A tarifa deste carrossel está em definição."
+                : "A geração deste carrossel está indisponível neste momento."}
+            </p>
+          </section>
+        )}
 
         {/* FONTES / URLS IDENTIFICADAS */}
         <div className="flex flex-col gap-2 bg-white/[0.02] p-3.5 rounded-xl border border-white/5">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-white/70 uppercase tracking-wider">
             <Globe size={14} className="text-emerald-400" />
-            <span>Fontes & URLs de Referência</span>
+            <span>Fontes de conteúdo</span>
           </div>
 
           {brief.sourceUrls && brief.sourceUrls.length > 0 ? (
@@ -141,7 +182,7 @@ export default function BriefReviewModal({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-white/40">Nenhuma URL externa detectada no texto.</p>
+            <p className="text-xs text-white/40">Nenhum link de conteúdo adicionado.</p>
           )}
 
           <div className="flex items-center gap-2 mt-2">
@@ -247,12 +288,14 @@ export default function BriefReviewModal({
 
           <button
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || (Boolean(artworkCarouselQuote) && artworkCarouselCost === undefined)}
             onClick={onConfirmGenerate}
             className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5C00] to-[#FF8A00] px-5 py-2.5 text-xs font-bold text-black shadow-lg shadow-[#FF5C00]/20 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 md:min-h-0"
           >
             <Sparkles size={16} />
-            <span>{isLoading ? "Gerando Variações..." : "Confirmar & Gerar Direções"}</span>
+            <span>{isLoading ? "Gerando…" : artworkCarouselQuote
+              ? artworkCarouselCost === undefined ? "Gerar carrossel" : `Gerar ${slideCount} slides por ${artworkCarouselCost} Sparks`
+              : projectArtwork ? "Confirmar e gerar peça" : "Confirmar & Gerar Direções"}</span>
           </button>
         </div>
       </motion.div>

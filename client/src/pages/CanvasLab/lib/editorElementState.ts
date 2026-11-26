@@ -88,3 +88,29 @@ export function resolveEditorElementOrder(
     ])
   );
 }
+
+export type LayerDrop = { anchorId: string; side: "above" | "below" };
+export type LayerMove = "front" | "back" | "forward" | "backward" | LayerDrop;
+
+/** Move within one back-to-front stack. Drop sides refer to the front-first panel. */
+export function moveLayerInStack(ids: string[], id: string, move: LayerMove): string[] {
+  const from = ids.indexOf(id);
+  if (from < 0) return ids;
+  const remaining = ids.filter(key => key !== id);
+  let destination: number;
+  if (typeof move === "object") {
+    const anchor = remaining.indexOf(move.anchorId);
+    if (anchor < 0) return ids;
+    destination = anchor + (move.side === "above" ? 1 : 0);
+  } else {
+    switch (move) {
+      case "front": destination = remaining.length; break;
+      case "back": destination = 0; break;
+      case "forward": destination = Math.min(from + 1, remaining.length); break;
+      case "backward": destination = Math.max(from - 1, 0); break;
+    }
+  }
+  if (from === destination) return ids;
+  remaining.splice(destination, 0, id);
+  return remaining;
+}

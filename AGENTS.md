@@ -17,7 +17,6 @@ O projeto **não deve ser assumido** como:
 - um backend isolado sem frontend;
 - um frontend puro sem persistência;
 - um monorepo multiapp formal;
-- uma arquitetura baseada em filas, jobs agendados ou workers dedicados;
 - uma aplicação orientada a Drizzle em runtime só porque existe `drizzle/schema.ts` e migrações.
 
 O estado real atual mistura:
@@ -25,7 +24,8 @@ O estado real atual mistura:
 - frontend React/Vite em [`client/`](./client);
 - backend Express + tRPC em [`server/`](./server);
 - contratos compartilhados em [`shared/`](./shared);
-- deploy/serverless build em [`api/index.js`](./api/index.js);
+- bundle da API em [`api/index.js`](./api/index.js) e implantação da VPS em [`ops/hostinger/`](./ops/hostinger/);
+- executor externo de geração em [`generationWorker.ts`](./server/ai/workflows/generationWorker.ts) e supervisor local sob demanda em desenvolvimento;
 - migrações e schema declarativo em [`drizzle/`](./drizzle).
 
 ## Contexto e documentação permanente
@@ -34,11 +34,15 @@ O estado real atual mistura:
 
 Atualize-o apenas quando houver uma mudança duradoura relevante de arquitetura, regra de negócio, integração ou operação que precisará ser consultada. Correções pequenas, testes, hipóteses e andamento de tarefas não exigem atualização nem relato de que o documento foi revisado.
 
+### Arquivo de legado
+
+Código aposentado, documentos operacionais antigos e cópias de auditoria ficam no backup de legado fora deste workspace. Use a raiz do PostSpark para buscas e indexação do trabalho atual. Abra o acervo histórico quando a tarefa depender de recuperar uma versão anterior. Decisões datadas e evidências antigas descrevem a instalação e a revisão da época.
+
 ## Continuidade do trabalho
 
 Interprete o pedido pelo resultado desejado e planeje consequências relevantes, sem exigir três documentos, contrato ou lista fechada de arquivos. Na execução autorizada, ajuste o plano ao código e prossiga até integrar e verificar o fluxo. Peça uma decisão somente quando ela mudar o resultado ou faltar autorização; continue nas partes independentes.
 
-Workflows em `.agent/` são apoios opcionais. A ausência de `docs/tasks.md` não bloqueia uma tarefa clara, e uma etapa ou arquivo concluído não exige pedir confirmação para continuar. Preserve requisitos técnicos e de produto, dados e alterações locais.
+Workflows em `.agent/` são apoios opcionais. Use o plano da mudança solicitada quando houver. Preserve os requisitos técnicos e de produto, os dados e as alterações locais.
 
 ## Forma de trabalhar neste projeto
 
@@ -73,16 +77,18 @@ Checklist prático para este repositório:
 
 - autenticação: `client/src/lib/supabaseClient.ts`, `client/src/_core/hooks/useAuth.ts`, `server/_core/sdk.ts`, `server/_core/supabaseAuth.ts`;
 - API: `server/_core/index.ts`, `server/routers.ts`, `server/_core/trpc.ts`;
-- persistência: `server/db.ts`, `drizzle/schema.ts`, `drizzle/*.sql`;
-- fluxo principal do produto (ativo): rota `/thevoid` (e `/studio`) montando `client/src/pages/StudioApp/StudioAppV2BPage.tsx` (etapas Criação ➔ Galeria StudioGalleryView/StudioMobileFlashcards ➔ Editor CanvasLab em `client/src/pages/CanvasLab/`); componentes `Home.tsx` e `WorkbenchV2` são legado órfão sem rota montada (ver §3.2 do `DOCUMENTO_MESTRE.md`);
+- persistência: `server/db.ts`, `drizzle/schema.ts`, [`drizzle/`](./drizzle/);
+- fluxo principal do produto (ativo): rota `/thevoid` (e `/studio`) montando `client/src/pages/StudioApp/StudioAppV2BPage.tsx` (etapas Criação ➔ Galeria StudioGalleryView/StudioMobileFlashcards ➔ Editor CanvasLab em `client/src/pages/CanvasLab/`) (ver §3.2 do `DOCUMENTO_MESTRE.md`);
 - contratos compartilhados: `shared/postspark.ts`, `shared/const.ts`, `shared/types.ts`.
 
 ## Restrições e cuidados
 
+- **Banco de dados e Supabase oficial:** O Supabase ativo do PostSpark é uma instalação **self-hosted na VPS** (`platform-staging`), cujo endpoint público configurado no `.env` (`SUPABASE_URL` / `VITE_SUPABASE_URL`) é `https://api.postspark.com.br` (schema `postspark`, acessado via `server/db.ts`). **NUNCA** consulte nem opere sobre o projeto legado `spbuwcwmxlycchuwhfir` ("Brincar / PostSpark" no Supabase Cloud) via `supabase_mcp` ou `DATABASE_URL` legado; ele é obsoleto e não reflete o estado atual da aplicação.
+- O vínculo local do CLI e a entrada MCP do Supabase Cloud foram arquivados. O [contrato de integração com a VPS](./docs/contrato-integracao-supabase-vps.md) identifica o ambiente de trabalho. As migrações operacionais estão em [`drizzle/`](./drizzle/). O listener do worker externo usa `GENERATION_DATABASE_SESSION_URL`.
 - Não assuma comportamento com base em nomes de arquivos ou em documentação antiga sem cruzar o código atual.
 - Não trate `docs/` como fonte primária quando houver divergência com `server/`, `client/`, `shared/` e `drizzle/`.
 - Não assuma que Drizzle é a única camada de acesso a dados: o runtime usa Supabase diretamente.
-- Não assuma que existem filas, cron jobs ou workers sem evidência no código.
+- A geração usa pedidos duráveis no PostgreSQL. Confira o modo do executor em [`server/_core/env.ts`](./server/_core/env.ts) e na [operação local](./docs/local-demand-operations.md).
 - Não simplifique a arquitetura para “frontend React + API Node” sem considerar autenticação bridge, billing e serviços externos.
 - Preserve compatibilidade com fluxos existentes quando aplicável.
 - Sinalize explicitamente pontos não confirmados, dependentes de ambiente ou de infraestrutura externa.
@@ -100,9 +106,9 @@ O editor oficial ativo no PostSpark Studio (`client/src/pages/CanvasLab/`) adota
 4. Persistência e reabertura com fidelidade total são realizadas na coluna `canvas_model` via `client/src/pages/CanvasLab/lib/saveAdapter.ts`.
 
 ### 2. Fluxo Legado (`PostVisualSnapshot` — Histórico / Compatibilidade)
-No fluxo legado (`Home.tsx` / `HoloDeck` / `WorkbenchV2`, hoje sem rota montada), cada variação gerada por `post.generate` atravessa o normalizador em `client/src/lib/variationSnapshot.ts` tornando-se um `PostVisualSnapshot`.
-Regras para manutenção no legado:
-1. HoloDeck, Workbench, exportação e histórico legado consomem o mesmo `PostVisualSnapshot`.
+A interface do fluxo histórico foi arquivada. A compatibilidade dos snapshots usa o normalizador em `client/src/lib/variationSnapshot.ts`. Preserve os consumidores ativos de `PostVisualSnapshot` ao alterar a estrutura.
+Regras do fluxo histórico:
+1. HoloDeck, Workbench, exportação e histórico do fluxo arquivado consumiam o mesmo `PostVisualSnapshot`.
 2. O Zustand mantém `visualSnapshot` como documento autoritativo para o legado; os demais campos são projeções compatíveis.
 3. Overrides de carrossel residem em `slides[].editorState`.
 4. Testes de contrato residem em `variationSnapshot.test.ts`. Alterações exigem incremento de `snapshotVersion`.

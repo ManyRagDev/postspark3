@@ -8,7 +8,7 @@ description: >
 
 # Skill: Guia Mestre Konva.js (PostSpark Engine)
 
-Esta habilidade consolida o conhecimento técnico e as melhores práticas oficiais do framework **Konva.js / react-konva** aplicadas ao PostSpark, integrando as pesquisas e referências documentadas em [`konva.md`](file:///c:/Users/emanu/Documents/Projetos/PostSpark%203/konva.md).
+Esta habilidade consolida o conhecimento técnico e as melhores práticas oficiais do framework **Konva.js / react-konva** aplicadas ao PostSpark, integrando as pesquisas e referências documentadas em [`konva.md`](../../../konva.md).
 
 ---
 
@@ -160,4 +160,4 @@ Para aplicar efeitos de pixel (como `Konva.Filters.Blur`, `Contrast`, `Brighten`
 
 ## 8. Arquivo de Referência Detalhada
 
-Para consultar a documentação aprofundada de todas as classes, tabelas de propriedades e casos de uso do Konva.js, leia o arquivo-mestre [`konva.md`](file:///c:/Users/emanu/Documents/Projetos/PostSpark%203/konva.md) na raiz do repositório.
+Para consultar a documentação aprofundada de todas as classes, tabelas de propriedades e casos de uso do Konva.js, leia o arquivo-mestre [`konva.md`](../../../konva.md) na raiz do repositório.

@@ -9,3 +9,6 @@ artifacts
 .codex
 .agents
 tmp
+
+!labs/mare-studio/dist/
+!labs/mare-studio/dist/**

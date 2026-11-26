@@ -3,7 +3,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import { brandProjectInputSchema } from "@shared/brandProjects";
-import BrandCaptureModal from "./BrandCaptureModal";
+import BrandCaptureModal, { BrandImportDialog } from "./BrandCaptureModal";
 const h = vi.hoisted(() => ({
   start: vi.fn(),
   save: vi.fn(),
@@ -114,4 +114,25 @@ it("updating an existing project requires choosing the explicit update control",
   expect(h.save.mock.calls[0][0].project.id).toBe(
     "00000000-0000-4000-8000-000000000002"
   );
+});
+
+it("starts only after a separate brand URL is submitted and rejects unsupported schemes", async () => {
+  await act(async () => root.render(<BrandImportDialog onClose={vi.fn()} onSaved={vi.fn()} />));
+  expect(h.start).not.toHaveBeenCalled();
+  const form = document.querySelector("form")!;
+  const field = form.querySelector("input")!;
+  async function enter(address: string) {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, address);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+  }
+  await enter("file:///exemplo");
+  expect(document.querySelector("[role=alert]")?.textContent).toContain("válido");
+  expect(h.start).not.toHaveBeenCalled();
+  await enter("www.example.com");
+  expect(h.start).toHaveBeenCalledWith(expect.objectContaining({ url: "https://www.example.com/" }));
+  expect(host.textContent).toContain("Revise a marca");
+  expect(h.save).not.toHaveBeenCalled();
 });

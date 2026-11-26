@@ -4,8 +4,19 @@ import {
   creationBriefSchema,
 } from "@shared/postspark";
 import { generationModelSchema, type GenerationModel } from "@shared/generationModel";
+import { storedAspectRatios } from "@shared/aspectRatios";
+import { z } from "zod";
 
 export const BRIEF_DRAFT_STORAGE_KEY = "postspark.creation_brief.draft.v1";
+
+export const projectArtworkSchema = z.object({
+  projectId: z.string().uuid(),
+  postId: z.number().int().positive(),
+  name: z.string().min(1),
+  aspectRatio: z.enum(storedAspectRatios),
+  slideCount: z.number().int().min(1).max(10),
+});
+export type ProjectArtworkSelection = z.infer<typeof projectArtworkSchema>;
 
 export interface SavedBriefDraft {
   draftVersion: number;
@@ -14,6 +25,7 @@ export interface SavedBriefDraft {
   declaredFamilyId: string | null;
   stage?: "create" | "gallery" | "editor";
   generationModel?: GenerationModel;
+  projectArtwork?: ProjectArtworkSelection;
 }
 
 /**
@@ -24,6 +36,8 @@ export function saveBriefDraft(
   declaredFamilyId: string | null = null,
   stage: "create" | "gallery" | "editor" = "create",
   generationModel?: GenerationModel,
+  storageKey = BRIEF_DRAFT_STORAGE_KEY,
+  projectArtwork?: ProjectArtworkSelection,
 ): void {
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
@@ -35,8 +49,9 @@ export function saveBriefDraft(
       declaredFamilyId,
       stage,
       ...(generationModel ? { generationModel } : {}),
+      ...(projectArtwork && projectArtwork.projectId === brief.projectId ? { projectArtwork } : {}),
     };
-    window.localStorage.setItem(BRIEF_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(storageKey, JSON.stringify(payload));
   } catch (err) {
     console.warn("[briefDraftStorage] Falha ao persistir rascunho do briefing:", err);
   }
@@ -45,10 +60,10 @@ export function saveBriefDraft(
 /**
  * Carrega o rascunho do briefing persistido, validando schema e tolerando migrações.
  */
-export function loadBriefDraft(): SavedBriefDraft | null {
+export function loadBriefDraft(storageKey = BRIEF_DRAFT_STORAGE_KEY): SavedBriefDraft | null {
   if (typeof window === "undefined" || !window.localStorage) return null;
   try {
-    const raw = window.localStorage.getItem(BRIEF_DRAFT_STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<SavedBriefDraft>;
@@ -69,6 +84,7 @@ export function loadBriefDraft(): SavedBriefDraft | null {
       declaredFamilyId: parsed.declaredFamilyId ?? null,
       stage: parsed.stage ?? "create",
       generationModel: generationModelSchema.safeParse(parsed.generationModel).data ?? "gemini",
+      projectArtwork: projectArtworkSchema.safeParse(parsed.projectArtwork).data,
     };
   } catch (err) {
     console.warn("[briefDraftStorage] Erro ao carregar rascunho do briefing:", err);
@@ -79,10 +95,10 @@ export function loadBriefDraft(): SavedBriefDraft | null {
 /**
  * Limpa o rascunho salvo do briefing.
  */
-export function clearBriefDraft(): void {
+export function clearBriefDraft(storageKey = BRIEF_DRAFT_STORAGE_KEY): void {
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
-    window.localStorage.removeItem(BRIEF_DRAFT_STORAGE_KEY);
+    window.localStorage.removeItem(storageKey);
   } catch {
     /* no-op */
   }
@@ -91,7 +107,7 @@ export function clearBriefDraft(): void {
 /**
  * Verifica se há um rascunho recuperável não vazio.
  */
-export function hasRecoverableBriefDraft(): boolean {
-  const draft = loadBriefDraft();
+export function hasRecoverableBriefDraft(storageKey = BRIEF_DRAFT_STORAGE_KEY): boolean {
+  const draft = loadBriefDraft(storageKey);
   return Boolean(draft && draft.brief && draft.brief.rawInput && draft.brief.rawInput.trim().length > 0);
 }

@@ -1,4 +1,6 @@
 import { GenerationFailureError } from "@shared/generationFailure";
+import { editorialModelOptions } from "../editorialTeam";
+import type { GenerationModelConfig } from "@shared/generationModel";
 import { ENV } from "../../_core/env";
 import { z } from "zod";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
@@ -22,7 +24,8 @@ export async function readGenerationImageSources(
   owner: string,
   deadlineMs: number,
   signal: AbortSignal | undefined,
-  generate = invokeLLM
+  generate = invokeLLM,
+  team?: GenerationModelConfig["editorialTeam"]
 ): Promise<ImageSourceReading | null> {
   const images = Array.from(
     new Set([
@@ -59,6 +62,7 @@ export async function readGenerationImageSources(
     disableFallback: true,
     maxTransportAttempts: 1,
     disableStructuredRepair: true,
+    ...(team ? editorialModelOptions(team.sourceReader) : {}),
     messages: [
       {
         role: "system",

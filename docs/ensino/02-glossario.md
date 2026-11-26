@@ -110,7 +110,7 @@ No PostSpark:
 
 Coloca o resultado do build em um ambiente acessivel por usuarios.
 
-No PostSpark, isso esta configurado para Vercel.
+No PostSpark, o [Compose da VPS](../../ops/hostinger/compose.yml) descreve a implantação.
 
 ## Git
 

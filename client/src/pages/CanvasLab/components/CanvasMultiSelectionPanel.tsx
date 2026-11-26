@@ -2,10 +2,12 @@ import type { EditorCommand, EditorLayer } from "../lib/editorController";
 
 export function CanvasMultiSelectionPanel({
   layers,
+  children,
   onCommand,
   onClear,
 }: {
   layers: EditorLayer[];
+  children?: import("react").ReactNode;
   onCommand: (command: EditorCommand) => void;
   onClear: () => void;
 }) {
@@ -48,6 +50,7 @@ export function CanvasMultiSelectionPanel({
   ];
   return (
     <section className="space-y-3" aria-label="Seleção múltipla">
+      {children}
       <h3 className="text-sm font-semibold">
         {layers.length} objetos selecionados
       </h3>

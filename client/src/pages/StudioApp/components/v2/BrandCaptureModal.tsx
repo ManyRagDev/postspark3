@@ -1,5 +1,7 @@
 import { useGenerationEvents } from "@/hooks/useGenerationEvents";
 import { useEffect, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { isStandaloneHttpUrl } from "@shared/generationSources";
 import { trpc } from "@/lib/trpc";
 import {
   brandProjectInputSchema,
@@ -14,17 +16,55 @@ const fields = {
   forbiddenTerms: "Proibições",
   defaultCta: "CTA padrão",
 } as const;
+type ImportProps = {
+  projectId?: string | null;
+  onClose: () => void;
+  onSaved: (id: string) => void;
+};
+
+export function BrandImportDialog(props: ImportProps) {
+  const [address, setAddress] = useState("");
+  const [captureUrl, setCaptureUrl] = useState("");
+  const [error, setError] = useState("");
+  if (captureUrl) return <BrandCaptureModal {...props} url={captureUrl} />;
+
+  return (
+    <Dialog open onOpenChange={open => { if (!open) props.onClose(); }}>
+      <DialogContent className="border-white/15 bg-[#181818] text-white">
+        <DialogTitle>Importar marca do site</DialogTitle>
+        <DialogDescription>Revise a oferta, o público, o tom de voz e as preferências visuais antes de salvar no projeto.</DialogDescription>
+        <form className="grid gap-4" onSubmit={event => {
+          event.preventDefault();
+          const value = address.trim();
+          const url = /^[a-z][a-z0-9+.-]*:/i.test(value) ? value : `https://${value}`;
+          if (!isStandaloneHttpUrl(url) || !/^https?:\/\/[^/]/i.test(url)) {
+            setError("Informe um endereço de site válido.");
+            return;
+          }
+          setCaptureUrl(new URL(url).href);
+        }}>
+          <label className="grid gap-2 text-sm">
+            Site da marca
+            <input autoFocus required inputMode="url" autoCapitalize="none" spellCheck={false}
+              value={address} onChange={event => { setAddress(event.target.value); setError(""); }}
+              placeholder="www.suamarca.com.br" className="min-h-11 rounded-lg border border-white/20 bg-black/30 px-3 text-base" />
+          </label>
+          {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+          <button type="submit" disabled={!address.trim()} className="min-h-11 rounded-lg bg-orange-500 px-4 font-semibold text-black disabled:opacity-50">
+            Analisar marca gratuitamente
+          </button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function BrandCaptureModal({
   url,
   projectId,
   onClose,
   onSaved,
-}: {
-  url: string;
-  projectId?: string | null;
-  onClose: () => void;
-  onSaved: (id: string) => void;
-}) {
+}: ImportProps & { url: string }) {
   const [captureId, setCaptureId] = useState<string>();
   const [transport, setTransport] = useState<"events" | "poll">("poll");
   const [error, setError] = useState("");

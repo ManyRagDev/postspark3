@@ -1,3 +1,5 @@
+import { mareSelectionsSchema } from "@shared/mareSelection";
+import { canvasTemporalMediaSchema } from "@shared/canvasTemporalMedia";
 import { readTextGradient } from "@shared/textGradient";
 import { assemblyDirectionV1Schema, assemblySlideRoles, assemblyDensities } from "@shared/componentAssembly";
 import { visualIdentityUsageSchema } from "@shared/identityComposition";
@@ -6,6 +8,7 @@ import { arsenalCompilationReportSchema } from "@shared/arsenalGeneration";
 import { catalogCompilationSchema } from "@shared/designCatalog";
 import { readArsenalComposition, canvasElementStatesSchema, arsenalLogoSchema } from "@shared/designArsenal";
 import { completeDesignProvenanceSchema } from "@shared/completeDesignGeneration";
+import { z } from "zod";
 /**
  * Adapters de persistência do CanvasLab (PostSpark Studio).
  *
@@ -30,6 +33,14 @@ import {
 } from "../components/types";
 import { resolveCoverSlide } from "./documentCommands";
 import { resolveSlideAppearance } from "./slideReplication";
+
+const backgroundTreatmentSchema = z.object({
+  kind: z.enum(["solid", "linear", "spotlight"]),
+  tint: z.string().regex(/^#[0-9a-f]{6}$/i),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  texture: z.enum(["none", "dots", "grid", "grain"]),
+});
 
 export type SaveInputType = "text" | "url" | "image";
 
@@ -157,7 +168,7 @@ export function canvasModelToSavePayload(
       body: s.subtext,
       slideNumber: i + 1,
     })),
-    canvasModel: post as unknown as Record<string, unknown>,
+    canvasModel: { ...post, temporalMediaVersion: 1 },
   };
 }
 
@@ -193,6 +204,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
   return {
     id: raw.id || `saved-${Date.now()}`,
     modelVersion: raw.modelVersion,
+    temporalMediaVersion: 1,
     visualIdentityUsage: visualIdentityUsageSchema.safeParse(raw.visualIdentityUsage).success ? visualIdentityUsageSchema.parse(raw.visualIdentityUsage) : undefined,
     advancedImageAssets: imageEditAssetsSchema.safeParse(raw.advancedImageAssets).data,
     ...(completeDesignProvenanceSchema.safeParse(raw.completeDesign).success ? { completeDesign: completeDesignProvenanceSchema.parse(raw.completeDesign) } : {}),
@@ -272,6 +284,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           subtext: s.subtext ?? "",
           headlineRich: normalizeRichTextChunks(s.headlineRich),
           subtextRich: normalizeRichTextChunks(s.subtextRich),
+          ...(s.mareSelections ? { mareSelections: mareSelectionsSchema.parse(s.mareSelections) } : {}),
+          ...(s.temporalMedia ? { temporalMedia: canvasTemporalMediaSchema.parse(s.temporalMedia) } : {}),
           bgImage: s.bgImage,
           bgTransform: s.bgTransform,
           bgPlacement: s.bgPlacement,
@@ -288,6 +302,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           nativeDecorationTransforms: normalizeNativeDecorationTransforms(s.nativeDecorationTransforms),
           extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts.map((t: any) => ({ ...t, textGradient: readTextGradient(t.textGradient) })) : undefined,
           extraShapes: Array.isArray(s.extraShapes) ? s.extraShapes : undefined,
+          backgroundTreatment: backgroundTreatmentSchema.safeParse(s.backgroundTreatment).data,
           extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
           suppressFamilyDecorations: s.suppressFamilyDecorations === true ? true : undefined,
           splitBgPosition: (typeof s.splitBgPosition === "string" && ["bottom", "top", "full"].includes(s.splitBgPosition) ? s.splitBgPosition : undefined) as SplitBgPosition | undefined,

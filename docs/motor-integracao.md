@@ -1,8 +1,8 @@
 # Motor PostSpark — implementação e integração
 
-Contrato de junção atualizado em 11/11/2026, 23h03: [Supabase próprio na VPS](contrato-integracao-supabase-vps.md). Esse contrato incorpora os avanços posteriores da infraestrutura e explicita as lacunas de baseline/Auth/Storage; prevalece para preparar a integração. Este arquivo conserva a descrição da implementação e seus ensaios locais.
+**Operação vigente.** A cadeia do PostSpark usa web/API e executor externo na VPS. O Supabase da VPS serve `api.postspark.com.br`. Para configuração e implantação, consulte o [contrato da VPS](./contrato-integracao-supabase-vps.md) e o [Compose](../ops/hostinger/compose.yml). Para desenvolvimento, consulte o [guia de operação local](./local-demand-operations.md).
 
-Estado em 11/11/2026 (Brasília): implementação local integrada e verificada nos escopos abaixo; **não liberada no destino**. Este registro complementa `plano_implementacao_motor.md`. Instalação, migração física, DNS/proxy e backups continuam sob responsabilidade do chat da VPS. Nenhum serviço remoto foi iniciado por esta entrega.
+Os testes, limitações e etapas de implantação datados neste documento registram a integração iniciada em 11/11/2026. Confirme a revisão e a prontidão efetivas antes de usar resultados de um ensaio.
 
 ## Inventário e fronteiras
 
@@ -13,7 +13,7 @@ Base Git: `103b3f5f71048e824095d84cce8efa7f03fd5ac3`. Foram preservadas as alter
 | `/thevoid`, `/studio` | `StudioAppV2BPage`: envio explícito, chave idempotente, três propostas, editor CanvasLab. |
 | `generation.start` | Proprietário da sessão; hash da entrada do cliente; catálogo/modelos/política fixados no servidor; RPC de admissão e reserva atômicas. Repetição recupera o mesmo pedido antes de consultar disponibilidade. |
 | Geração externa | `generation_v5_requests` e diário de operações são duráveis. `generationWorker` escuta sinais, reclama trabalho com lease e executa `generationRuntime`. |
-| Captura de marca | `brandCapture.startCapture` → `brand_capture_start`; mesma supervisão externa e concorrência global. Leitura/reaproveitamento não inicia nova inferência. |
+| Captura de marca | `brandProjects.captureStart` → `brand_capture_start`; mesma supervisão externa e concorrência global. Leitura/reaproveitamento não inicia nova inferência. |
 | Liquidação | `generation_settle`/`generation_reconcile`; falha de liquidação de pedido terminal não volta para geração. Stripe entra por `/api/stripe/webhook`, separado do executor. |
 | Catálogo/fontes | Revisão imutável, hashes verificados, cache de catálogo e bytes de fontes. Mudança de publicação gera nova revisão; pedido existente permanece fixado. |
 | Persistência | `post.save/update/get` → Supabase em `server/db.ts`; `posts.canvas_model` continua documento autoritativo, com CAS por `posts.revision`. Drizzle não é o acesso de runtime. |
@@ -21,7 +21,7 @@ Base Git: `103b3f5f71048e824095d84cce8efa7f03fd5ac3`. Foram preservadas as alter
 | Storage | Assets do arsenal, mídia privada do usuário e URLs persistidas precisam estar acessíveis no destino. O helper legado `server/storage.ts` também usa proxy Forge: inventariar URLs legadas antes do corte. |
 | Análise | `generationTelemetry.record`: lote descartável, separado de Sparks. `brief_hash` não identifica jornada. |
 
-A falha antiga de acesso à origem foi resolvida segundo o README da VPS. Houve exportação seletiva de usuários, posts e marcas, sem filas/execuções/saldos antigos; não houve importação no destino. A reconciliação de pedidos/reservas ainda não foi demonstrada por esta frente. `scripts/sql/motor-preactivation.sql` prepara a leitura agregada para os ambientes confirmados.
+No registro inicial de 11/11/2026, a infraestrutura havia exportado usuários, posts e marcas. O snapshot excluía pedidos, execuções e saldos antigos. O contrato da VPS registra os incrementos posteriores. A reconciliação de pedidos/reservas ainda não foi demonstrada por esta frente. `scripts/sql/motor-preactivation.sql` prepara a leitura agregada para os ambientes confirmados.
 
 ## Executor e custos residuais
 
@@ -58,7 +58,7 @@ Telemetria reúne exposição, escolha, alterações consolidadas, salvar, reabr
 
 ## Entrega para a VPS
 
-O contrato recebido do outro chat está em `../infraestrutura-vps/README.md`: PostgreSQL 17.6; REST/Auth/Storage de ensaio privados em loopback do host `:18000` ou `api-gw:8000` na rede; banco `db:5432` sem porta pública. Schema/dados e usuários de ensaio ainda não importados. O catálogo já foi empacotado e copiado à VPS, mas não publicado; os bytes de mídia dos usuários continuam pendentes. Não há endpoint final de produção confirmado.
+Na VPS, o processo do worker usa o PostgreSQL de sessão privado para o listener. REST, Auth e Storage usam o Supabase da mesma instalação. Consulte as seções de rede, importação e verificação no [contrato da VPS](./contrato-integracao-supabase-vps.md).
 
 Variáveis sem valores secretos:
 
@@ -97,7 +97,7 @@ pnpm generation:worker
 
 Preflight é somente leitura, não inicia worker nem aplica SQL. O primeiro modo confere configuração/arquivos; `--online` confere funções, identidade do banco, catálogo e pendências agregadas. `SIGTERM` fecha admissão de claims e aguarda o trabalho atual; supervisão deve conceder prazo compatível com o deadline de geração, sem matar cedo para contornar cooldown.
 
-## Ativação, reversão e pendências de aceite
+## Roteiro registrado de ativação da integração
 
 1. Confirmar um único ambiente de execução/escrita; manter worker antigo parado e admissão pausada.
 2. Reconciliar pedidos, reservas e operações ambíguas na origem confirmada. Não apagar recibos nem copiar pedidos ativos para dois consumidores.

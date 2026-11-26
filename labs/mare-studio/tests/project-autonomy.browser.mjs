@@ -1,3 +1,4 @@
+import { mockEditApi, ctaEditFixture } from "./lab-browser.mjs";
 // MARE_REFERENCE_AD optionally exercises the original 26 s ad. No requests leave the browser.
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -90,6 +91,7 @@ test(
     const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE_PATH });
     t.after(() => browser.close());
     const { page, ctx } = await open(browser, reference ?? fixture());
+    await mockEditApi(page, text => text === cta ? [ctaEditFixture] : [{id:"cards.centerLast"}]);
     const before = await state(page);
     const inspectSources = page =>
       page.evaluate(async () => {

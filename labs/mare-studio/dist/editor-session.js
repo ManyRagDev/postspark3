@@ -4,7 +4,7 @@ import { commandCatalog, inspectProject, prepareBatch } from "./editor-commands.
 import { loadArtwork } from "./animation-catalog.js";
 import { planCompositionEdit } from "./composition-ai.js";
 import { compositionCommands } from "./composition-commands.js";
-import { planProjectRequest } from "./project-requests.js";
+import { planProjectRequest, replaceText, sequenceCards } from "./project-requests.js";
 import { CHANNELS, EASINGS } from "./composition-model.js";
 import { elementNames } from "./elements.js";
 import narration from "./assets/narration.json" with { type: "json" };
@@ -243,6 +243,19 @@ export function createEditorSession({ current, revision, commit, context, servic
     async prepareWithAssets(expected, commands) {
       await prepareAssets(expected, commands);
       return prepare(expected, commands);
+    },
+    // Composite edits expand to the same validated native commands as a manual batch.
+    prepareRecipe(expected, command) {
+      check(expected);
+      let plan;
+      if (command.id === "text.replaceAndHold") {
+        const {before,after,extraSeconds = 0} = command;
+        if (typeof before !== "string" || !before.trim() || typeof after !== "string" || !after.trim() ||
+            !Number.isFinite(extraSeconds) || extraSeconds < 0) throw Error("Texto ou duração inválidos.");
+        plan = replaceText(current(),before,after,extraSeconds,context());
+      } else if (command.id === "cards.centerLast") plan = sequenceCards(current(),context());
+      else throw Error("Ação composta desconhecida.");
+      return {...plan, proposal:prepare(expected,plan.commands)};
     },
     async plan(request) {
       const expected = revision();

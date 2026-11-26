@@ -1,8 +1,10 @@
-# Executor PostSpark na AWS
+# Histórico do executor PostSpark na AWS
 
-O frontend e a API continuam na Vercel; dados e arquivos continuam no Supabase.
-O Lightsail hospeda o processo persistente de geração com Node, Chromium e o
-renderer real do CanvasLab. Não há cópia do banco para a máquina.
+> O [contrato da VPS](../../docs/contrato-integracao-supabase-vps.md) orienta a operação atual. Os procedimentos abaixo descrevem a instalação Lightsail registrada em 28/10/2026.
+
+Na implantação registrada, frontend e API estavam na Vercel e os dados e
+arquivos ficavam no Supabase da época. O Lightsail hospedava o executor com
+Node, Chromium e o renderer do CanvasLab. Não há cópia do banco para a máquina.
 
 ## Infraestrutura
 
@@ -30,7 +32,7 @@ o saldo atual, em vez de presumir que o valor inicial continua disponível:
 aws freetier get-account-plan-state --profile postspark --region us-east-2
 ```
 
-## Atualizar o executor
+## Procedimento da instalação Lightsail
 
 Autentique o operador com `aws login --profile postspark --region us-east-2`.
 Use a mesma revisão de backend e contratos compartilhados publicada na API.
@@ -79,7 +81,7 @@ das configurações privadas. O comando de deploy não transfere credenciais.
 As chamadas de modelos continuam usando os provedores já configurados e têm
 cobrança própria, independente dos créditos de hospedagem AWS.
 
-A captura visual de páginas externas usa o serviço AWS em
+Naquela instalação, a captura visual de páginas externas usava o serviço AWS em
 `https://capture.postspark.com.br`, configurado em `SCREENSHOT_SERVICE_URL`.
 Cada consumidor precisa de `SCREENSHOT_SERVICE_TOKEN` privado e
 `SCREENSHOT_PUBLIC_NETWORK_ONLY=true`. O serviço valida e fixa DNS de destinos

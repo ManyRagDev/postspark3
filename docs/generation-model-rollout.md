@@ -1,5 +1,7 @@
 # Ativação e verificação dos modelos de geração
 
+> Registro histórico. O ambiente relatado era o Supabase Cloud aposentado. As operações atuais seguem o [contrato da VPS](./contrato-integracao-supabase-vps.md).
+
 Roteiro corrigido do relatório de novembro/2026. O objetivo é gerar pelo Studio
 com Claude Haiku 5.5, DeepSeek V4.1 Flash e Gemini 3.8 Flash, conservando recibos,
 cobrança, revisão obrigatória e o documento autoritativo CanvasPostModel.
@@ -7,7 +9,7 @@ cobrança, revisão obrigatória e o documento autoritativo CanvasPostModel.
 ## Admissão no Supabase
 
 A migração [0053](../drizzle/0053_generation_model_choices.sql) foi aplicada em
-03/11/2026 no projeto `spbuwcwmxlycchuwhfir`, schema `postspark`. As duas funções
+03/11/2026 no projeto Cloud aposentado, schema `postspark`. As duas funções
 admitem gemini, claude, deepseek e gpt; o último conserva compatibilidade histórica.
 Posts e recibos anteriores não são reescritos. A migração exige as funções de
 0044/0045, preserva a transação de admissão/reserva e a configuração da primeira

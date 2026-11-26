@@ -34,6 +34,9 @@ vi.mock("../ai/workflows/generationStore", () => ({
     admission: state.admission,
   }),
 }));
+vi.mock("../ai/workflows/workerReadiness", () => ({
+  readDemandWorkerReadiness: async () => ({ supportsTextRecovery: false, supportsEditorialSelection: true }),
+}));
 vi.mock("../ai/workflows/localDemandSupervisor", () => ({
   localExecutorScope: async () => "test-local-executor",
   enqueueLocal: state.enqueue,

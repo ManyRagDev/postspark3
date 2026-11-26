@@ -86,6 +86,7 @@ export interface RichTextLayout {
   runs: RichTextPositionedRun[];
   lines: RichTextLine[];
   inkBoxes?: PhysicalRect[];
+  lineInk?: Array<{ top: number; bottom: number } | null>;
 }
 
 export interface CaretGeometry {
@@ -372,7 +373,8 @@ export function layoutRichText(config: RichTextLayoutConfig): RichTextLayout {
   }
 
   const inkBoxes: PhysicalRect[] = [];
-  let inkKnown = Boolean(config.measureInk || ctx) && letterSpacing === 0 && !runs.some(run => run.underline);
+  const lineInk: NonNullable<RichTextLayout["lineInk"]> = lines.map(() => null);
+  let inkKnown = Boolean(config.measureInk || ctx);
   if (inkKnown) for (const run of runs) {
     if (!run.text.trim()) continue;
     let ink: PhysicalRect | null | undefined;
@@ -388,9 +390,15 @@ export function layoutRichText(config: RichTextLayoutConfig): RichTextLayout {
           width:m.actualBoundingBoxLeft+m.actualBoundingBoxRight,height:m.actualBoundingBoxAscent+m.actualBoundingBoxDescent};
     }
     if (ink === undefined) { inkKnown = false; break; }
-    if (ink && Object.values(ink).every(Number.isFinite) && ink.width > 0 && ink.height > 0)
-      inkBoxes.push({...ink,x:run.x+ink.x,y:run.y+ink.y});
-    else if (ink !== null) { inkKnown = false; break; }
+    if (ink && Object.values(ink).every(Number.isFinite) && ink.width > 0 && ink.height > 0) {
+      const top = run.y + ink.y, bottom = top + ink.height;
+      const line = lineInk[run.lineIndex];
+      lineInk[run.lineIndex] = {
+        top: Math.min(line?.top ?? top, top),
+        bottom: Math.max(line?.bottom ?? bottom, bottom),
+      };
+      inkBoxes.push({ ...ink, x: run.x + ink.x, y: top });
+    } else if (ink !== null) { inkKnown = false; break; }
   }
   return {
     width,
@@ -398,7 +406,8 @@ export function layoutRichText(config: RichTextLayoutConfig): RichTextLayout {
     glyphs,
     runs,
     lines,
-    ...(inkKnown ? {inkBoxes} : {}),
+    ...(inkKnown ? { lineInk } : {}),
+    ...(inkKnown && letterSpacing === 0 && !runs.some(run => run.underline) ? { inkBoxes } : {}),
   };
 }
 

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { mareEntryHref, MareEntryLink, type MareEntry } from "./MareEntryLink";
 import SparkLogo from "@/components/SparkLogo";
 import {
   GENERATION_MODEL_LABELS,
@@ -24,6 +25,7 @@ import "./studioMobileCreation.css";
 export const MOBILE_PROMPT_COMPACT_HEIGHT = 72;
 
 interface StudioMobileCreationFormProps {
+  mareEntry?: MareEntry;
   prompt: string;
   onPromptChange: (value: string) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -35,8 +37,6 @@ interface StudioMobileCreationFormProps {
   isLoading: boolean;
   canSubmit: boolean;
   isUrl: boolean;
-  urlAsContent: boolean;
-  onUrlAsContentChange: (value: boolean) => void;
   scriptSlideCount: number | null;
   preserveScript: boolean;
   onScriptModeChange: (mode: "preserve" | "rewrite") => void;
@@ -47,6 +47,7 @@ interface StudioMobileCreationFormProps {
   aspectRatio?: "1:1" | "4:5" | "9:16";
   onAspectRatioChange?: (value: "1:1" | "4:5" | "9:16") => void;
   projectControl: ReactNode;
+  artworkControl?: ReactNode;
   projectStyleControl?: ReactNode;
   contentTools?: ReactNode;
   hasSavedDraft: boolean;
@@ -61,7 +62,8 @@ export default function StudioMobileCreationForm(
   props: StudioMobileCreationFormProps
 ) {
   const id = useId();
-  const captureBrand = props.isUrl && !props.urlAsContent;
+  const videoHref = mareEntryHref(props.mareEntry);
+  const submitLabel = props.artworkControl ? "Revisar briefing" : "Gerar posts";
   return (
     <main className="studio-mobile-create" aria-label="Criação de posts">
       <section className="mobile-creation-brand" aria-label="PostSpark">
@@ -138,21 +140,9 @@ export default function StudioMobileCreationForm(
                 <option value="rewrite">Reescrever com IA</option>
               </select>
             </label>
-          ) : props.isUrl ? (
-            <label className="mobile-url-content">
-              <input
-                type="checkbox"
-                checked={props.urlAsContent}
-                disabled={props.isLoading}
-                onChange={event =>
-                  props.onUrlAsContentChange(event.target.checked)
-                }
-              />
-              <span>Usar página como conteúdo</span>
-            </label>
           ) : (
             <span className="mobile-source-label">
-              Uma ideia, muitas possibilidades
+              {props.isUrl ? "Fonte de conteúdo do post" : "Uma ideia, muitas possibilidades"}
             </span>
           )}
           <button
@@ -160,12 +150,8 @@ export default function StudioMobileCreationForm(
             className="mobile-generate"
             onClick={props.onSubmit}
             disabled={!props.canSubmit}
-            aria-label={
-              captureBrand ? "Capturar marca gratuitamente" : "Gerar posts"
-            }
-            title={
-              captureBrand ? "Capturar marca gratuitamente" : "Gerar posts"
-            }
+            aria-label={submitLabel}
+            title={submitLabel}
           >
             {props.isLoading ? (
               <Loader2 size={21} className="animate-spin" aria-hidden="true" />
@@ -232,7 +218,7 @@ export default function StudioMobileCreationForm(
             </label>
           )}
         </div>
-        <div
+        {props.artworkControl || <div
           className="mobile-post-modes"
           role="group"
           aria-label="Tipo de post"
@@ -253,7 +239,8 @@ export default function StudioMobileCreationForm(
           >
             Carrossel
           </button>
-        </div>
+          {videoHref && <MareEntryLink href={videoHref} />}
+        </div>}
         <div className="mobile-project-row">
           <span>Projeto</span>
           {props.projectControl}
@@ -289,7 +276,7 @@ export default function StudioMobileCreationForm(
                 </option>
               </select>
             </label>
-            <button
+            {!props.artworkControl && <button
               type="button"
               className="mobile-image-toggle"
               role="switch"
@@ -308,7 +295,7 @@ export default function StudioMobileCreationForm(
               <span className="mobile-toggle-state">
                 {props.options.allowAiImages ? "Ativado" : "Desativado"}
               </span>
-            </button>
+            </button>}
             </>}
             {props.projectStyleControl}
             {props.hasSavedDraft && props.onDiscardDraft && (

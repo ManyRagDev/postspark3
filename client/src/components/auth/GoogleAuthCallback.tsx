@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { resyncSupabaseSession } from "@/lib/authBridge";
-import { membershipCycleKey } from "@/lib/membershipApi";
+import { membershipCycleKey, takePaymentReturn } from "@/lib/membershipApi";
 
 export default function GoogleAuthCallback() {
   useEffect(() => {
@@ -15,6 +15,10 @@ export default function GoogleAuthCallback() {
         if (!session?.access_token) throw new Error("auth_session_missing");
         if (!active) return;
         const params = new URLSearchParams(window.location.search);
+        if (params.get("payment") === "1") {
+          window.location.replace(takePaymentReturn() ?? "/billing");
+          return;
+        }
         const invite = params.get("invite");
         if (invite && /^[0-9a-f-]{36}$/i.test(invite)) {
           window.location.replace(`/agency?invite=${invite}`);

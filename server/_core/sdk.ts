@@ -1,3 +1,5 @@
+import type { PaidStudioPlan } from "@shared/membership";
+import { applySessionPlan } from "./sessionPlanAccess";
 import { COOKIE_NAME } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import { parse as parseCookieHeader } from "cookie";
@@ -15,6 +17,7 @@ export type AuthenticatedUser = {
   company?: string | null;
   role?: string | null;
   access?: "start" | "agency";
+  impersonatedPlan?: PaidStudioPlan;
 };
 
 let _supabaseAuthClient: ReturnType<typeof createClient> | null = null;
@@ -93,13 +96,15 @@ class SDKServer {
     const roleFromMetadata =
       typeof user.app_metadata?.role === "string" ? user.app_metadata.role : null;
 
+    const impersonatedPlan = hasAccess ? await applySessionPlan(req, accessToken, user) : null;
     return {
       id: user.id,
       email: user.email ?? null,
       name: nameFromMetadata,
       phone: phoneFromMetadata,
       company: companyFromMetadata,
-      role: roleFromMetadata,
+      role: impersonatedPlan ? null : roleFromMetadata,
+      ...(impersonatedPlan ? { impersonatedPlan } : {}),
       ...(access ? { access } : {}),
     };
   }

@@ -1,10 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { createCanvas } from "@napi-rs/canvas";
 import { templateIngestionRouter } from "./templateIngestion";
 import * as db from "../db";
 import * as designExtractionModule from "../designExtraction";
 import * as publicUrlModule from "../publicUrl";
-import { designExtractionSchema, type DesignExtraction } from "@shared/designExtraction";
-import { REUNE_DNA, REUNE_INTENTS } from "../../client/src/pages/TemplateIngestion/intentToCanvasModel.test";
+import * as studioAccess from "../studioAccess";
+import { CREATIVE_DESIGN_EXTRACTION_VERSION, designExtractionSchema, type DesignExtraction } from "@shared/designExtraction";
+import { REUNE_ARTWORKS, REUNE_DNA, REUNE_INTENTS } from "../../client/src/pages/TemplateIngestion/intentToCanvasModel.test";
 
 const extraction: DesignExtraction = designExtractionSchema.parse({ dna: REUNE_DNA, intents: REUNE_INTENTS });
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
@@ -17,7 +19,10 @@ const callerFor = (role: "user" | "admin", id = "user-A") =>
   });
 
 describe("templateIngestion: extração de design com destinos separados", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(studioAccess, "requireProfessionalStudio").mockResolvedValue(undefined);
+  });
 
   it("bloqueia extração em projeto que não pertence ao usuário", async () => {
     vi.spyOn(db, "getBrandProjectById").mockResolvedValueOnce(undefined);
@@ -31,16 +36,46 @@ describe("templateIngestion: extração de design com destinos separados", () =>
   it("consulta o projeto sempre com o dono vindo da sessão", async () => {
     const getProject = vi.spyOn(db, "getBrandProjectById").mockResolvedValueOnce({ id: PROJECT_ID } as any);
     vi.spyOn(publicUrlModule, "publicUrl").mockResolvedValueOnce(undefined as any);
-    vi.spyOn(designExtractionModule, "extractDesignFromUrl").mockResolvedValueOnce({
+    const extract = vi.spyOn(designExtractionModule, "extractDesignFromUrl").mockResolvedValueOnce({
       extraction,
       evidence: { fonts: ["Space Grotesk"], colors: [] },
       previewDataUrl: "data:image/png;base64,AAAA",
       sourceUrl: "https://example.com/",
     });
-    const result = await callerFor("user", "user-A").extractDesign({ projectId: PROJECT_ID, url: "https://example.com" });
+    const result = await callerFor("user", "user-A").extractDesign({
+      projectId: PROJECT_ID, url: "https://example.com", model: "openai/gpt-6.2-sol",
+    });
     expect(getProject).toHaveBeenCalledWith(PROJECT_ID, "user-A");
-    expect(result.extraction.intents).toHaveLength(5);
+    expect(extract).toHaveBeenCalledWith("https://example.com", "desktop", "openai/gpt-6.2-sol", undefined);
+    expect(result.extraction).toMatchObject({ intents: REUNE_INTENTS });
     expect(result.fontsDetected).toEqual(["Space Grotesk"]);
+  });
+
+  it("encaminha o modelo escolhido para a análise de uma imagem", async () => {
+    vi.spyOn(db, "getBrandProjectById").mockResolvedValueOnce({ id: PROJECT_ID } as any);
+    const artwork = { dna: REUNE_DNA, proposals: REUNE_ARTWORKS };
+    const extract = vi.spyOn(designExtractionModule, "extractDesignFromScreenshot").mockResolvedValueOnce(artwork);
+    const imageDataUrl = createCanvas(64, 64).toDataURL("image/png");
+
+    const result = await callerFor("user").extractDesign({
+      projectId: PROJECT_ID, imageDataUrl, model: "google/gemini-4-neon", version: CREATIVE_DESIGN_EXTRACTION_VERSION,
+    });
+
+    expect(extract).toHaveBeenCalledWith(expect.objectContaining({
+      imageDataUrl, model: "google/gemini-4-neon", version: CREATIVE_DESIGN_EXTRACTION_VERSION,
+    }));
+    expect(result.extraction).toEqual(artwork);
+  });
+
+  it("rejeita modelos fora do seletor antes de iniciar a extração", async () => {
+    const getProject = vi.spyOn(db, "getBrandProjectById");
+    await expect(callerFor("user").extractDesign({
+      projectId: PROJECT_ID,
+      url: "https://example.com/",
+      // @ts-expect-error Exercita a validação de uma entrada externa.
+      model: "openrouter/auto",
+    })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(getProject).not.toHaveBeenCalled();
   });
 
   it("não permite gravar a extração no projeto de outro usuário", async () => {
@@ -77,7 +112,16 @@ describe("templateIngestion: extração de design com destinos separados", () =>
     const json = JSON.stringify(sanitized);
     expect(sanitized.dna.brandName).toBeNull();
     expect(json).not.toMatch(/ReUNE|reune|papelzinho|WhatsApp|amigo secreto/i);
-    expect(sanitized.intents.every(i => i.headline === "{{headline}}")).toBe(true);
+    expect("intents" in sanitized && sanitized.intents.every(i => i.headline === "{{headline}}")).toBe(true);
     expect(sanitized.dna.palette.accent).toBe(REUNE_DNA.palette.accent);
+  });
+
+  it("sanitiza nomes, legendas e textos das propostas de arte para revisão de família", async () => {
+    const { sanitized } = await callerFor("admin", "admin-1").previewOriginalFamilyDraft({
+      extraction: { dna: REUNE_DNA, proposals: REUNE_ARTWORKS },
+    });
+    expect("proposals" in sanitized && sanitized.proposals).toHaveLength(5);
+    expect(JSON.stringify(sanitized)).not.toMatch(/ReUNE|WhatsApp|sorteio/i);
+    expect("proposals" in sanitized && sanitized.proposals[0].texts[0].text).toBe("{{headline}}");
   });
 });

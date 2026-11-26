@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { sessionPlanScope } from "./planImpersonation";
 import { registerBrandCaptureRoutes } from "./brandCaptureRoutes";
 import {installNetworkDiagnostics,withNetworkDiagnosticScope} from "./networkDiagnostics";
 import {registerGenerationStream} from "./generationStream";
@@ -17,7 +18,11 @@ import { registerMembershipRoutes } from "./membershipRoutes";
 import { ENV } from "./env";
 import { startLocalGenerationWorker } from "../ai/workflows/localGenerationWorker";
 import { registerAcervo82ReviewRoutes } from "../designCatalog/acervo82Review";
+import { registerMareEditorEntry } from "./mareEditorEntry";
+import { registerMareJobs } from "../mareJobs";
+import { registerMareCapabilities } from "../mareCapabilities";
 import { registerUserMediaRoutes } from "../mediaAssets";
+import { registerMareRoutes } from "../mareRoutes";
 import {
   appendOperationalLog,
   httpStatusFileLogger,
@@ -60,6 +65,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 installConsoleErrorFileLogging();
 
 const app = express();
+app.use(sessionPlanScope);
 app.use(httpStatusFileLogger);
 
 // ─── Stripe webhook (raw body ANTES do json parser) ───────────────────────────
@@ -138,11 +144,20 @@ registerSupabaseAuthRoutes(app);
 registerMembershipRoutes(app);
 registerGenerationStream(app);
 registerUserMediaRoutes(app);
+registerMareRoutes(app);
+registerMareCapabilities(app);
+registerMareJobs(app);
+registerMareEditorEntry(app);
 registerAcervo82ReviewRoutes(app);
 
 // tRPC API - Support both /api/trpc and /trpc for production robustness
 app.use(
   ["/api/trpc", "/trpc"],
+  (req, res, next) => {
+    res.vary("Cookie");
+    if (req.headers.cookie) res.setHeader("Cache-Control", "private, no-store");
+    next();
+  },
   createExpressMiddleware({
     router: appRouter,
     createContext,

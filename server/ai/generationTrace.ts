@@ -130,6 +130,7 @@ export function buildGenerationDiagnosticSummary(trace: GenerationTrace) {
     ...summarizeGenerationCallCosts(trace.calls),
     ...Object.fromEntries(Object.entries(summary ?? {}).filter(([key]) => [
       "deliveredCount", "failedCount", "cancelledCount", "pendingCount", "completedThree",
+      "trioDeliveryVersion", "completedDistinctThree", "firstDeliveryMs", "thirdDeliveryMs",
       "localNormalizedReviewCount", "localRecoveredProposalCount",
     ].includes(key))),
     costComplete: unknown.length === 0, unknownCostOperations: Array.from(new Set(unknown)),

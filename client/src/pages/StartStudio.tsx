@@ -5,7 +5,7 @@ import type { CanvasPostModel } from "./CanvasLab/components/types";
 import { normalizeCanvasModel } from "./CanvasLab/lib/saveAdapter";
 import PostDownloadDialog from "./CanvasLab/components/PostDownloadDialog";
 
-export default function StartStudio({ archive = false }: { archive?: boolean }) {
+export default function StartStudio({ archive = false, lab = false }: { archive?: boolean; lab?: boolean }) {
   const state = trpc.startPilot.state.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
   const save = trpc.startPilot.save.useMutation();
   const [showDownload, setShowDownload] = useState(false);
@@ -33,7 +33,7 @@ export default function StartStudio({ archive = false }: { archive?: boolean }) 
       {finalized && showDownload && <PostDownloadDialog post={finalized} exportQuality="hd" onClose={() => setShowDownload(false)} />}
     </main>
   );
-  return <StudioAppV2BPage studioPlan="START" startPiece={{
+  return <StudioAppV2BPage studioPlan="START" lab={lab} startPiece={{
     requestId: state.data?.requestId,
     draft: state.data?.draft ? normalizeCanvasModel(state.data.draft as Partial<CanvasPostModel>) : undefined,
     save: async (post, finalize) => {

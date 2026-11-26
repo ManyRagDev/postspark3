@@ -21,6 +21,17 @@ export interface SessionStorageLike {
   removeItem(key: string): void;
 }
 
+/** Keep in-flight admissions independent when comparing studio routes in one tab. */
+export function studioGenerationStorage(storage: SessionStorageLike, selectionStrategy?: string): SessionStorageLike {
+  if (!selectionStrategy) return storage;
+  const keyFor = (key: string) => `${key}.${selectionStrategy}`;
+  return {
+    getItem: key => storage.getItem(keyFor(key)),
+    setItem: (key, value) => storage.setItem(keyFor(key), value),
+    removeItem: key => storage.removeItem(keyFor(key)),
+  };
+}
+
 export function readActiveGenerationRequestId(storage: SessionStorageLike): string | null {
   return storage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY) ?? storage.getItem(LEGACY_ACTIVE_REQUEST_KEY);
 }
@@ -156,6 +167,7 @@ export function messageGenerationProposalFailure(reason?: string, failure?: Gene
     case "source_conflict": return "As fontes divergem sobre uma informação necessária. Confira os dados do briefing.";
     case "review_render_failed": return "Não foi possível preparar as imagens para conferência. A proposta não foi concluída como revisada.";
     case "artwork_unusable": return "O conteúdo não coube com legibilidade no design escolhido.";
+    case "proposal_visual_duplicate": return "As composições compatíveis ficaram parecidas demais com outra proposta.";
     case "execution_failed": return "Não foi possível concluir esta proposta. Use a referência do pedido para diagnóstico.";
     case "provider_route_unavailable": return "O provedor não aceitou a configuração deste pedido. Crie um novo pedido para usar a configuração atual.";
     case "provider_unavailable": return "O serviço de geração está temporariamente indisponível.";

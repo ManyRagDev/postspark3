@@ -13,11 +13,9 @@ Exemplo: gerar uma variacao de post.
 3. O cliente tRPC envia uma requisicao HTTP para o backend.
 4. O Express recebe a requisicao.
 5. O contexto tRPC tenta identificar o usuario.
-6. O router executa a regra de negocio.
-7. O backend pode consultar Supabase, Stripe ou IA.
-8. O backend monta uma resposta.
-9. O frontend recebe a resposta.
-10. A UI atualiza a tela.
+6. `generation.start` valida a admissão e registra o pedido durável e a reserva de Sparks.
+7. A API devolve o identificador do pedido. O executor processa o pedido e registra seu progresso.
+8. O Studio acompanha o progresso e busca as propostas entregues.
 
 ## O que entra
 
@@ -28,8 +26,7 @@ Pode entrar:
 - imagem;
 - modo de criacao;
 - tipo de post;
-- identificador do usuario;
-- dados do plano e saldo.
+- identificador e permissões do usuário, conferidos pelo servidor na sessão.
 
 ## O que sai
 
@@ -61,7 +58,7 @@ Pontos importantes:
 - `client/src/lib/` contem clientes e utilitarios para conversar com backend e Supabase.
 - `server/_core/index.ts` registra rotas e middlewares.
 - `server/_core/context.ts` monta contexto de requisicao.
-- `server/routers.ts` concentra grande parte das regras tRPC.
+- `server/routers.ts` agrega os routers tRPC. `server/routers/generation.ts` define a entrada da geração.
 - `server/db.ts` conversa com Supabase/Postgres.
 
 ## Regra mental

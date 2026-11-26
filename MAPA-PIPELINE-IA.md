@@ -1,5 +1,7 @@
 # Mapa do pipeline de textos do PostSpark
 
+> Mapa da investigação de outubro de 2026. Os pontos de entrada atuais estão no [mapa do motor](./docs/motor-integracao.md).
+
 Investigação de 15/10/2026. Estado: **CAUSA_CONFIRMADA para as perdas de handoff reproduzidas; qualidade geral do produto não homologada por esta investigação**. Nenhuma correção implementada.
 
 ## 1. Recorte e estado observado
@@ -10,7 +12,7 @@ Investigação de 15/10/2026. Estado: **CAUSA_CONFIRMADA para as perdas de hando
 - Skills: `investigador`, `compass-context` e leitura das orientações Supabase para a fronteira de persistência. Compass não está exposto entre as ferramentas desta sessão; foi necessário usar `rg` e leitura dirigida. Nenhuma consulta remota ao Supabase ou chamada nova de IA.
 - Os três arquivos pedidos são as entregas permanentes desta investigação. A suíte também acrescentou registros ao log operacional preexistente; esse efeito colateral foi registrado no diagnóstico e preservado, sem limpeza. Reprodução temporária com dados sintéticos em `/tmp/postspark-pipeline-investigation-20261015/`, com `fetch` bloqueado. Evidências transferíveis e comandos constam no diagnóstico.
 
-Arquivos relacionados: [diagnóstico](</home/many/Documentos/Projetos linux/PostSpark 3/DIAGNOSTICO-QUALIDADE.md>) e [plano de avaliação](</home/many/Documentos/Projetos linux/PostSpark 3/PLANO-AVALIACAO.md>).
+Arquivos relacionados: [diagnóstico](./DIAGNOSTICO-QUALIDADE.md) e [plano de avaliação](./PLANO-AVALIACAO.md).
 
 ## 2. Arquitetura efetivamente conectada
 
@@ -73,7 +75,7 @@ O desenho representa responsabilidades, não agentes autônomos conversando entr
 | Entrega | Store/RPC + `generation.get` | Bundle `complete-design-v1` | Commit e concessão de acesso precedem `ready`; resultado geral pode ser `partial`. |
 | Editor | `materializeCatalogVariationsDetailed` → compilador | `CanvasPostModel` | O cliente compila a cena entregue. Não há nova redação no compilador ativo. Histórico e salvamento preservam o documento do editor. |
 
-Referências: [Studio:300](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/StudioAppV2BPage.tsx:300>), [brief:86](</home/many/Documentos/Projetos linux/PostSpark 3/shared/creationBrief.ts:86>), [admissão:65](</home/many/Documentos/Projetos linux/PostSpark 3/server/routers/generation.ts:65>), [contexto:174](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:174>), [preparação:636](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationPreparation.ts:636>), [fanout:232](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationCoordinator.ts:232>), [workflow:565](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:565>), [cliente:431](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/StudioAppV2BPage.tsx:431>).
+Referências: [Studio:300](./client/src/pages/StudioApp/StudioAppV2BPage.tsx), [brief:86](./shared/creationBrief.ts), [admissão:65](./server/routers/generation.ts), [contexto:174](./server/ai/workflows/generationRuntime.ts), [preparação:636](./server/ai/workflows/generationPreparation.ts), [fanout:232](./server/ai/workflows/generationCoordinator.ts), [workflow:565](./server/ai/workflows/proposalGraph.ts), [cliente:431](./client/src/pages/StudioApp/StudioAppV2BPage.tsx).
 
 ## 3. Entradas, contratos e limites
 
@@ -89,7 +91,7 @@ Referências: [Studio:300](</home/many/Documentos/Projetos linux/PostSpark 3/cli
 | Revisão V7 | Fontes com IDs/hashes, requisitos tipados, copy, unidades/aliases, constraints nativas e pixels de todos os slides | Exige cobertura de unidades/slides/requisitos e evidência consistente. Revisor não recebe o `executionBrief` integral. |
 | Resultado | Bundle com legenda, hashtags e cenas resolvidas, mais diagnóstico/revisões no delivery | `completeDesignVariationV1Schema`, 1–10 slides; cliente não precisa reconsultar o catálogo para redigir ou reconstruir escolhas. |
 
-Fontes: [pedido e brief](</home/many/Documentos/Projetos linux/PostSpark 3/shared/generationRequest.ts:5>), [limite de contexto](</home/many/Documentos/Projetos linux/PostSpark 3/shared/sourceContext.ts:1>), [Jev](</home/many/Documentos/Projetos linux/PostSpark 3/server/designCatalog/designShortlist.ts:176>), [schema de copy](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:190>), [payload do revisor](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalReviewV7.ts:148>), [bundle](</home/many/Documentos/Projetos linux/PostSpark 3/shared/completeDesignGeneration.ts:17>).
+Fontes: [pedido e brief](./shared/generationRequest.ts), [limite de contexto](./shared/sourceContext.ts), [Jev](./server/designCatalog/designShortlist.ts), [schema de copy](./server/ai/workflows/proposalGraph.ts), [payload do revisor](./server/ai/workflows/proposalReviewV7.ts), [bundle](./shared/completeDesignGeneration.ts).
 
 ## 4. Como o DNA da marca realmente circula
 
@@ -108,7 +110,7 @@ Há três representações distintas. Nenhum `BrandDNA` completo é passado de a
 | Paleta/fonte do Kit | Existem no input `BrandKitSummaryInput` | Não são copiados para o `CreationBrief` nem para `brandInput` por esse adaptador | Não chegam desse Kit. |
 | Website | Extraído do texto, primeiro URL | `brandInput.websiteUrl` | Conteúdo extraído vai para fontes, não um DNA estruturado. |
 
-O modal permite editar `brief.audience`, mas esse valor também é descartado na conversão. A UI mostra a fonte do Brand Kit; isso não comprova que ela seja transmitida. Evidências: [conversão:135](</home/many/Documentos/Projetos linux/PostSpark 3/shared/creationBrief.ts:135>), [modal:166](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/components/v2/BriefReviewModal.tsx:166>), [contexto editorial:14](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/editorialContextV7.ts:14>).
+O modal permite editar `brief.audience`, mas esse valor também é descartado na conversão. A UI mostra a fonte do Brand Kit; isso não comprova que ela seja transmitida. Evidências: [conversão:135](./shared/creationBrief.ts), [modal:166](./client/src/pages/StudioApp/components/v2/BriefReviewModal.tsx), [contexto editorial:14](./server/ai/workflows/editorialContextV7.ts).
 
 ### 4.2 URL na criação habitual
 
@@ -124,13 +126,13 @@ Essa projeção inclui marca, setor, proposta de valor, públicos, produtos, dif
 
 Há redução **anterior** ao limite de 24.000 do runtime: análise de site usa até cinco páginas; o scrape normal conserva até 12.000 caracteres por página; `buildEvidence` conserva até 2.500 de corpo, 300 de título e 500 de descrição por página, até 15 evidências. A síntese usa um corte de 28.000 no conjunto formatado. Assim, “fonte integral” na revisão significa a representação recebida pela geração, não todo o website original. Warnings/fallback de síntese não são explicitados em `siteIntelligenceToPrompt`.
 
-Referências: [coleta:99](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteContent.ts:99>), [síntese:117](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteIntelligence.ts:117>), [análise:326](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteIntelligence.ts:326>), [projeção:429](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteIntelligence.ts:429>), [runtime:174](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:174>).
+Referências: [coleta:99](./server/siteContent.ts), [síntese:117](./server/siteIntelligence.ts), [análise:326](./server/siteIntelligence.ts), [projeção:429](./server/siteIntelligence.ts), [runtime:174](./server/ai/workflows/generationRuntime.ts).
 
 ### 4.4 Preservação visual versus instrução textual
 
 Se `brandInput.brandColors/fontHint` forem enviados por outro cliente, o catálogo exige compatibilidade das cores/fontes existentes. Isso é filtragem de designs autorados; não comprova recoloração ou troca automática de fontes. Na redação V7, `executionInstructions` não inclui o bloco completo de `brandInput`; mídia recebe parte dele em `mediaPostContext`/referências. A promessa histórica de um `BrandVisualGuardian` recolorindo toda geração não descreve esse workflow.
 
-Referências: [filtro:86](</home/many/Documentos/Projetos linux/PostSpark 3/server/designCatalog/completeDesignStore.ts:86>), [instruções:310](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:310>), [mídia:429](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:429>).
+Referências: [filtro:86](./server/designCatalog/completeDesignStore.ts), [instruções:310](./server/ai/workflows/proposalGraph.ts), [mídia:429](./server/ai/workflows/proposalGraph.ts).
 
 ## 5. Modelos e prompts efetivos
 
@@ -149,7 +151,7 @@ Os nomes abaixo são strings configuradas no código/`.env` local, não confirma
 
 `OPENROUTER_TEXT_MODEL` é fallback global de configuração para várias rotas; as rotas static/carousel explícitas locais prevalecem. `model='gemini'/'llama'` não troca o modelo quando `taskRoute` já seleciona uma rota específica. A revisão confere que o modelo configurado continua compatível com o pin, podendo recusar retomada se ele mudar.
 
-Fontes: [env:34](</home/many/Documentos/Projetos linux/PostSpark 3/server/_core/env.ts:34>), [roteador:157](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/modelRouter.ts:157>), [políticas:325](</home/many/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:325>), [configuração V7:65](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/reviewExecutionConfigV7.ts:65>).
+Fontes: [env:34](./server/_core/env.ts), [roteador:157](./server/ai/modelRouter.ts), [políticas:325](./server/_core/llm.ts), [configuração V7:65](./server/ai/workflows/reviewExecutionConfigV7.ts).
 
 ### Inventário de prompts
 
@@ -163,7 +165,7 @@ Fontes: [env:34](</home/many/Documentos/Projetos linux/PostSpark 3/server/_core/
 | `postspark.review.v7` | Auditoria independente de fontes e publicação | Gosto e ganho editorial subjetivo são advisory; dano material/requisito pode bloquear. Protocolo completo não prova competência semântica. |
 | Adaptador de schema | Acrescenta JSON Schema ao system prompt | `forceTextSchema=true` transforma o transporte em `json_object`; validação local continua necessária. Não é native strict schema garantido pelo provedor. |
 
-Referências: [brief do seletor:432](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/generationOrchestrator.ts:432>), [seleção:766](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationPreparation.ts:766>), [prompt de copy:847](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:847>), [política criativa:59](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/editorialContextV7.ts:59>), [acabamento](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/editorialGuidance.ts:1>), [revisão](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/reviewExecutionConfigV7.ts:13>), [adaptador:68](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/providers/modelAdapters.ts:68>).
+Referências: [brief do seletor:432](./server/ai/generationOrchestrator.ts), [seleção:766](./server/ai/workflows/generationPreparation.ts), [prompt de copy:847](./server/ai/workflows/proposalGraph.ts), [política criativa:59](./server/ai/workflows/editorialContextV7.ts), [acabamento](./server/ai/workflows/editorialGuidance.ts), [revisão](./server/ai/workflows/reviewExecutionConfigV7.ts), [adaptador:68](./server/ai/providers/modelAdapters.ts).
 
 ## 6. Fallbacks, recuperação e custo de chamadas
 
@@ -177,7 +179,7 @@ Referências: [brief do seletor:432](</home/many/Documentos/Projetos linux/PostS
 
 Sem mídia e sem recuperação: **1 seleção + 3 copies + 3 revisões = 7 chamadas** de chat, mais os lotes Jev quando necessários. Em uma proposta, o limite estrutural é 1 copy inicial + até 1 recuperação de copy + até 3 avaliações/reparo/recheck. Falhas podem interromper antes. O número de imagens é adicional e depende dos slots; não foi medido custo novo nesta investigação.
 
-Fontes: [runtime:423](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:423>), [retries/fallback:881](</home/many/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:881>), [copy recovery:1024](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1024>), [review recovery:1499](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1499>), [journal](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalReviewJournal.ts:1>), [fallback local](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/lib/studioGeneration.ts:240>).
+Fontes: [runtime:423](./server/ai/workflows/generationRuntime.ts), [retries/fallback:881](./server/_core/llm.ts), [copy recovery:1024](./server/ai/workflows/proposalGraph.ts), [review recovery:1499](./server/ai/workflows/proposalGraph.ts), [journal](./server/ai/workflows/proposalReviewJournal.ts), [fallback local](./client/src/pages/StudioApp/lib/studioGeneration.ts).
 
 ## 7. Persistência, observabilidade e fronteiras externas
 
@@ -187,7 +189,7 @@ Fontes: [runtime:423](</home/many/Documentos/Projetos linux/PostSpark 3/server/a
 - Integrações: Supabase Auth/cookie bridge na admissão; Supabase/Postgres e assets privados no estado/entrega; OpenRouter na classificação/redação/revisão; coleta HTTP de site; geração de imagens conforme slots; Chromium e fontes no renderer. Stripe mantém o contexto comercial de planos, sem uma nova chamada Stripe por etapa de copy.
 - Não foram consultados dados remotos, RLS, saldo real, worker implantado ou configurações de produção. **RLS não verificada**. Testes locais usam mocks/fixtures e PGlite descartável.
 
-Fontes: [store](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationStore.ts:244>), [journal/trace](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationJournalTrace.ts:34>), [telemetria](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/generationTrace.ts:193>).
+Fontes: [store](./server/ai/workflows/generationStore.ts), [journal/trace](./server/ai/workflows/generationJournalTrace.ts), [telemetria](./server/ai/generationTrace.ts).
 
 ## 8. Código histórico que não constitui o pipeline atual
 
@@ -195,6 +197,6 @@ Fontes: [store](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/work
 
 As políticas V5/V6 de revisão e o plano narrativo antigo são despachados para pedidos históricos conforme versão pinada. Novas preparações usam `preparationVersion=3`, `reviewPolicyVersion=7`, sem `editorialPlan`. `Home/HoloDeck/WorkbenchV2` permanecem legado sem rota montada. O endpoint visual `post.autoPilotDesign` é ajuste de geometria, não redator do texto inicial.
 
-Referências: [aposentadoria de post.generate](</home/many/Documentos/Projetos linux/PostSpark 3/server/routers.ts:266>), [dispatch de revisão](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalReview.ts:272>), [sem plano V7](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:700>).
+Referências: [aposentadoria de post.generate](./server/routers.ts), [dispatch de revisão](./server/ai/workflows/proposalReview.ts), [sem plano V7](./server/ai/workflows/proposalGraph.ts).
 
 Documento-mestre **revisado, não alterado**: a skill de investigação restringe a escrita aos diagnósticos/evidências. As descobertas permanentes estão registradas aqui e no diagnóstico para incorporação posterior, sem mexer no documento já modificado no checkout.

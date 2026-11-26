@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { chromium } from "playwright-core";
-import { openCheckout } from "./lab-browser.mjs";
+import { openCheckout, mockEditApi } from "./lab-browser.mjs";
 
 async function pageFor(t, options) {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_EXECUTABLE_PATH });
@@ -830,6 +830,10 @@ test("os seis comandos de vídeo falado reproduzem as propostas do painel com tr
       { background: "original", color: "#123456" },
     ],
   ];
+  await mockEditApi(page, text => {
+    const [,id,params]=cases.find(([request]) => request === text);
+    return [{id,...params}];
+  });
   await page.evaluate(async cases => {
     const e = editor;
     const { TALK_DEFAULTS } = await import("./speech-model.js");
@@ -891,13 +895,13 @@ test("a abertura de animação e vídeo, os atalhos e o catálogo cobrem a super
       ["view.animation", "motion-mode edit-scene"],
       ["project.save", "save"],
       ["export.video", "export"],
-      ["query.templates", "start-templates animation-catalog starter-template"],
+      ["query.templates", "animation-catalog starter-template"],
       ["project.animation", "start-blank new-art"],
-      ["view.home", "open-start start-continue"],
-      ["project.open", "start-open unpack project-file"],
-      ["project.fromVideo", "start-video new-video first-video"],
-      ["asset.stock", "start-stock-library stock-library"],
-      ["project.example", "start-demo reset"],
+      ["view.home", "open-start start-continue start-back"],
+      ["project.open", "start-open unpack project-file start-file start-legacy account-projects"],
+      ["project.fromVideo", "new-video first-video"],
+      ["asset.stock", "stock-library"],
+      ["project.example", "reset"],
       ["history.undo", "undo"],
       ["history.redo", "redo"],
       ["composition.create", "menu-composition create-composition"],
@@ -928,7 +932,9 @@ test("a abertura de animação e vídeo, os atalhos e o catálogo cobrem a super
     const permanent = Array.from(source.querySelectorAll("button,a,input,select,textarea")).map(
       el => el.id || (el.dataset.filter ? "filter:" + el.dataset.filter : "panel:" + el.dataset.panel)
     );
-    equal(groups.flatMap(([, ids]) => ids.split(" ")).sort(), permanent.sort(), "inventário da interface");
+    // The account return and responsive layout controls belong to the host UI.
+    const hostControls = ["send-postspark", "start-return", "context-view", "advanced-view", "mobile-fine"];
+    equal([...hostControls, ...groups.flatMap(([, ids]) => ids.split(" "))].sort(), permanent.sort(), "inventário da interface");
     const catalog = e.catalog().map(s => s.id);
     for (const [cmd, ids] of groups) {
       if (

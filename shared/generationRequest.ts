@@ -4,6 +4,8 @@ import { z } from "zod";
 import { generationProjectSnapshotSchema } from "./projectEditorial";
 import { generationModelSchema } from "./generationModel";
 
+export const STUDIO_SELECTION_STRATEGY = "editorial_v1";
+
 /** Shared by the batch and orchestrated endpoints; execution controls cannot drift. */
 export const executionBriefSchema = z
   .object({
@@ -112,6 +114,8 @@ export const orchestratedGenerationInputSchema = z
     ownerId: z.string().uuid(),
     /** Server-pinned; API admission discards client policy overrides. Absent means legacy. */
     selectionPolicy: z.enum(["legacy", "capability_v1"]).optional(),
+    /** Older persisted requests may have no strategy. Admission pins it for new requests. */
+    selectionStrategy: z.literal(STUDIO_SELECTION_STRATEGY).optional(),
     inputType: z.enum(["text", "url", "image"]),
     sources: z.array(generationSourceSchema).max(8).optional(),
     content: z.string().min(1).max(24000),
@@ -135,15 +139,29 @@ export const orchestratedGenerationInputSchema = z
     projectId: z.string().max(64).optional(),
     fixedDesign: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("showcase"), id: z.string().max(80) }).strict(),
-      z.object({ kind: z.literal("project"), id: z.string().uuid() }).strict(),
+      z.object({
+        kind: z.literal("project"),
+        id: z.string().uuid(),
+        postId: z.number().int().positive().optional(),
+      }).strict(),
       z.object({ kind: z.literal("identity"), id: z.string().uuid() }).strict(),
     ]).optional(),
+    artworkCarousel: z.object({
+      confirmedSparks: z.number().int().min(0).max(99_999),
+    }).strict().optional(),
     projectDossier: z.string().max(24000).optional(),
     projectSnapshot: generationProjectSnapshotSchema.optional(),
     idempotencyKey: z.string().min(1).max(128),
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.artworkCarousel && (
+      v.fixedDesign?.kind !== "project" || v.fixedDesign.postId === undefined ||
+      v.postMode !== "carousel" || !v.slideCount || !v.executionBrief ||
+      v.generationParentRequestId
+    )) {
+      ctx.addIssue({ code: "custom", path: ["artworkCarousel"], message: "Confirme o briefing do carrossel e selecione uma arte para a capa." });
+    }
     if(v.inputType==="image"&&!v.imageUrl&&!v.sources?.some(s=>s.kind==="image"&&s.purpose==="content"))ctx.addIssue({code:"custom",path:["imageUrl"],message:"Inclua a imagem fonte do pedido."});
     if (v.creationMode === "execution" && !v.executionBrief)
       ctx.addIssue({

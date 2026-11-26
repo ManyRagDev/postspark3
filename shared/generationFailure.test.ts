@@ -51,6 +51,13 @@ describe("generationFailure taxonomy", () => {
     expect(classifyGenerationError(new Error("variations are not sufficiently distinct"))).toBe("variations_not_distinct");
   });
 
+  it("classifies TRPC concurrent limit and catalog precondition codes regardless of message language", () => {
+    expect(classifyGenerationError({ data: { code: "TOO_MANY_REQUESTS" }, message: "Aguarde seus pedidos em andamento antes de iniciar outro." })).toBe("concurrent_limit_reached");
+    expect(classifyGenerationError({ shape: { data: { code: "PRECONDITION_FAILED" } }, message: "Não foi possível confirmar composições completas compatíveis." })).toBe("catalog_precondition_failed");
+    expect(isRetryable("concurrent_limit_reached")).toBe(true);
+    expect(isRetryable("catalog_precondition_failed")).toBe(false);
+  });
+
   it("falls back to unknown", () => {
     expect(classifyGenerationError(new Error("something bizarre"))).toBe("unknown");
   });

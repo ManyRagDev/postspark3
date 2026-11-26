@@ -4,10 +4,10 @@
 
 Este documento descreve o design system observado no codigo atual do PostSpark. Ele cobre duas camadas diferentes:
 
-1. **Interface do produto**: telas, paineis, botoes, inputs, modais, editor e fluxos `TheVoid -> HoloDeck -> WorkbenchV2`.
+1. **Interface do produto**: telas, paineis, botoes, inputs, modais, editor e fluxos criação, galeria e edição no Studio.
 2. **Sistema visual dos posts gerados**: `DesignTokens`, presets de tema, renderer unico e regras de composicao usadas no preview, edicao e exportacao.
 
-Fonte primaria: codigo em `client/src`, contratos em `shared/postspark.ts` e regras em `client/src/lib/designRules.ts`. O arquivo historico `guia_design.md` continua util como referencia conceitual de composicao de posts, mas nao e a fonte principal da UI do app.
+Consulte o código do [Studio](../client/src/pages/StudioApp/) e do [CanvasLab](../client/src/pages/CanvasLab/) para alterar a interface.
 
 ## 2. Principios Visuais
 
@@ -17,9 +17,9 @@ Principios ativos:
 
 - **Dark-only por padrao**: `App.tsx` monta `ThemeProvider defaultTheme="dark"` e nao habilita alternancia.
 - **Glassmorphism funcional**: paineis e barras usam blur, borda branca translucida e inset highlight.
-- **Acento contextual**: muitas telas herdam a cor ativa do post, tema ou modo (`accentColor`), principalmente HoloDeck e Workbench.
+- **Acento contextual**: muitas telas herdam a cor ativa do post, tema ou modo (`accentColor`), em superfícies de galeria e edição.
 - **Movimento como feedback**: Framer Motion sinaliza foco, selecao, progresso, swipe, loading e transicoes de estado.
-- **Renderer unico**: preview, edicao e exportacao devem passar por `PostRenderer` e `PostCardV2`, evitando divergencia visual entre etapas.
+- **Renderização do editor.** Prévia, edição e exportação do CanvasLab compartilham o modelo e o palco Konva.
 
 ## 3. Fundacoes Tecnicas
 
@@ -30,9 +30,9 @@ Arquivos principais:
 - `client/src/contexts/ThemeContext.tsx`: aplica classe `.dark` quando o tema ativo e dark.
 - `client/src/lib/themes.ts`: presets visuais e ponte `ThemeConfig -> DesignTokens`.
 - `shared/postspark.ts`: contrato `DesignTokens`, `AspectRatio` e constantes compartilhadas.
-- `client/src/components/PostRenderer.tsx`: entrada unica de renderizacao visual de posts.
+- `client/src/components/PostRenderer.tsx`: renderização de cards de compatibilidade.
 - `client/src/components/ThemeRenderer.tsx`: aplica `ThemeConfig` ou `DesignTokens` ao canvas/card do post.
-- `client/src/components/views/WorkbenchV2/PostCardV2.tsx`: renderizador efetivo do post ativo.
+- `client/src/components/views/WorkbenchV2/PostCardV2.tsx`: card ainda usado em `/familias`.
 
 Stack visual:
 
@@ -41,7 +41,7 @@ Stack visual:
 - Radix/shadcn como base para componentes acessiveis.
 - `lucide-react` para icones.
 - Framer Motion para interacoes e transicoes.
-- `html2canvas-pro` para exportacao.
+- Konva na prévia e exportação do CanvasLab.
 
 ## 4. Tokens Globais da UI
 
@@ -164,74 +164,12 @@ Base: `bg-card`, `text-card-foreground`, `rounded-xl`, `border`, `py-6`, `shadow
 - `PostModeSelector`: seletor de post estatico/carrossel.
 - `FontDropdown`: selecao de fonte.
 - `CaptionPreview`: preview de legenda.
-- `CollapsibleSection`: secao expansivel usada no Workbench.
 
-## 7. Layouts do Produto
+## 7. Layouts do produto
 
-### TheVoid
-
-Arquivo: `client/src/components/views/TheVoid.tsx`.
-
-Funcao: entrada principal do fluxo autenticado.
-
-Padroes:
-
-- tela full-screen fixa;
-- fundo `oklch(0.04 0.06 280)`;
-- `OrganicBackground` reagindo ao modo ou tom detectado;
-- `SparkLogo` com glow;
-- `SmartInput` como ponto focal;
-- progresso de geracao em dock discreto com trilho fino;
-- reducao de performance em mobile.
-
-### SmartInput
-
-Arquivo: `client/src/components/SmartInput.tsx`.
-
-Funcao: entrada multimodal e seletor de modo.
-
-Estados visuais:
-
-- texto: Thermal Orange;
-- URL: Cyber Cyan;
-- imagem: Void Purple;
-- execution/briefing: acento dourado quente.
-
-O componente combina textarea, controles segmentados, menu de modo de post e botao de submit iconico. Mantenha o submit como botao quadrado com `ArrowRight`/`Loader2`; nao substitua por CTA textual grande.
-
-### HoloDeck
-
-Arquivo: `client/src/components/views/HoloDeck.tsx`.
-
-Funcao: selecao de variacoes geradas.
-
-Padroes:
-
-- fundo dark com `OrganicBackground`, grain e glow radial baseado no `accentColor` da variacao ativa;
-- modos `peek` e `wallet`;
-- cards sempre via `PostRenderer`;
-- action bar glass com tres comandos: sintetizar visual, selecionar, estilo visual;
-- sidebar desktop para estilos extraidos, presets e variacoes;
-- mobile com cards empilhados/swipe.
-
-### WorkbenchV2
-
-Arquivos:
-
-- `client/src/components/views/WorkbenchV2/WorkbenchV2.tsx`
-- `client/src/components/views/WorkbenchV2/CanvasWorkspace.tsx`
-- `client/src/components/views/WorkbenchV2/blocks/*.tsx`
-
-Funcao: editor ativo.
-
-Padroes:
-
-- desktop em tres areas: sidebar esquerda, canvas central, painel direito;
-- topbar de 48px;
-- sidebars com `--bg-panel` fallback `rgba(18,18,28,0.95)`;
-- canvas central com `OrganicBackground`, glow radial e grain;
-- card logico de 360px escalado conforme viewport;
-- mobile com bottom nav e `MobileEditSheet`.
+- **Criação.** `/thevoid` e `/studio` montam [StudioAppV2BPage](../client/src/pages/StudioApp/StudioAppV2BPage.tsx). [StudioCreateViewV2B](../client/src/pages/StudioApp/components/v2/StudioCreateViewV2B.tsx) recebe o briefing, a URL ou a imagem.
+- **Galeria.** A escolha de propostas usa [StudioGalleryView](../client/src/pages/StudioApp/components/StudioGalleryView.tsx) no desktop e [StudioMobileFlashcards](../client/src/pages/StudioApp/components/StudioMobileFlashcards.tsx) no mobile.
+- **Editor.** [CanvasLabPage](../client/src/pages/CanvasLab/CanvasLabPage.tsx) concentra a edição do `CanvasPostModel`. [CanvasPostStage](../client/src/pages/CanvasLab/components/CanvasPostStage.tsx) desenha a prancheta com Konva.
 
 ## 8. Sistema Visual dos Posts
 
@@ -328,7 +266,7 @@ Contratos:
 
 Definidos em `shared/postspark.ts` por `AspectRatio`, `ASPECT_RATIO_VALUES` e `ASPECT_RATIO_LABELS`.
 
-No Workbench, o canvas usa largura logica base de 360px e escala responsivamente para caber no viewport. Nao altere tamanhos internos do post apenas para caber na tela; ajuste o wrapper/escala.
+No CanvasLab, o viewport escala a prancheta do documento. Preserve as coordenadas do modelo ao ajustar o zoom da interface.
 
 Exportacao:
 
@@ -353,7 +291,7 @@ Regra: UI do app usa `Inter`/`Space Grotesk`; fontes dinamicas devem afetar o po
 
 ## 11. Regras de Qualidade Visual
 
-Arquivo: `client/src/lib/designRules.ts`.
+O editor audita contraste e legibilidade em [contrast.ts](../client/src/pages/CanvasLab/lib/contrast.ts).
 
 Regras implementadas:
 
@@ -435,6 +373,6 @@ Checklist:
 
 - `--bg-panel` e `--accent-primary` sao usados em alguns componentes como variaveis com fallback, mas nao aparecem definidos globalmente em `index.css`.
 - O `ThemeContext` suporta light/dark, mas a aplicacao usa dark-only na pratica.
-- Existem tokens legados e novos coexistindo em `index.css`; alguns nomes de "Captain/Architect" sobrevivem mesmo com WorkbenchV2 mais simplificado.
+- Existem tokens legados e novos coexistindo em `index.css`; alguns nomes de "Captain/Architect" permanecem por compatibilidade com estilos anteriores.
 - `guia_design.md` e util para principios de posts, mas nao documenta o design system real da UI atual.
 

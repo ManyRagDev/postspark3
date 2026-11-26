@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { THEVOID_LAB_PATH } from "@/lib/studioRoutes";
 import {
   Clock,
   CheckCircle2,
@@ -124,7 +125,7 @@ function filterByTime(generations: any[], timeFilter: TimeFilter): any[] {
   });
 }
 
-export default function History() {
+export default function History({ lab = false }: { lab?: boolean } = {}) {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const [restoring, setRestoring] = useState<string | null>(null);
@@ -183,7 +184,7 @@ export default function History() {
       }
 
       // Etapa 2 §7.5 — contrato versionado único: History → Studio ativo.
-      // O Studio oficial (StudioAppV2BPage) lê `postspark.restore_generation`
+      // O Studio (StudioAppV2BPage) lê `postspark.restore_generation`
       // e reconstrói as variações no fluxo create → gallery → editor.
       sessionStorage.setItem(
         "postspark.restore_generation",
@@ -199,7 +200,7 @@ export default function History() {
       );
 
       toast.success("Geração restaurada! Você pode editar as variações.");
-      setLocation("/thevoid");
+      setLocation(lab ? THEVOID_LAB_PATH : "/thevoid");
     } catch (error) {
       console.error("[History] Failed to restore generation:", error);
       toast.error("Falha ao restaurar geração.");

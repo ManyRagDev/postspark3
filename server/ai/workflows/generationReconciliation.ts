@@ -1,4 +1,4 @@
-import { capabilityGenerationIntentSchema, compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema } from "@shared/compactGenerationIntent";
+import { capabilityGenerationIntentSchema, compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema, structuralGenerationIntentSchema } from "@shared/compactGenerationIntent";
 import { resolveGenerationTaskModel } from "../generationModel";
 import { arsenalHash } from "@shared/arsenalContent";
 import { ENV } from "../../_core/env";
@@ -18,6 +18,7 @@ import { reviewDurableContextV5Schema } from "@shared/proposalReviewV10";
 import { preparationExpectationSchema, preparationReceipt } from "@shared/generationPreparationReceipt";
 import { adaptRequestForProvider } from "../providers/modelAdapters";
 import { generationEditorialIntentSchema, generationIntentLegacySchema, generationPlanResponseSchema } from "@shared/generationPlan";
+import { editorialAssessmentSchema } from "./editorialDesignSelection";
 import { z } from "zod";
 type Recovered = {
   id: string;
@@ -36,7 +37,7 @@ export function validateRecoveredPreparation(record: RequestRecord, operation: G
       arsenalHash(recovered.messages) !== expectation.messagesHash || !recovered.id ||
       !recovered.completion.trim() || recovered.completion.length > 500_000)
     throw new Error("Recovered preparation identity mismatch");
-  const schemas = operation.operationKey === "prepare:intent"
+  const legacySchemas = operation.operationKey === "prepare:intent"
     ? record.input?.selectionPolicy === "capability_v1" ? [!record.generationConfig.taskRouting && record.generationConfig.editorialIntentVersion === 1 ? capabilityGenerationIntentSchema.required({ editorial: true }) : capabilityGenerationIntentSchema] : record.generationConfig.taskRouting ? [compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema] : record.generationConfig.editorialIntentVersion === 1
       ? [generationEditorialIntentSchema]
       : [
@@ -45,7 +46,10 @@ export function validateRecoveredPreparation(record: RequestRecord, operation: G
           // their original shape, including the absence of editorial metadata.
           generationIntentLegacySchema.extend({ requirements: generationIntentLegacySchema.shape.requirements.element.omit({ kind: true }).array().max(50) }),
         ]
-    : [generationPlanResponseSchema];
+    : record.input?.selectionStrategy === "editorial_v1" ? [editorialAssessmentSchema] : [generationPlanResponseSchema];
+  const schemas = operation.operationKey === "prepare:intent" && record.input?.selectionPolicy !== "capability_v1" &&
+    (record.generationConfig.taskRouting || record.input?.selectionStrategy === "editorial_v1")
+    ? [structuralGenerationIntentSchema, ...legacySchemas] : legacySchemas;
   const responseFormat = schemas.map(candidate => {
     const schema = z.toJSONSchema(candidate);
     delete schema.$schema;

@@ -1,8 +1,10 @@
 # Diagnóstico da qualidade textual e dos handoffs
 
+> Registro da investigação de 15/10/2026. Para localizar o pipeline atual, consulte o [mapa do motor](./docs/motor-integracao.md).
+
 15/10/2026 — investigação sem correções. Estado geral: **CAUSA_CONFIRMADA para perdas específicas de dados; HIPOTESE para sua contribuição quantitativa à qualidade final**. Não foi fornecido um texto problemático novo nem uma expectativa editorial única pelo usuário; o pedido é auditar o pipeline. Não se presume que toda saída atual esteja ruim.
 
-O [mapa](</home/many/Documentos/Projetos linux/PostSpark 3/MAPA-PIPELINE-IA.md>) identifica o caminho ativo; o [plano de avaliação](</home/many/Documentos/Projetos linux/PostSpark 3/PLANO-AVALIACAO.md>) define como medir as consequências ainda não demonstradas.
+O [mapa](./MAPA-PIPELINE-IA.md) identifica o caminho ativo; o [plano de avaliação](./PLANO-AVALIACAO.md) define como medir as consequências ainda não demonstradas.
 
 ## 1. Conclusão sustentada
 
@@ -31,7 +33,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 - Ação: criar um briefing com Brand Kit contendo tom, público, essência, fonte, paleta, termos obrigatórios e proibidos; converter pelo mesmo adaptador usado no Studio.
 - Esperado na fronteira: informação disponível ao usuário e incorporada ao briefing local continuar disponível para orientar a geração. Isso é critério de integridade do handoff, não exigência de repetir esses campos na arte.
 - Observado: `interpretRawBriefing` retém `audience` e `brandEssence`. `creationBriefToExecutionBrief` não os copia. O schema do backend também não oferece campos próprios equivalentes. Paleta e fonte do Kit nem chegam ao `CreationBrief`; o tipo de entrada as aceita, mas o parser não as usa.
-- Primeira divergência: [shared/creationBrief.ts:135](</home/many/Documentos/Projetos linux/PostSpark 3/shared/creationBrief.ts:135>) para público/essência; [shared/creationBrief.ts:104](</home/many/Documentos/Projetos linux/PostSpark 3/shared/creationBrief.ts:104>) para paleta/fonte.
+- Primeira divergência: [shared/creationBrief.ts:135](./shared/creationBrief.ts) para público/essência; [shared/creationBrief.ts:104](./shared/creationBrief.ts) para paleta/fonte.
 - Cadeia: Brand Kit → brief local enriquecido → adaptador parcial → servidor/redator sem público/essência. O modal permite editar público, reforçando a divergência observável entre edição e envio.
 - Contraprova: tom e termos obrigatórios/proibidos **são** transmitidos. Texto bruto/notas que contenham público/essência manualmente podem suprir parte da ausência; não tornam o transporte estruturado íntegro.
 - Experimento diferenciador: mesmo pedido, com e sem público/essência explicitamente inseridos no texto, avaliação cega de adequação. Ainda não realizado com LLM.
@@ -44,7 +46,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 - `generationPreparation` carrega e guarda `contextContent`; o Jev recebe `sourceEvidence` quando essa fonte não está no briefing.
 - O seletor final recebe `brief=buildUserPrompt(...)`. Quando há `executionBrief`, o helper constrói o texto apenas do brief e ignora `contextContent` e o `request.content` complementar. O JSON do seletor não acrescenta a fonte em outro campo.
 - Resultado sintético: `shortlistContainsSource=true`, `selectionContainsSource=false`, `preparedPreservesSource=true`. A fonte não foi destruída no runtime; foi omitida **nesta chamada**. No caso <=12 ofertas, nem há pré-seleção Jev para fornecer uma nota baseada nela.
-- Primeira divergência: [buildUserPrompt:439](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/generationOrchestrator.ts:439>); consumidor [generationPreparation:776](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationPreparation.ts:776>).
+- Primeira divergência: [buildUserPrompt:439](./server/ai/generationOrchestrator.ts); consumidor [generationPreparation:776](./server/ai/workflows/generationPreparation.ts).
 - Cadeia possível: URL/snapshot traz mecanismo/limite adicional → seletor não o vê → escolhe design com pouca capacidade explicativa → redator recebe a fonte completa somente depois da escolha. Esse último efeito é **hipótese**, não foi reproduzido com escolha semântica real nesta investigação.
 - Contraprova: redator inclui `contextContent` explicitamente; não se sustenta afirmar que a copy nunca recebe a fonte. Jev e perfis também podem indiretamente favorecer designs adequados; isso não restitui a fonte ao seletor.
 - Correção mínima sugerida: usar a mesma representação de contexto na seleção e na redação, respeitando orçamento. Regressão: capturar payload real dos dois caminhos, com/sem Jev e com perfis v2, e verificar a condição sentinela e a instrução complementar.
@@ -55,7 +57,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 
 - O redator recebe `executionBrief.tone`. `editorialContextV7` projeta fontes, requisitos e apenas objetivo/CTA/intervenção/slides em `instructions`; não projeta tom, público, essência ou plataforma. `reviewData` não adiciona o brief completo.
 - Reprodução do workflow: `copyHasTone=true`, `reviewHasTone=false`; uma copy e uma revisão controladas terminaram `ready`. Esse `ready` foi produzido por fixture saudável, **não demonstra** que um modelo real aprovaria violação de tom.
-- Primeira divergência: [editorialContextV7:47](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/editorialContextV7.ts:47>); [payload de revisão:148](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalReviewV7.ts:148>).
+- Primeira divergência: [editorialContextV7:47](./server/ai/workflows/editorialContextV7.ts); [payload de revisão:148](./server/ai/workflows/proposalReviewV7.ts).
 - Limite importante: a revisão atual se destina à materialidade/fidelidade, não a maximizar voz e acabamento. Falta de um placar editorial é uma lacuna de avaliação; não justifica promover toda preferência de tom a veto fatal.
 - Contraprova: tom escrito no rawInput/notas chega como fonte; um requisito explícito em `contentRequirements` pode criar obrigação verificável. O achado se refere ao campo estruturado isolado.
 - Correção mínima sugerida: tornar o contexto relevante observável ao avaliador apropriado, com separação entre requisitos e preferências. Regressão: tom sentinela somente no campo do Kit; conferir presença e classificação adequada, sem bloquear gosto arbitrário.
@@ -66,7 +68,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 
 - Primeira criação do Studio usa `inputType=url` quando o texto começa em HTTP(S), ou `brandInput.websiteUrl` extraído do texto. O runtime faz scrape legível. Não chama análise semântica ou visual de marca.
 - `siteIntelligenceId` é aceito pela API e carrega snapshot com DNA, mas a primeira criação não o obtém; o campo no Studio vem de `previousInput` quando disponível. A existência de `site.analyze`/`extractBrandDNA` separados não comprova conexão automática a essa geração.
-- Fontes: [Studio:320](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/StudioAppV2BPage.tsx:320>), [runtime:178](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:178>), [análise separada:326](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteIntelligence.ts:326>).
+- Fontes: [Studio:320](./client/src/pages/StudioApp/StudioAppV2BPage.tsx), [runtime:178](./server/ai/workflows/generationRuntime.ts), [análise separada:326](./server/siteIntelligence.ts).
 - Contraprova: texto do site pode permitir ao redator inferir voz/contexto; o Brand Kit fornece tom. Isso não equivale à transmissão do DNA sintetizado.
 - Correção mínima sugerida: alinhar o fluxo/contrato de marca ao comportamento desejado e expor qual evidência foi usada. Experimento: comparar scrape versus snapshot do mesmo site congelado, sem misturar alteração de modelo/prompt/catálogo.
 
@@ -76,7 +78,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 
 - `buildUserPrompt` pode criar partes multimodais para `inputType=image`; a preparação as insere dentro de `JSON.stringify({brief,...})` enviado como uma string. `hasMultimodalContent` confirma que a mensagem resultante não é multimodal. Jev extrai somente texto.
 - O runtime passa `referenceImages` ao workflow; elas são usadas como referências de mídia, não anexadas às mensagens de copy. O revisor vê pixels dos posts gerados, não a imagem-fonte original por esse campo. A sonda confirmou ausência da URL sentinela em ambas as mensagens.
-- Fontes: [helper:448](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/generationOrchestrator.ts:448>), [seleção:776](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationPreparation.ts:776>), [referências no runtime:469](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:469>), [copy:847](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:847>).
+- Fontes: [helper:448](./server/ai/generationOrchestrator.ts), [seleção:776](./server/ai/workflows/generationPreparation.ts), [referências no runtime:469](./server/ai/workflows/generationRuntime.ts), [copy:847](./server/ai/workflows/proposalGraph.ts).
 - Limites: ramo aceito pela API; a primeira criação do Studio examinada só constrói text/url. Não se demonstrou falha de OCR de um upload real. Referência visual para composição não precisa ser fonte factual em todos os pedidos.
 - Correção mínima sugerida: explicitar a função da imagem e preservar pixels ou extração verificável quando a tarefa depender de seu conteúdo. Regressão: texto exclusivo em imagem sintética, sem transcrição no briefing; verificar o transporte ao consumidor autorizado antes de medir a resposta.
 
@@ -87,7 +89,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 - `collectSiteContent/buildEvidence`: até cinco páginas, corpo até 2.500 caracteres por evidência, título 300, descrição 500; scrape normal até 12.000/página. Síntese formata evidências e aplica corte de 28.000. O limite estrito de 24.000 da geração acontece depois dessas reduções.
 - `siteIntelligenceToPrompt` não transmite warnings/qualidade de fallback; o runtime remove IDs/sourceUrl individuais ao concatenar `[kind] text`. `sourceReferences` não é preenchido. O revisor pode citar o contexto composto, mas não recebe sua proveniência fina estruturada.
 - O mesmo bloco contém instruções como “fonte unica”, âncoras obrigatórias, “sem copiar frases literalmente” e cores mandatórias; é inserido como contexto factual. A política V7 determina que fontes são dados e que instrução do usuário prevalece. Há uma colisão **condicional de linguagem de autoridade**; não se observou obediência incorreta a ela por uma LLM nesta investigação.
-- Fontes: [siteContent:99](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteContent.ts:99>), [synthesis:120](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteIntelligence.ts:120>), [projeção:429](</home/many/Documentos/Projetos linux/PostSpark 3/server/siteIntelligence.ts:429>), [runtime:183](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:183>).
+- Fontes: [siteContent:99](./server/siteContent.ts), [synthesis:120](./server/siteIntelligence.ts), [projeção:429](./server/siteIntelligence.ts), [runtime:183](./server/ai/workflows/generationRuntime.ts).
 - Correção mínima sugerida: manter origem/estado da síntese e separar fatos de regras; não retirar cortes sem orçamento. Regressão: condição essencial no fim da página e conflito explícito usuário/site, conferindo qual texto efetivamente chegou, não só se o parecer declarou “fonte completa”.
 
 ### C7 — Limites de diversidade e de recuperação são reais, mas não provam copy ruim
@@ -98,7 +100,7 @@ Não houve consulta/escrita remota, geração paga nova, alteração de produç�
 - A diversidade determinística trabalha famílias/semelhança/recência visual. Não demonstra ângulos textuais distintos. Poucos fatos podem legitimamente sustentar a mesma mensagem em designs diferentes; não se recomenda exigir três teses novas à força.
 - Uma recuperação de copy é compartilhada entre encaixe técnico e correção editorial. Um overflow que a consuma pode deixar a proposta sem recuperação posterior. Tests cobrem esse limite; não foi medida sua frequência atual.
 - A instrução de gosto do cliente pede “EXATAMENTE UMA” variação da família declarada, enquanto o seletor usa catálogo finito e diversidade preferencial. Em execution, o texto complementar nem entra no `brief` do seletor (C2), mas volta a aparecer na copy, quando o design já é imutável. Não foi reproduzida escolha de família errada por modelo real.
-- Fontes: [fanout:144](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationCoordinator.ts:144>), [gerar mais:324](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/StudioAppV2BPage.tsx:324>), [gosto:226](</home/many/Documentos/Projetos linux/PostSpark 3/client/src/pages/StudioApp/lib/studioGeneration.ts:226>), [recuperação:1499](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1499>).
+- Fontes: [fanout:144](./server/ai/workflows/generationCoordinator.ts), [gerar mais:324](./client/src/pages/StudioApp/StudioAppV2BPage.tsx), [gosto:226](./client/src/pages/StudioApp/lib/studioGeneration.ts), [recuperação:1499](./server/ai/workflows/proposalGraph.ts).
 - Próximo experimento: repetição intra/interpedido com dados congelados, separando semelhança legítima de conteúdo de repetição vazia; registrar motivo que consumiu a recuperação. Nenhum novo agente é necessário para demonstrar o problema.
 
 ## 4. Conflitos e aparentes conflitos
@@ -135,7 +137,7 @@ Avaliação exploratória do agente, não cega, sem painel humano. Foram lidos t
 
 ### Amostra V7 disponível: Já Comprei
 
-Fonte: aplicativo mobile que transforma nota fiscal **ou** lista digitada/ditada em receitas por IA, combinando itens comprados; funcionamento em passos simples. Amostra do harness anterior, em [live-results.json](</home/many/Documentos/Projetos linux/PostSpark 3/artifacts/verification/editorial-finish-2026-10-14/live-results.json>), com entrada verificável em [evidence.json](</home/many/Documentos/Projetos linux/PostSpark 3/artifacts/verification/carousel-latest-audit-2026-10-14/evidence.json>). Não é uma amostra aleatória de clientes nem validação do novo seletor compacto.
+Fonte: aplicativo mobile que transforma nota fiscal **ou** lista digitada/ditada em receitas por IA, combinando itens comprados; funcionamento em passos simples. Amostra do harness anterior, em [live-results.json](./artifacts/verification/editorial-finish-2026-10-14/live-results.json), com entrada verificável em [evidence.json](./artifacts/verification/carousel-latest-audit-2026-10-14/evidence.json). Não é uma amostra aleatória de clientes nem validação do novo seletor compacto.
 
 | Peça final registrada | F | N | C | E | P | A | L | V |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -154,7 +156,7 @@ Evidências que sustentam as notas:
 
 ### Contrapontos históricos e cobertura real
 
-O corpus [editorial-corpus.json](</home/many/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/fixtures/editorial-corpus.json:1>) tem 33 casos, 29 sem parecer real registrado. O replay offline desta investigação encontrou:
+O corpus [editorial-corpus.json](./server/ai/workflows/fixtures/editorial-corpus.json) tem 33 casos, 29 sem parecer real registrado. O replay offline desta investigação encontrou:
 
 | Grupo registrado | Medidos | Acertos contra rótulo manual | Falsas aprovações |
 | --- | --- | --- | --- |
@@ -225,7 +227,7 @@ Conferência final: hashes dos 1.342 arquivos preexistentes capturados no baseli
 
 Próximo papel: **avaliador/editorial**, com o plano anexo, para rotular amostras e medir os efeitos; **arquiteto** somente para consolidar o contrato de contexto caso se decida corrigir os handoffs. Esta investigação não autoriza implementação e não aciona outro escritor automaticamente.
 
-Documento-mestre revisado. Não foi editado porque a [skill investigador](</home/many/.codex/skills/investigador/SKILL.md>) determina: “Pode salvar somente o diagnóstico e evidências sanitizadas no caminho pedido.” O diagnóstico registra os comportamentos permanentes encontrados; uma etapa posterior autorizada pode reconciliá-los com o documento já alterado no checkout.
+Documento-mestre revisado. Não foi editado porque a `skill investigador` determina: “Pode salvar somente o diagnóstico e evidências sanitizadas no caminho pedido.” O diagnóstico registra os comportamentos permanentes encontrados; uma etapa posterior autorizada pode reconciliá-los com o documento já alterado no checkout.
 
 ## Apêndice — Reprodução sintética completa
 

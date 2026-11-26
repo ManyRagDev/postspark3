@@ -1,8 +1,10 @@
 import type { Express, Request, Response } from "express";
+import { validateTemporalMedia } from "./mareDocument";
 import { z } from "zod";
 import { storedAspectRatios } from "@shared/aspectRatios";
 import { rpcCall } from "./billing";
 import { MembershipError } from "./membership";
+import { getImpersonatedPlan } from "./_core/planImpersonation";
 
 const name = z.string().trim().min(1).max(120);
 const uuid = z.string().uuid();
@@ -22,15 +24,27 @@ async function agencyRpc<T>(procedure: string, userId: string, args: Record<stri
   return data;
 }
 
+function permitsAgencyOwnership(userId: string) {
+  const plan = getImpersonatedPlan(userId);
+  return plan === null || plan === "AGENCY";
+}
+
+function requireAgencyOwnershipPlan(userId: string) {
+  if (!permitsAgencyOwnership(userId))
+    throw new MembershipError(403, "A gestão da equipe exige o plano Agência.");
+}
+
 export function registerAgencyRoutes(app: Express, withIdentity: IdentityWrapper) {
-  app.get("/api/agency", withIdentity(async (_req, userId) => ({
-    ...await agencyRpc<Record<string, unknown>>("agency_overview", userId),
-    userId,
-  })));
-  app.post("/api/agency/workspace", withIdentity(async (req, userId) => ({
-    id: await agencyRpc("agency_create_workspace", userId, { p_name: name.parse(req.body?.name) }),
-  })));
+  app.get("/api/agency", withIdentity(async (_req, userId) => {
+    const overview = await agencyRpc<{ canCreate: boolean; workspaces: unknown[] }>("agency_overview", userId);
+    return { ...overview, canCreate: Boolean(overview?.canCreate) && permitsAgencyOwnership(userId), userId };
+  }));
+  app.post("/api/agency/workspace", withIdentity(async (req, userId) => {
+    requireAgencyOwnershipPlan(userId);
+    return { id: await agencyRpc("agency_create_workspace", userId, { p_name: name.parse(req.body?.name) }) };
+  }));
   app.post("/api/agency/invite", withIdentity(async (req, userId) => {
+    requireAgencyOwnershipPlan(userId);
     const input = z.object({ workspaceId: uuid, email: z.string().email().max(320), role: z.enum(["editor", "reviewer"]) }).strict().parse(req.body);
     return { id: await agencyRpc("agency_invite", userId, {
       p_workspace_id: input.workspaceId, p_email: input.email, p_role: input.role,
@@ -50,6 +64,7 @@ export function registerAgencyRoutes(app: Express, withIdentity: IdentityWrapper
     const input = z.object({
       id: uuid.optional(), workspaceId: uuid, revision: z.number().int().positive().optional(), name, model,
     }).strict().parse(req.body);
+    validateTemporalMedia(input.model);
     if (Buffer.byteLength(JSON.stringify(input.model), "utf8") > 2_000_000)
       throw new MembershipError(413, "Este projeto excede o tamanho permitido.");
     return agencyRpc("agency_save_project", userId, {

@@ -1,5 +1,7 @@
 # 📋 Specs — Especificações Técnicas PostSpark 3
 
+> Especificações históricas de edição. O [CanvasLab atual](../docs/DESIGN_SYSTEM.md) é a referência para alterações na interface.
+
 **Metodologia:** Spec-Driven Development (Spec → Testes → Implementação)
 
 ---
@@ -117,7 +119,7 @@ Cada linha de código referencia a spec que implementa via issue/PR numbers.
 ## 🔗 Referências
 
 - [Template de specs](template.md) — Formato padrão para novas specs
-- [Auditoria de edição de texto](../AUDITORIA_EDICAO_TEXTO.md) — Diagnóstico completo do estado atual
+- [Auditoria de edição de texto](./text-editing/00-audit.md) — Diagnóstico da edição naquela etapa
 
 ---
 

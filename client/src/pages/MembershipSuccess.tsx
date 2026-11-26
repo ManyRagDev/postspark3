@@ -46,11 +46,11 @@ export default function MembershipSuccess() {
         </p>
         {!pending && (
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <button type="button" className="rounded-full bg-[#ff5c00] px-5 py-2 font-semibold text-black"
+            <button type="button" className="min-h-11 rounded-full bg-[#ff5c00] px-5 py-2 font-semibold text-black"
               onClick={() => { setPending(true); setStatus("Confirmando pagamento…"); setAttempt(value => value + 1); }}>
               Conferir pagamento
             </button>
-            <a href="/pricing" className="text-sm text-white/65 underline">Voltar aos planos</a>
+            <a href="/pricing" className="inline-flex min-h-11 items-center text-sm text-white/65 underline">Voltar aos planos</a>
           </div>
         )}
       </section>

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "format": {"platform":"instagram","aspectRatio":"4:5","allowAiImages":false,"uploadedMedia":false,"creationMode":"compose"},
+  "groups": [
+    {
+      "sourceRound": 7, "pages": 5,
+      "facts": "O coworking Pátio 13 atende quem trabalha fora de casa. Avulso custa R$ 45 por dia com mesa compartilhada. Flex custa R$ 160 por quatro dias no mês e inclui duas horas de sala de reunião.",
+      "requiredOnArt": ["Avulso associado a R$ 45, por dia e mesa compartilhada","Flex associado a R$ 160, quatro dias no mês e duas horas de sala","nenhuma promessa de economia"],
+      "cases": [
+        {"id":"patio-comparar","set":"calibration","ask":"Compare os dois passes lado a lado para escolher de relance. Mostre preço e benefícios na arte, sem prometer economia.","defensible":"Duas colunas rotuladas. Cartões independentes também servem se preservarem a associação na mesma página."},
+        {"id":"patio-narrar","set":"calibration","ask":"Conte um dia no coworking, da chegada à escolha do passe. Distribua os fatos pela narrativa na arte, sem inventar serviços.","defensible":"Uma sequência de leitura com espaço para uma frase por cena e transição compreensível entre os passes."},
+        {"id":"patio-duvidas","set":"validation","ask":"Responda às dúvidas de quem chega em perguntas e respostas. Mostre preços e benefícios na arte.","defensible":"Uma pergunta com resposta legível a cada passo. REF-08 é defensável se os campos de índice e os fragmentos de título couberem."},
+        {"id":"patio-aberto","set":"validation","ask":"Apresente o espaço a quem vai trabalhar fora de casa. Escolha livremente como organizar as páginas. Deixe as condições dos passes visíveis na arte.","defensible":"Grade modular, cartões ou leitura contínua com hierarquia clara. Uma solução versátil pode vencer."}
+      ]
+    },
+    {
+      "sourceRound": 2, "pages": 1,
+      "facts": "A Oficina Vira-Chave consertou 126 bicicletas em outubro. Destas, 38 voltaram a rodar com peças reaproveitadas. As peças vieram de doações.",
+      "requiredOnArt":["126 bicicletas em outubro","38 das 126 com peças reaproveitadas"],
+      "cases": [
+        {"id":"oficina-numero","set":"validation","ask":"Preste contas aos doadores. Dê destaque ao total para que se leia de relance e explique o subconjunto na arte.","defensible":"Uma métrica dominante com apoio legível que situa o 38 como subconjunto."},
+        {"id":"oficina-bilhete","set":"validation","ask":"Escreva aos doadores um bilhete de agradecimento, com os dois números legíveis na própria arte.","defensible":"Um bloco de leitura curto, hierarquia de bilhete e espaço para a relação entre os dois números."}
+      ]
+    }
+  ]
+}

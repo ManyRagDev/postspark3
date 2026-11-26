@@ -71,6 +71,26 @@ const props = () => ({
   onRestore: vi.fn(() => true),
 });
 describe("advanced image preview/apply boundary", () => {
+  it("explains why treatments are offline and retries the same image", async () => {
+    mocks.capabilities.mockResolvedValueOnce({
+      available: false, tools: [], message: "O processamento de imagens não está configurado neste ambiente.",
+    });
+    await act(async () => root.render(<AdvancedImageEditor {...props()} embedded />));
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("não está configurado");
+    expect(container.querySelector('[aria-label="Brilho"]')).toBeNull();
+    expect(mocks.preview).not.toHaveBeenCalled();
+    await act(async () => button("Tentar novamente").click());
+    expect(container.querySelector('[aria-label="Brilho"]')).not.toBeNull();
+    await act(async () => moveSlider("Brilho", 30));
+    expect(button("Aplicar").disabled).toBe(false);
+  });
+  it("reports an unreadable source independently of processor availability", async () => {
+    mocks.read.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await act(async () => root.render(<AdvancedImageEditor {...props()} embedded />));
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("ler a imagem de origem");
+    expect(button("Tentar novamente")).toBeDefined();
+    expect(mocks.preview).not.toHaveBeenCalled();
+  });
   it("requires a preview, exposes only approved tools, invalidates it when controls change and hides internal engine names", async () => {
     const p = props();
     await act(async () => root.render(<AdvancedImageEditor {...p} />));

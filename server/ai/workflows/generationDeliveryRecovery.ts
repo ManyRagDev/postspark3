@@ -68,6 +68,9 @@ export async function recoverGenerationDelivery(args: {
   readOriginalCopy: () => Promise<unknown>;
   reuseOriginal: boolean;
   recoveryAttempt?: number;
+  lastChance?: boolean;
+  repairBudgetSpent?: boolean;
+  originalAttempt?: {definitions:ComponentDefinitionV1[]; copy:unknown};
   excludedCandidateIds?: readonly string[];
   excludedFamilies?: readonly string[];
   claimFamily?: (family: string) => boolean;
@@ -76,6 +79,7 @@ export async function recoverGenerationDelivery(args: {
   graphDeps: Pick<ProposalGraphDeps, "measureText" | "createTextMeasurer">;
 }) {
   const { planning, sourceDefinitions, input } = args;
+  const measureForRecovery = args.lastChance || input.generationConfig?.trioDeliveryVersion === 1;
   // The persisted execution config preserves historical candidate decisions.
   const localPreflight = usesCompactProposalCopy(input) && input.reviewExecutionConfig?.version === 5 &&
     (input.reviewExecutionConfig.automaticReviewVersion === 2 || input.reviewExecutionConfig.automaticReviewVersion === 3 || input.reviewExecutionConfig.automaticReviewVersion === 4);
@@ -125,7 +129,14 @@ export async function recoverGenerationDelivery(args: {
       candidateId: reserve.plan.candidateId, family: reserve.family, componentIds: reserve.plan.pages.map(page => page.componentId), reason,
     });
     const evidence = localPreflight ? { localPreflightVersion: 1 as const } : {};
-    const copy = args.reuseOriginal ? readProposalCopy(await args.readOriginalCopy(), sourceDefinitions, input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.nativeGlyphProjection : undefined) : undefined;
+    const glyphs = input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.nativeGlyphProjection : undefined;
+    let source = sourceDefinitions;
+    let copy = args.reuseOriginal || args.lastChance ? readProposalCopy(await args.readOriginalCopy(),source,glyphs) : undefined;
+    if (!copy && args.lastChance && args.originalAttempt) {
+      source = args.originalAttempt.definitions;
+      copy = readProposalCopy(args.originalAttempt.copy,source,glyphs);
+    }
+    const measured: {reserve:Reserve; copy:CopyResponse; defects:number}[] = [];
     const rewriteReserves: Reserve[] = [];
     // Font measurements can use the remaining request time, leaving room for delivery review.
     const remaining = (input.deadlineMs ?? Date.now() + 60_000) - Date.now();
@@ -144,7 +155,8 @@ export async function recoverGenerationDelivery(args: {
           observe(reserve, "family_claim_conflict");
           continue;
         }
-        const fitted = await fitExistingProposalCopy({ copy, source: sourceDefinitions, target: definitions, input: { ...input, signal }, deps: args.graphDeps });
+        const fitted = await fitExistingProposalCopy({ copy, source, target: definitions, input: { ...input, signal }, deps: args.graphDeps,
+          lastChance:measureForRecovery,reportMeasured:(candidate,defects)=>measured.push({reserve,copy:candidate,defects}) });
         if (fitted && claim(reserve)) { observe(reserve, "selected_with_existing_copy"); return { ...evidence, mode: "reuse_text", plan: reserve.plan, copy: fitted }; }
         observe(reserve, fitted ? "family_claim_conflict" : "existing_copy_does_not_fit");
       } catch (error) {
@@ -158,7 +170,18 @@ export async function recoverGenerationDelivery(args: {
     // Failed role-by-role transfer does not mean the reserve cannot express the
     // brief. Adapt the existing message to different native fields, rather than
     // spend the only fallback on the same already exhausted layout.
-    const mayRewrite = input.executionBrief?.interventionLevel !== "visual_only";
+    const mayRewrite = input.executionBrief?.interventionLevel !== "visual_only" &&
+      (input.generationConfig?.trioDeliveryVersion !== 1 || input.generationIntent?.adaptation !== "literal");
+    if (measureForRecovery && mayRewrite) {
+      for (const candidate of measured.sort((a,b)=>a.defects-b.defects)) if (claim(candidate.reserve)) {
+        if (args.repairBudgetSpent) {
+          observe(candidate.reserve,"selected_by_measured_fit_for_final_rewrite");
+          return {...evidence,mode:"write_for_design",plan:candidate.reserve.plan,copy:candidate.copy};
+        }
+        observe(candidate.reserve,"selected_for_targeted_repair_after_measurement");
+        return {...evidence,mode:"repair_text",plan:candidate.reserve.plan,copy:candidate.copy};
+      }
+    }
     if ((localPreflight && mayRewrite) || !copy) {
       const next = rewriteReserves.find(claim);
       if (next) return { ...evidence, mode: "write_for_design", plan: next.plan, ...(copy ? { copy } : {}) };

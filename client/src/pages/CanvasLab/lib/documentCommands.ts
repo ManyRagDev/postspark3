@@ -155,6 +155,14 @@ export function cloneSlide(
     Object.entries(clonedSlide.elementStates).map(([id, state]) => [idMap.get(id) ?? id, structuredClone(state)]),
   );
   if (clonedSlide.elementOrder) clonedSlide.elementOrder = clonedSlide.elementOrder.map(id => idMap.get(id) ?? id);
+  if (clonedSlide.temporalMedia) clonedSlide.temporalMedia = Object.fromEntries(
+    Object.entries(clonedSlide.temporalMedia).map(([id, source]) => [idMap.get(id) ?? id, source])
+  );
+  if (clonedSlide.mareSelections) clonedSlide.mareSelections = Object.fromEntries(
+    Object.entries(clonedSlide.mareSelections).map(([id,selection])=>[idMap.get(id) ?? id,{
+      ...selection,elementIds:selection.elementIds.map(elementId=>idMap.get(elementId) ?? elementId)
+    }])
+  );
   return clonedSlide;
 }
 
@@ -398,7 +406,8 @@ export function duplicateExtraElement(
     };
     const nextImages = [...extraImages];
     nextImages.splice(imgIndex + 1, 0, duplicatedImage);
-    const updatedPost = applyPatchToCurrentSlide(post, { extraImages: nextImages });
+    const updatedPost = applyPatchToCurrentSlide(post, { extraImages: nextImages,
+      ...(currentSlide.temporalMedia?.[elementId] ? {temporalMedia:{...currentSlide.temporalMedia,[newId]:structuredClone(currentSlide.temporalMedia[elementId])}} : {}) });
     return { post: updatedPost, newElementId: newId };
   }
 
@@ -424,7 +433,10 @@ export function removeExtraElement(
   const nextTexts = extraTexts.filter((t) => t.id !== elementId);
   const nextImages = extraImages.filter((img) => img.id !== elementId);
 
-  return applyPatchToCurrentSlide(post, { extraTexts: nextTexts, extraImages: nextImages });
+  const temporalMedia = {...currentSlide.temporalMedia};
+  delete temporalMedia[elementId];
+  return applyPatchToCurrentSlide(post, { extraTexts: nextTexts, extraImages: nextImages,
+    ...(currentSlide.temporalMedia ? {temporalMedia} : {}) });
 }
 
 /**

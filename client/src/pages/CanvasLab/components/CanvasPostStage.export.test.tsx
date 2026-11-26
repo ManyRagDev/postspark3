@@ -177,3 +177,43 @@ it("reversible visibility excludes pending native images and hidden fonts while 
     if (previous) Object.defineProperty(document, "fonts", previous); else delete (document as any).fonts;
   }
 });
+
+it("uses the visible Space Grotesk weights for PNG and prepares unopened ZIP pages", async () => {
+  const ref = createRef<CanvasPostStageRef>();
+  const previous = Object.getOwnPropertyDescriptor(document, "fonts");
+  const cover = '700 16px "Space Grotesk"';
+  const second = '500 16px "Space Grotesk"';
+  const loaded = new Set([cover]);
+  const load = vi.fn(async (font: string) => {
+    loaded.add(font);
+    return [{}];
+  });
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: { ready: Promise.resolve(), load, check: (font: string) => loaded.has(font) },
+  });
+  try {
+    const post: CanvasPostModel = {
+      ...structuredClone(INITIAL_POST), bgImage: "", logoUrl: "",
+      slides: [
+        { id: "cover", step: "", headline: "", subtext: "", extraTexts: [
+          { id: "title", text: "Capa", fontFamily: "Space Grotesk", fontWeight: 700 },
+        ] },
+        { id: "next", step: "", headline: "", subtext: "", extraTexts: [
+          { id: "body", text: "Ação", fontFamily: "Space Grotesk", fontWeight: 500 },
+        ] },
+      ],
+    };
+    await render(post, ref);
+    expect(ref.current!.exportPng4K()).toBe(capture.png);
+    await act(async () => {
+      expect(await ref.current!.exportThumbnail()).toBe(capture.png);
+      expect((await ref.current!.exportZip4K()).size).toBeGreaterThan(0);
+    });
+    expect(load).toHaveBeenCalledWith(second, "Ação");
+    expect(load.mock.calls.every(([font]) => font === cover || font === second)).toBe(true);
+    expect(capture.export).toHaveBeenCalledTimes(4);
+  } finally {
+    if (previous) Object.defineProperty(document, "fonts", previous); else delete (document as any).fonts;
+  }
+});

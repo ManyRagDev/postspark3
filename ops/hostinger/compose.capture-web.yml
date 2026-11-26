@@ -1,0 +1,10 @@
+services:
+  postspark-web:
+    env_file:
+      - /etc/postspark/capture-web.env
+    networks:
+      - website-capture
+networks:
+  website-capture:
+    external: true
+    name: postspark-capture-private

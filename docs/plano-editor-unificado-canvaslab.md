@@ -2,7 +2,7 @@
 
 Data: 2026-10-01. Estado: estudo do código e plano de implementação; a interface ainda não foi alterada nesta rodada.
 
-Complemento de 2026-10-02: a [auditoria da geração, do Arsenal e do editor unificado](./relatorio-auditoria-geracao-editor-unificado-2026-10-02.md) cruza este plano com o código, a importação do acervo, os traces, o Supabase e o post BizuMiner salvo pelo proprietário. Ela detalha as correções editoriais e de fallback, a migração das famílias, os comandos comuns, a experiência compacta/completa e os critérios de conclusão. A publicação do catálogo e a cobrança regular são frentes próprias. Este plano continua não implementado; a auditoria é documentação, não alteração do produto.
+A auditoria de 02/10/2026, preservada no backup de legado, cruzou este plano com o código da época, a importação do acervo, os traces, o Supabase e o post BizuMiner salvo pelo proprietário. Ela detalha as correções editoriais e de fallback, a migração das famílias, os comandos comuns, a experiência compacta/completa e os critérios de conclusão. A publicação do catálogo e a cobrança regular são frentes próprias. O fluxo atual está descrito no [Documento Mestre](../DOCUMENTO_MESTRE.md#32-editor-oficial-canvaslab-canvaspostmodel--ativo).
 
 ## 1. Diagnóstico confirmado
 

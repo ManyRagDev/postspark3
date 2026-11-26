@@ -23,7 +23,7 @@ import {
   recordLlmTraceCall,
   type GenerationTrace,
 } from "../generationTrace";
-import { providerRejectionErrorFromReceipt } from "../../_core/llm";
+import { LlmLocalRequestError, providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { ENV } from "../../_core/env";
 import { isPaidGenerationOperation, summarizeGenerationJournal, journalOperationWasLocal } from "./generationJournalTrace";
 import * as localDiagnostics from "../localDiagnostics";
@@ -34,6 +34,18 @@ import { arsenalHash } from "@shared/arsenalContent";
 import { identityFixture } from "@shared/visualIdentity.fixture";
 
 describe("uncertain strategy-2 preparation lifecycle", () => {
+  it("journals a local LLM rejection and replays the same failure without uncertainty", async () => {
+    const s = setup({deadlineAt: Date.now() + 30_000});
+    const run = durableOperations(s.store, s.record(), "lease", new AbortController().signal, "prepare:");
+    const work = vi.fn(async () => { throw new LlmLocalRequestError("local schema constraint"); });
+    await expect(run("intent", work)).rejects.toBeInstanceOf(LlmLocalRequestError);
+    await expect(run("intent", work)).rejects.toBeInstanceOf(LlmLocalRequestError);
+    expect(work).toHaveBeenCalledOnce();
+    expect(s.store.markOperationUncertain).not.toHaveBeenCalled();
+    expect(s.journal.get("prepare:intent")).toMatchObject({
+      state: "completed", result: { localFailure: "llm_request_invalid" },
+    });
+  });
   it("terminalizes a known route rejection, preserves a ready slot and never buys the operation on replay", async () => {
     const generationConfig=resolveGenerationModelConfig({generationModel:"auto",postMode:"static"});
     const s=setup({generationConfig,prepared:undefined,deadlineAt:Date.now()+600000});
@@ -336,6 +348,17 @@ describe("durable runtime and independent delivery", () => {
       await proposalRecoveryOperationKeys(s.store, s.record(), proposalId)
     ).toEqual(["copy_recovery", "review_correction:old-review-hash"]);
     expect(s.store.listOperations).toHaveBeenCalledWith(id, owner);
+  });
+  it("keeps uncertain repairs fenced and only releases confirmed provider rejections for a new attempt", async () => {
+    const s = setup(), id = s.record().proposals[0].proposalId;
+    const receipt = { __providerRejection: { version: 1, provider: "openrouter", model: "model",
+      httpStatus: 400, reason: "invalid_request_error", providerRequestId: "req-test", costStatus: "unreported",
+      requestHash: "a".repeat(64), responseHash: "b".repeat(64) }, __generationTrace: { version: 1 } };
+    s.store.listOperations = vi.fn(async () => [
+      { operationKey: id + ":copy_recovery", state: "completed", result: receipt },
+      { operationKey: id + "-fb1:copy_recovery", state: "uncertain", result: receipt },
+    ]);
+    expect(await proposalRecoveryOperationKeys(s.store,s.record(),id,id+"-fb2")).toEqual(["previous_attempt:copy_recovery"]);
   });
   it("records the real request trace and sums all persisted provider operations once across a full resume", async () => {
     const s = setup();

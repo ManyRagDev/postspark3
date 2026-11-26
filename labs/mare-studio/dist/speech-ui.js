@@ -1,8 +1,11 @@
+import { integrated, currentAnchorId,currentWorkspaceId } from "./postspark-session.js";
+import { uploadStudioAsset } from "./studio-upload.js";
+import { requestEdit } from "./edit-api.js";
 import { speechSettings } from "./speech-plan.js";
 import { MediaEngine, discardMasks, readVideoBlob, storeMask } from "./engine.js";
 import { imageLayerFromFile } from "./composition-model.js";
 import { drawFrame } from "./renderer.js";
-import { interpretSpeechRequest, speechCommands } from "./speech-commands.js";
+import { speechCommands } from "./speech-commands.js";
 import {
   TALK_DEFAULTS, HESITATIONS, applySpeechEdit, captionCues, coversClip, needsMatte,
   planSpeechCuts, rewriteCue,
@@ -22,7 +25,7 @@ const delay = (ms, signal) => new Promise((resolve, reject) => {
 
 async function readResponse(response) {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw Error(data.message || "Não foi possível acessar a análise na VPS.");
+  if (!response.ok) throw Error(data.error || data.message || "Não foi possível acessar a análise na VPS.");
   return data;
 }
 
@@ -31,13 +34,21 @@ export async function analyzeSpeechMedia(clip, options, signal, report) {
   const body = await readVideoBlob(clip.assetId, signal);
   if (body.size > 128 * 1024 * 1024) throw Error("O vídeo excede o limite de 128 MiB para análise.");
   if (clip.duration > 60.000001) throw Error("Encurte o clipe para até 60 s antes de analisar.");
-  const {job} = await readResponse(await fetch("/api/speech", {method:"POST", signal, body, headers:{
-    "Content-Type":"application/octet-stream", "X-Mare-Start":String(clip.trim),
-    "X-Mare-End":String(clip.trim + clip.duration), "X-Mare-Language":options.language,
-    "X-Mare-Speech":options.speech ? "1" : "0", "X-Mare-Mask":options.mask ? "1" : "0",
-  }}));
-  const path = "/api/speech/" + job;
+  const endpoint = integrated ? "/api/mare/speech" : "/api/speech";
+  let path;
   try {
+    if (integrated) {
+      const {assetId} = await uploadStudioAsset(body, {kind:"video", anchorId:currentAnchorId(),workspaceId:currentWorkspaceId(), signal});
+      const jobId = crypto.randomUUID();
+      path = endpoint + "/" + jobId;
+      await readResponse(await fetch(endpoint, {method:"POST",signal,headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({jobId,assetId,start:clip.trim,end:clip.trim+clip.duration,language:options.language,speech:!!options.speech,mask:!!options.mask})}));
+    } else {
+      const {job} = await readResponse(await fetch(endpoint, {method:"POST",signal,body,headers:{
+        "Content-Type":"application/octet-stream","X-Mare-Start":String(clip.trim),"X-Mare-End":String(clip.trim+clip.duration),
+        "X-Mare-Language":options.language,"X-Mare-Speech":options.speech?"1":"0","X-Mare-Mask":options.mask?"1":"0"}}));
+      path = endpoint + "/" + job;
+    }
     while (!signal.aborted) {
       const state = await readResponse(await fetch(path, {signal, cache:"no-store"}));
       if (state.state === "failed") throw Error(state.message);
@@ -57,7 +68,7 @@ export async function analyzeSpeechMedia(clip, options, signal, report) {
     }
     throw signal.reason;
   } finally {
-    fetch(path, {method:"DELETE"}).catch(() => {});
+    if (path) fetch(path, {method:"DELETE",keepalive:true}).catch(() => {});
   }
 }
 
@@ -68,7 +79,7 @@ const decimal = new Intl.NumberFormat("pt-BR", {maximumFractionDigits:2});
 const seconds = value => decimal.format(Math.max(0, value)) + " s";
 const bounded = (value, min, max) => Math.min(max, Math.max(min, value));
 
-export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, icon, available, apply, trigger}) {
+export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, icon, available, apply, insertExcerpt, catalog, trigger}) {
   const initial = clip.talk ?? TALK_DEFAULTS;
   const draft = {...initial};
   const settings = {language:"auto", minimum:.8, margin:.15, fillerText:HESITATIONS, pauses:false,
@@ -76,6 +87,7 @@ export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, ic
   const corrected = new Map();
   const newMasks = new Set();
   let panel = "captions", active = true, pending = null, previewTime = at, reviewing = false, playing = false;
+  let excerpt = null;
   let status = "", progress = null, appliedMask;
 
   showDialog("Editar vídeo falado", `<div class="speech-layout">
@@ -121,6 +133,7 @@ export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, ic
     if (talk.background === "image" && !talk.image) talk.background = "original";
     if (!talk.speech) talk.captions = "off";
     const {cuts, removed} = planned(talk);
+    if (excerpt) return {...previewBase, clips:[{...previewBase.clips[0], talk, trim:excerpt.start, duration:excerpt.end-excerpt.start}]};
     if (reviewing && cuts.length && removed < clip.duration - .03) {
       return applySpeechEdit(previewBase, previewBase.clips[0], talk, cuts, false);
     }
@@ -161,6 +174,8 @@ export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, ic
   function captionsPane() {
     const {speech} = draft;
     const cues = originalCues();
+    const excerptOptions = excerpt ? cues.filter(c => c.end > excerpt.start && c.end <= clip.trim + clip.duration + 1e-6)
+      .map(c => '<option value="' + c.end + '"' + selected(c.end === excerpt.end) + '>' + esc(c.text) + '</option>').join("") : "";
     return `<div class="speech-inline speech-run"><label>Idioma<select id="speech-language" class="text-input" aria-label="Idioma">
       ${[["auto","Detectar automaticamente"],["pt","Português"],["en","Inglês"],["es","Espanhol"]].map(([key,label]) =>
         `<option value="${key}"${selected(settings.language === key)}>${label}</option>`).join("")}</select></label>
@@ -172,8 +187,12 @@ export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, ic
       ${speech ? (!coversClip(speech, clip) ? '<p class="speech-note">O trecho cresceu. Gere a transcrição novamente para cobrir toda a fala.</p>' : "") +
       (cues.length ? `<div class="speech-cues" aria-label="Legendas editáveis">${cues.map((cue, index) =>
         `<div><button type="button" class="btn" data-seek="${cue.start}">${seconds(cue.start - clip.trim)}</button>
-        <input class="text-input" aria-label="Legenda ${index + 1}" maxlength="160" data-cue="${index}" value="${esc(corrected.get(cue.words[0].index)?.text ?? cue.text)}"></div>`).join("")}</div>` :
-      '<p class="speech-note">Nenhuma palavra reconhecida neste trecho.</p>') : ""}`;
+        <input class="text-input" aria-label="Legenda ${index + 1}" maxlength="160" data-cue="${index}" value="${esc(corrected.get(cue.words[0].index)?.text ?? cue.text)}">
+        <button type="button" class="btn" data-start-excerpt="${index}">Começar um clipe com esta frase</button></div>`).join("")}</div>` :
+      '<p class="speech-note">Nenhuma palavra reconhecida neste trecho.</p>') : ""}
+      ${excerpt ? `<div class="speech-planning"><label>Terminar após a frase<select id="excerpt-end">${excerptOptions}</select></label>
+        <button class="btn" data-action="insert-excerpt">Inserir trecho após o clipe</button>
+        <button class="btn" data-action="cancel-excerpt">Cancelar trecho</button></div>` : ""}`;
   }
 
   function cutsPane(plan) {
@@ -300,13 +319,41 @@ export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, ic
   });
   $("#speech-request").onsubmit = event => {
     event.preventDefault();
-    safe(() => dispatch(interpretSpeechRequest($("#speech-prompt").value)))();
+    safe(async () => {
+      if (pending) return;
+      const ctl = new AbortController();
+      pending = ctl;
+      render();
+      const allowed = catalog.filter(c => Object.values(speechCommands).includes(c.id)).map(c => ({
+        id:c.id, manual:c.manual, params:Object.fromEntries(Object.entries(c.params).filter(([k]) =>
+          !["clipId","analysisJob?","options?","image?"].includes(k)))
+      }));
+      let answer;
+      try {
+        report("Preparando edição com IA…");
+        answer = await requestEdit($("#speech-prompt").value, {clip:clip.name, duration:clip.duration}, allowed, {}, ctl.signal);
+      } finally { pending = null; if (active) render(); }
+      if (active) await dispatch(answer.commands.map(({id,...params}) => ({id,params})));
+    })();
   };
   content.onclick = safe(async event => {
     const button = event.target.closest("button");
     if (!button) return;
-    if (button.dataset.pane) { panel = button.dataset.pane; render(); return; }
-    if (button.dataset.seek) { reviewing = false; previewTime = Number(button.dataset.seek) - clip.trim; render(); preview(); return; }
+    if (button.dataset.pane) { excerpt = null; panel = button.dataset.pane; render(); return; }
+    if (button.dataset.startExcerpt !== undefined) {
+      const cue = originalCues()[Number(button.dataset.startExcerpt)];
+      if (!cue) return;
+      excerpt = {start:Math.max(clip.trim,cue.start), end:Math.min(clip.trim+clip.duration,cue.end)};
+      reviewing = false; previewTime = 0; render(); preview(); return;
+    }
+    if (button.dataset.action === "cancel-excerpt") { excerpt = null; previewTime = 0; render(); preview(); return; }
+    if (button.dataset.action === "insert-excerpt" && excerpt && !pending) {
+      const talk = currentTalk();
+      await insertExcerpt(talk, excerpt);
+      appliedMask = talk.matte?.id;
+      dialog.close(); return;
+    }
+    if (button.dataset.seek) { excerpt = null; reviewing = false; previewTime = Number(button.dataset.seek) - clip.trim; render(); preview(); return; }
     const action = button.dataset.action;
     if (action === "close") dialog.close();
     if (action === "captions") return dispatch([{id:speechCommands.captions, params:{style:draft.captions === "classic" ? "classic" : "highlight"}}], Boolean(draft.speech));
@@ -371,6 +418,9 @@ export function openSpeechEditor({clip, project, at, dialog, showDialog, esc, ic
 
   content.onchange = safe(async event => {
     const el = event.target;
+    if (el.id === "excerpt-end" && excerpt) {
+      excerpt.end = Number(el.value); previewTime = 0; render(); preview(); return;
+    }
     if (el.dataset.look && el.tagName === "INPUT") return;
     if (el.dataset.look) draft[el.dataset.look] = el.value;
     else if (el.id === "speech-language") settings.language = el.value;

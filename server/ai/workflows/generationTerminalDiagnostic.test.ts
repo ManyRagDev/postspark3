@@ -4,6 +4,17 @@ import { generationDeliveryMetrics } from "./generationTerminalDiagnostic";
 const review = (inputHash: string, round = "initial", marker = "intentChecks[0]:advisory_idea_not_requirement:idea1") => ({round,inputHash,discardedFields:[marker]});
 const proposal = (proposalId: string, status: string, reviews: unknown[] = [], revision=1) => ({proposalId,status,reviews,revision});
 describe("persisted local delivery metrics", () => {
+  it("reports the measured trio and the first and third committed proposals", () => {
+    const record = {generationConfig:{trioDeliveryVersion:1}, createdAt:1000, proposals:[3,1,2].map(i => ({
+      ...proposal("p"+i,"ready"), completedAt:1000+100*i, bundle:{family:"f"+i},
+      diagnostics:[{code:"proposal_layout_signature",evidence:"layout"+i}],
+    }))} as any;
+    expect(generationDeliveryMetrics(record)).toMatchObject({
+      completedDistinctThree:true, firstDeliveryMs:100, thirdDeliveryMs:300,
+    });
+    record.proposals[2].diagnostics = record.proposals[1].diagnostics;
+    expect(generationDeliveryMetrics(record)).toMatchObject({completedThree:true,completedDistinctThree:false});
+  });
   it("deduplicates normalized reviews by proposal revision/round/hash without equating normalization to delivery", () => {
     const record={proposals:[proposal("p0","ready",[review("a"),review("a"),review("a","recheck")]),proposal("p1","failed",[review("b")]),proposal("p2","expired",[review("c","initial","intentChecks[0]:another_reason:idea1")])]} as any;
     const before=structuredClone(record);

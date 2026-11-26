@@ -5,6 +5,9 @@
 > **Acompanhamento sob demanda — 12/11/2026:** erros de leitura do resultado ou progresso pausam o acompanhamento automático e os eventos, preservando o identificador durável. Quando o prazo do pedido passa, consulta o resultado final uma vez e pausa se execução ou liquidação ainda não foram concluídas; o trabalho no servidor e as propostas recebidas são preservados. A retomada explícita consulta o mesmo pedido; não admite outra geração. Conclusão com cobrança resolvida desliga o acompanhamento. Healthcheck periódico do worker usa liveness sem SQL; readiness consultando o banco permanece na admissão sob demanda.
 
 > **Status do Documento:** Documento-Mestre Canônico e Fonte Primária da Verdade (Single Source of Truth).  
+> **Arquivo de legado (21/11/2026).** A interface aposentada, seus guias, ferramentas de verificação, snapshots e as configurações do Supabase Cloud antigo foram movidos para um backup externo ao workspace. O índice de código usa a árvore ativa. Os planos do PostSpark Next e do Workbench, roteiros de ativação substituídos e evidências antigas também foram arquivados. A persistência do CanvasLab e a compatibilidade com posts salvos estão no §3.
+
+> **Banco vigente.** O PostSpark usa o [Supabase próprio na VPS](./docs/contrato-integracao-supabase-vps.md). A entrada do MCP Cloud e o vínculo antigo do CLI foram retirados do repositório. A execução atual está no [mapa do motor](./docs/motor-integracao.md) e no [guia de operação local](./docs/local-demand-operations.md). Registros datados descrevem o ambiente usado na época.
 > **Conclusão Corretiva:** 2026-10-16 — ordens corretivas C-01, C-02 e C-03 concluídas e integradas com sucesso (§13.129–§13.131): retomadas protegidas contra recompra Jev/seletor via `prepare:selection_input`, requisitos tipados transportados à seleção, snapshot projetado estritamente com ausência explícita e sem coerção, BrandKit e modal integrados com idempotência/retry/refresh/gerar-mais, fixture histórica sanitizada e suíte completa aprovada (183 arquivos, 1.919 testes vitest, replay editorial offline de 33 casos, tsc e builds temporários client/server com exit 0).  
 > **Revisão:** 2026-10-15 — reforma dos handoffs de contexto de IA concluída em §13.127 (OS-01, OS-02, OS-03), posteriormente auditada e retificada em §13.128–§13.131.
 > **Revisão:** 2026-10-14 — verificação local de exportação concluída em §13.118: diálogo aberto na página 2 produz ZIP integral com quatro PNGs distintos de 3072 × 3840, decodificados e inspecionados. Sem nova chamada paga ou mudança funcional; avaliação semântica real continua aguardando autorização específica.
@@ -20,10 +23,9 @@
 > **Revisão:** 2026-10-14 — revisão arquitetural da auditoria e plano de correção em §13.107: recibo conhecido antes do parse, contrato compacto V6, configuração pinada, reparo limitado, causas corretas e integração/homologação verificável. Somente planejamento; nenhuma correção funcional ou ativação aplicada naquela etapa. Perfis de tokens propostos permanecem provisórios e não homologados.
 > **Revisão:** 2026-10-13 — auditoria de §13.106 confirma dois pareceres V5 truncados pelo teto de tokens e bloqueio do reparo formal na camada de transporte. Uma nova rodada real entregou uma proposta com commit/grants e compilação do cliente confirmados; as outras duas falharam na revisão. Diagnóstico concluído, sem patch funcional nesta auditoria. §13.105 registra 116 variantes cadastradas/revisadas, quatro publicadas e 112 em rascunho. Homologação positiva completa de V5 e implantação de produção continuam pendentes.
 > **Revisão:** 2026-10-12 — auditoria da rodada sem entregas em §13.101 confirma incompatibilidade dos IDs derivados das variantes com o commit transacional, evidência literal inválida do revisor e redução da oferta a um único design aprovado; diagnóstico concluído, correções pendentes. Foto de fundo com janela Mac publicada como padrão de gifts-window em §13.100, após aprovação explícita da proposta de §13.99; variantes visuais de carrosséis implementadas em §13.98: capa original, desenvolvimento com menos decoração e encerramento com CTA, materializados antes da copy, com roundtrip local validado, mas entrega remota bloqueada conforme §13.101; auditoria das duas novas rodadas reais em §13.97 confirma catálogo/opções enviados, identifica regressão da revisão estática e substituições posteriores à escolha da IA; contrato narrativo implementado em §13.96; diagnóstico editorial em §13.95; correção operacional em §13.94; revisão da migration de retomada em §13.93; perícia do histórico JSON em §13.92; auditoria da fonte em §13.91; pipeline único implementado em §13.86: entrada `generation.start/get/cancel`, execução durável, três propostas independentes, revisão multimodal obrigatória pelo CanvasLab real, cobrança proporcional e retomada. V4/V5 deixam de ser escolhas do produto. Seções anteriores são histórico e devem ser lidas com esta revisão. Publicação do lote curado e implantação do worker de produção têm estado explícito em §13.86.
-> **Pendência registrada (2026-09-08):** Plano da integração local "PostSpark Bridge" aprovado — [`docs/plano-postspark-bridge.md`](./docs/plano-postspark-bridge.md). Cada fase concluída vira nova seção §13.x neste documento.  
 > **Plano em execução (2026-09-12):** Qualidade editorial da IA — [`docs/plano-qualidade-editorial-ia.md`](./docs/plano-qualidade-editorial-ia.md). A Fase 0C de roteamento multimodelo foi implementada; contrato semântico e avaliação humana seguem pendentes.
 > **Regra Mandatória (AGENTS.md):** Todo agente ou desenvolvedor deve consultar este documento antes de alterações e atualizá-lo sempre que houver mudanças arquiteturais, estruturais, de contratos ou de rotas.
-> **Contexto da consolidação:** [Contexto e decisões da consolidação do PostSpark](./docs/contexto-consolidacao-postspark.md) preserva o objetivo do proprietário, o fluxo com revisor e os limites da validação. §13.86 descreve a implementação vigente; §13.85 registra a etapa anterior do Jev.
+> **Contexto da consolidação:** [Contexto e decisões da consolidação do PostSpark](./docs/contexto-consolidacao-postspark.md) preserva o objetivo do proprietário, o fluxo com revisor e os limites da validação. §13.86 registra a consolidação de outubro. §13.85 descreve a etapa anterior do Jev.
 > **Perícia de produto (2026-10-09, §13.87):** os testes reais da cafeteria e do BizuMiner confirmaram lacunas de variedade, redação, conferência tipográfica e observabilidade. Pipeline unificado em execução não equivale a qualidade de produto concluída. Diagnóstico registrado sem alterar código ou banco.
 
 ---
@@ -62,22 +64,22 @@ O Studio ativo combina inteligência semântica de marca (**Brand DNA**), seleç
 | **Persistência Runtime**| Supabase Client (`@supabase/supabase-js`) | Acesso direto ao PostgreSQL e Storage de assets |
 | **Autenticação** | Supabase Auth + Cookie Bridge HTTP-only | Sessão segura sincronizada entre cliente e servidor |
 | **Billing & Planos** | Stripe SDK, Supabase & Webhooks | Acesso por assinatura Pro e cotas de Sparks |
-| **Deploy & Serverless** | `api/index.js` (esbuild bundle) | Entrypoint serverless compatível com Vercel e Railway |
+| **Implantação** | Vite, `api/index.js`, Docker Compose e Caddy | Web/API e worker externo na VPS. [Compose](./ops/hostinger/compose.yml) e [contrato da VPS](./docs/contrato-integracao-supabase-vps.md) |
 
 ---
 
 ## 3. Fonte Única da Verdade: `PostVisualSnapshot` (legado) e `CanvasPostModel` (editor oficial)
 
-### 3.1 Fluxo legado (`PostVisualSnapshot`) — INATIVO EM ROTA
-Historicamente, após `post.generate` (procedimento aposentado para novas gerações em §13.86; Home/HoloDeck/WorkbenchV2 **sem rota montada**), cada variação atravessava o normalizador canônico em `client/src/lib/variationSnapshot.ts` e torna-se um **`PostVisualSnapshot`**. Regras:
-1. **Consumo Unificado**: HoloDeck, Workbench, exportação, salvamento, histórico e banco de dados consomem o **mesmo** snapshot.
+### 3.1 Fluxo legado (`PostVisualSnapshot`) e compatibilidade
+A interface Home → HoloDeck → WorkbenchV2 foi arquivada. No fluxo histórico, cada variação de `post.generate` passava por `client/src/lib/variationSnapshot.ts` e se tornava um `PostVisualSnapshot`. O normalizador continua disponível para consumidores de compatibilidade. A geração vigente usa `generation.start`.
+1. **Consumo unificado**. A interface histórica, a exportação, o salvamento e o histórico consumiam o mesmo snapshot.
 2. **Proibição de Recálculos Locais**: Renderers **não podem** remover `designTokens`, recalcular prioridades de cor, inventar layouts arbitrários ou reconstruir fundos.
 3. **Zustand como Guardião**: `visualSnapshot` é documento autoritativo; edições atualizam-no atomicamente.
 4. **Isolamento de Carrossel**: overrides de slides residem exclusivamente em `slides[].editorState`.
 5. **Versionamento**: alterações estruturais exigem incremento de `snapshotVersion` + migração via `client/src/lib/snapshotMigration.ts`.
 
 ### 3.2 Editor oficial CanvasLab (`CanvasPostModel`) — ATIVO
-⚠️ **Decisão do dono (2026-09-05):** o fluxo **Home → HoloDeck → WorkbenchV2 é legado órfão** (não há rota montando `Home.tsx`). O editor oficial é o **CanvasLab** (`client/src/pages/CanvasLab/`), motor Konva (`CanvasPostStage.tsx`), acessado em `/thevoid` → `StudioAppV2BPage` (`create → gallery → editor`). O termo "workbench" é histórico; "HoloDeck" corresponde hoje a `StudioGalleryView` (desktop) / `StudioMobileFlashcards` (mobile). O guia de referência técnica do motor reside em [`konva.md`](./konva.md) e na skill `.agent/skills/konva-engine-guide/`.
+O editor oficial é o **CanvasLab** (`client/src/pages/CanvasLab/`), com o motor Konva (`CanvasPostStage.tsx`). As rotas `/thevoid` e `/studio` montam `StudioAppV2BPage`, que conduz da criação à galeria e ao editor. A admissão fixa `editorial_v1` para novas gerações. “Gerar mais” herda a estratégia do pedido de origem, inclusive em gerações anteriores à promoção. A rota `/thevoid-lab` mantém acesso aos rascunhos e envios pendentes daquela URL e usa o mesmo pipeline oficial. A galeria usa `StudioGalleryView` no desktop e `StudioMobileFlashcards` no mobile. Em 24/11/2026, a revisão pública 2 incorporou as 170 definições da revisão de laboratório 1 com os mesmos hashes de definição e de catálogo editorial. O manifesto registrou 82 ofertas estáticas e 22 de carrossel em 4:5. O guia de referência técnica está em [`konva.md`](./konva.md) e na skill `.agent/skills/konva-engine-guide/`.
 
 Regras mandatórias do editor oficial:
 1. **`CanvasPostModel` é o documento autoritativo** do editor (`client/src/pages/CanvasLab/components/types.ts`). Toda mutação passa pelo funil `CanvasLabPage.handleUpdatePost`.
@@ -248,7 +250,17 @@ Regras mandatórias do editor oficial:
 
 ---
 
-## 4. Pipeline Completo de Geração de Posts (`post.generate`)
+### Mídia temporal do CanvasLab e Maré Studio
+
+A referência temporal de cada ocorrência pertence a `slides[].temporalMedia` no `CanvasPostModel`. A persistência usa o mesmo documento no post pessoal ou no projeto de Agência. A âncora identifica o documento, slide, elemento e revisão. A aplicação de um retorno é transacional. Pacotes de edição e vídeos ficam em Storage privado. A API controla separadamente o vídeo direto, o editor Maré, o processamento pago e a entrada do TheVoid. O worker de ingestão prepara a mídia e o worker Maré executa exportações e serviços editoriais. [Operação do piloto](./labs/mare-studio/OPERACAO-POSTSPARK.md)
+
+No celular, o Maré oferece a apresentação Contextual e a Edição avançada sobre o mesmo projeto e histórico. O MP4 de entrega usa H.264 Baseline, cor de faixa limitada e áudio AAC-LC quando houver som. CanvasLab e Maré compartilham a preparação dos quadros e podem carregar o codificador AAC local sob demanda. O WebM com alfa preserva a transparência até a composição final no slide. [Exportação e aceite](./labs/mare-studio/OPERACAO-POSTSPARK.md)
+
+O extrato de Sparks registra variações de saldo em `postspark.spark_balance_entries` a partir da migração 0089. A API usa a identidade autenticada para consultar os movimentos do próprio pagador. [Migração do extrato](./drizzle/0089_spark_statement.sql)
+
+## 4. Histórico do pipeline de geração (`post.generate`)
+
+Esta seção registra o pipeline aposentado. A geração atual entra por `generation.start` no Studio, conforme §3.2 e §13.86.
 
 ```
    [Insumo do Usuário] ──► (Texto / Tese / URL de Site / Imagem)
@@ -320,12 +332,12 @@ Regras mandatórias do editor oficial:
 
 ## 5. Motor de Brand DNA & Site Intelligence
 
-O PostSpark possui tecnologia própria para clonagem de identidade visual de qualquer site corporativo ou landing page.
+O PostSpark extrai sinais de identidade visual de páginas acessíveis publicamente.
 
 ### Mecânica de Extração:
 1. **Coleta de Conteúdo (`server/siteContent.ts`)**:
    - Tenta coleta via HTTP direto com sanitização e parsing HTML (`cheerio`);
-   - Se bloqueado por CDN/Cloudflare, aciona o microsserviço Railway configurado em `RAILWAY_SCREENSHOT_SERVICE_URL`.
+   - Quando a operação exige captura visual, o adaptador usa o serviço configurado em `SCREENSHOT_SERVICE_URL`, com token do backend e verificação de destino público.
 2. **Extração de Estilos Visuais (`server/styleExtractor.ts` & `server/brandDNA.ts`)**:
    - Mapeia paleta cromática dominante a partir do CSS e tags de cor;
    - Identifica fontes Google Fonts e CSS `@import`;
@@ -335,13 +347,13 @@ O PostSpark possui tecnologia própria para clonagem de identidade visual de qua
    - Possui `fallbackSynthesis` determinístico, assegurando que o pipeline **nunca trava** se o site tiver bloqueio agressivo de robôs.
 4. **Endpoints Ativos**:
    - REST: `POST /api/brand-dna`
-   - tRPC: `brand.extractDna` e integração automática em `post.generate`.
+   - tRPC no Studio: `brandProjects.captureStart`, `captureGet` e `captureSave` para iniciar, acompanhar e salvar a captura de marca.
 
 ---
 
 ## 6. Catálogo das 14 Direções de Arte Oficiais
 
-Todas as artes do PostSpark seguem rigorosamente as definições geométricas e tipográficas estabelecidas em `shared/creative/familyGeometry.ts` e `OFFICIAL_FAMILIES_META`:
+O CanvasLab oferece 14 famílias de presets documentadas em [`OFFICIAL_FAMILIES_META`](./client/src/pages/CanvasLab/components/types.ts). A geração seleciona composições aprovadas do catálogo e preserva sua autoria.
 
 ### 🌟 Categoria 1: Tendências & Instagram (Novos Arquétipos)
 1. **🔲 Stroke Impact (`stroke-impact`)**: Tipografia massiva em Bebas Neue com contorno vazado (*stroke outline*) intercalado com preenchimento sólido.
@@ -375,7 +387,7 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 - **Criação mobile**: o campo de pedido precede as opções de geração. Tipo de post e proporção têm controles separados. Um link avulso explicita as opções de analisar a marca ou usar a página como fonte.
 - **Galeria**: no desktop, o card e **Personalizar Post** abrem o editor. No mobile, a galeria mostra uma proposta por vez, com setas ou gesto horizontal para trocar de proposta, controles separados para os slides e ações **Editar proposta** e **Baixar**. Voltar do editor restaura a proposta, a proporção e o slide editados.
 - **Editor CanvasLab**: `CanvasTopBar` concentra voltar, desfazer/refazer, estado do salvamento, Baixar e ações secundárias. `CanvasEditorChrome` oferece Fundo, Adicionar, Aparência, Marca, Camadas e Legenda nos dois modelos de slide. Fundo reúne cor, geração/envio de imagem, texturas, enquadramento e filtro. Desktop usa painel lateral; mobile coloca a barra de ferramentas e o painel inferior no fluxo do editor. A prancheta se ajusta ao espaço restante, inclusive ao abrir ferramentas e durante a edição de texto. Formato, zoom e ímã ficam em `CanvasToolRail`; no mobile a ação **Formato e zoom** abre essa barra sob demanda.
-- **Seleção e edição**: ferramenta aberta, seleção por ID de slide/objeto e edição em curso são estados independentes. Selecionar não troca a ferramenta. **Editar texto** abre edição na arte; **Ajustar** abre propriedades e um campo alternativo apenas para o texto selecionado. Camadas projeta grupos e reúne decoração recolhida, com ações condicionadas à capacidade real do objeto. Listas mantêm operações sobre itens. Legenda tem editor único e Copiar.
+- **Seleção e edição**: ferramenta aberta, seleção por ID de slide/objeto e edição em curso são estados independentes. Selecionar não troca a ferramenta. **Editar texto** abre edição na arte; **Ajustar** abre propriedades e um campo alternativo apenas para o texto selecionado. Camadas lista os objetos da frente para trás dentro de cada grupo e permite revelar a decoração na posição que ela ocupa na arte. Arrastar pela alça muda a ordem entre irmãos em um único passo de histórico ao soltar. Listas mantêm operações sobre itens. Legenda tem editor único e Copiar.
 - **Documento e comandos**: `lib/editorController.ts` adapta intenções para slides convencionais e composições, sem documento concorrente. O resultado volta a `handleUpdatePost`, histórico e autosave. Digitação em um mesmo campo é agrupada até a saída de foco; edição na arte confirma texto e trechos numa única mutação. Prévia de reorganização permanece separada até aplicar; `composePost(..., { preserveColors: true })` preserva cores na reorganização e nos refluxos de texto/formato.
 - **Estado das camadas**: `elementStates` guarda ocultação e bloqueio, com defaults visível/desbloqueado; `elementOrder` guarda ordem convencional. Grupos transmitem restrições aos filhos, que indicam o ancestral responsável. Ocultar não remove dados. Esses campos atravessam normalização, clonagem, schema, receita portátil e exportação. Não exigem migração: continuam dentro de `canvas_model`.
 - **Aparência e marca**: tipografia usa papéis/conteúdo reconhecido, com destinos explícitos, exibe seleção mista quando necessário e reúne a importação de fontes. A ação de paleta em composições usa `paletteAppliedFills` para distinguir última aplicação automática de uma substituição manual. Logo convencional aceita override em `slide.logo` (URL vazia significa removido), com fallback da raiz para documentos anteriores; composição conserva seu logo próprio. Aplicar logo a outros slides copia somente a marca. Restaurar visual do Arsenal apresenta prévia e confirmação antes da mutação reversível.
@@ -393,12 +405,56 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 - Formatos nativos com legendas oficiais (**1:1 Feed**, **4:5 Feed**, **9:16 Stories** (5:6 apenas para documentos antigos) — mapa único `ASPECT_RATIO_CAPTIONS` em `types.ts`);
 - Renderização direta em PNG 4K (`exportPng4K`) e carrossel completo em `.zip` 4K (`exportZip4K`).
 
+### Vídeo direto no CanvasLab e carrosséis mistos (direção de produto, 2026-11-25)
+
+O CanvasLab deve aceitar um vídeo do celular ou do computador como camada do post, com edição e entrega independentes do Maré Studio. O vídeo pode preencher o slide ou ocupar uma área do design. Enquanto ele toca, título, preço e marca podem permanecer fixos e editáveis no CanvasLab. Em um carrossel misto, cada slide conserva sua posição e gera seu próprio arquivo. Por exemplo, uma capa em imagem, uma demonstração em MP4 com título sobreposto e uma chamada final em imagem. A seleção de mídia e a exportação atuais ainda são voltadas a imagens. [Fluxo proposto e aceite do vídeo direto](labs/mare-studio/INTEGRACAO-POSTSPARK.md#vídeo-direto-no-canvaslab)
+
+### Direção para vídeo e animação no Maré Studio (2026-11-21)
+
+**Mídia editável dentro do post (direção de produto, 2026-11-25).** Uma composição ou montagem criada no Maré deve poder ocupar uma área do slide junto ao texto, à marca e às demais camadas do CanvasLab. Selecionar a mídia no post deve reabrir sua fonte editável no Maré. Ao aplicar, a nova revisão volta ao mesmo elemento. O CanvasLab determina como a peça é composta e o Maré mantém a edição temporal da mídia. Essa jornada ainda depende da integração entre os dois editores. [Mapa de integração e critérios de aceite](labs/mare-studio/INTEGRACAO-POSTSPARK.md)
+
+**Portas entre os editores.** No design, **Enviar ao Maré Studio** registra uma âncora persistida no post, slide e elemento. No Maré, Montagem e Animação mantêm sua navegação própria e oferecem **Enviar ao PostSpark** enquanto houver um design-âncora acessível, inclusive com a aba do post fechada. Projetos avulsos ficam sem esse botão. A entrada geral **Vídeo ↗** do TheVoid abre o Maré em outra aba e será habilitada na última etapa da integração, em desktop e celular. [Fluxo da âncora](labs/mare-studio/INTEGRACAO-POSTSPARK.md#da-inserção-à-reedição-de-uma-composição-maré) · [Avaliação de planos e Sparks para o piloto](labs/mare-studio/PLANOS-E-SPARKS.md)
+
+O Maré Studio será a interface própria de montagem e animação do PostSpark. No primeiro acesso ao laboratório, a tela inicial oferece escolher um modelo, criar uma animação do zero, começar com um vídeo, abrir um projeto ou explorar o exemplo. Projetos salvos no navegador podem voltar diretamente ao editor. Na montagem rápida, a pessoa desliza a faixa sob o marcador para encontrar um quadro no celular ou percorre a régua com o mouse no desktop. Selecionar uma camada e escolher **Animar posição** deve abrir os controles de precisão no mesmo instante. CapCut e DaVinci Resolve são referências para esses gestos e controles. O laboratório em `labs/mare-studio/` é o ambiente de validação anterior à integração com o Studio.
+
+**Separação dos ambientes no laboratório (2026-11-22).** A **Montagem** organiza o vídeo final. Sua timeline mostra clipes e pistas, com controles de corte, duração, transição e áudio. A identidade visual usa grafite com coral nos destaques. A **Animação** edita o conteúdo da composição no seu próprio tempo. Sua timeline mostra camadas e keyframes, com biblioteca de modelos e propriedades dos elementos. A identidade visual usa grafite neutro com lavanda discreto na seleção e nos keyframes.
+
+**Passagem entre os ambientes.** Criar uma composição a deixa disponível na biblioteca do projeto. **Adicionar à montagem** insere um clipe vinculado no marcador da Montagem. Na Montagem, **Editar na Animação** abre a composição no tempo de origem do clipe selecionado. **Aplicar e voltar** confirma a edição em uma ação de histórico, preserva a posição e o recorte do clipe e restaura o marcador, o zoom e a rolagem da timeline do vídeo. Os clipes que usam a mesma composição recebem a atualização. Em uma edição aberta da Montagem, **Duplicar composição** vincula apenas aquele clipe à cópia.
+
+**Documento do laboratório.** A biblioteca mantém o conteúdo autoritativo em `project.compositions`. Os clipes da pista principal guardam a referência `compositionId` e o intervalo usado na montagem. O navegador normaliza projetos anteriores com composições embutidas e preserva a identidade das cópias existentes. A versão 2 do `.mare` guarda a biblioteca, inclusive composições que estão fora da timeline, e continua sendo gravada para projetos com as curvas predefinidas. Projetos com alças Bézier personalizadas usam a versão 3. O laboratório lê arquivos das versões 1 a 3. A exportação de composição monta uma sequência com a peça selecionada e o seu tempo de origem, e a exportação de montagem usa os intervalos dos clipes vinculados.
+
+Na Montagem, o zoom mantém o quadro visível na mesma posição da régua até os limites da rolagem. O marcador percorre os quadros de 30 fps. Com **Encaixe** ligado, também alcança as bordas originais dos clipes, inclusive nas pistas extras. Na Animação, **Curvas** mostra a interpolação da propriedade selecionada no tempo da composição. Selecionar um ponto abre o keyframe do eixo exibido. A curva de chegada aceita duas alças Bézier, ajustáveis no gráfico ou por coordenadas. O documento guarda os quatro valores normalizados no keyframe e o processador avalia a mesma interpolação por quadro. O encaixe da Animação usa o marcador e os tempos das camadas, respeitando a grade da posição. Gráfico, zoom e encaixe são controles de visualização e interação do editor.
+
+**Da interação ao processamento.** A interface deve responder ao gesto durante o arrasto. Ao soltá-lo, o Maré envia a edição ao backend. Um pedido em português deve produzir a mesma operação editável que o gesto equivalente. Por exemplo, mover um título grava a camada, o quadro e o par de coordenadas X/Y. Percorrer a timeline só muda o quadro em exibição. O backend valida o projeto e o alvo, encaminha a operação ao processador privado na VPS e devolve o resultado identificado pela revisão do projeto. Isso permite descartar uma prévia atrasada e reconhecer uma repetição após falha de conexão. Camadas, clipes e keyframes devem continuar editáveis após salvar e reabrir. O MP4 é uma saída do projeto.
+
+**Assistente e exportação no laboratório.** A criação guiada, os modelos e a edição por pedido vivem na própria interface. O assistente interno altera o documento editável da composição no navegador, com prévia e histórico de desfazer. As Ações rápidas aplicam operações nativas conforme a seleção e os keyframes existentes. Pedidos escritos na interface usam o OpenRouter pelo processador privado. O assistente propõe comandos ou pede esclarecimento antes da aplicação. O Qwen local está desativado. **Baixar vídeo** prepara um MP4 vertical de 1080 × 1920 a 30 fps com WebCodecs. O navegador busca a mídia de origem de cada quadro, compõe a imagem e grava o tempo de apresentação correspondente. A mixagem local reúne áudio original, pistas extras e trilha. **Mais opções** oferece gravação em tempo real, a cópia editável e, quando disponível, a renderização no processador privado e o arquivo de legendas.
+
+**Motores e estado atual.** O PhotoCraft processa imagens na API de produção. No laboratório privado do Maré, a prévia interativa e o salvamento do documento continuam no navegador. Ao escolher **Preparar MP4 no servidor** em Animação, o Maré envia a cena selecionada ao serviço de loopback. O EffectCraft recria as camadas e os keyframes em um projeto nativo. O FilmCraft importa essa composição renderizada em uma sequência e exporta o MP4. A exportação de composição oferece formas, símbolos e títulos de uma linha no EffectCraft, sem áudio, a 540 × 960 e 30 fps. Fotos e logos importados em lote, inclusive SVG, ficam como camadas de imagem PNG no documento portátil. Ao exportar uma cena com imagens, o serviço de montagem renderiza a cena selecionada com o mesmo canvas da prévia. Em Montagem, a mesma opção recebe o projeto portátil do Maré e monta uma sequência FilmCraft com os cortes, áudio de origem e música em pistas separadas. O projeto aceita até cinco pistas no total, contando vídeo principal, som original e trilha. As pistas adicionais podem receber vídeo ou áudio. A transição entre dois clipes da pista principal é vinculada ao par de clipes e tem duração em quadros. A onda e as composições com imagens usam o mesmo renderizador de canvas da prévia, executado na VPS. O pacote de saída inclui a sequência, as mídias e a montagem editável do Maré. [Operação e acesso ao laboratório](labs/mare-studio/processor/README.md) · [Cliente do processador de imagem](server/imageEditing/client.ts)
+
+As transições **Filme antigo** e **Papel rasgado** usam uma biblioteca de quadros do laboratório privado. A prévia e o FilmCraft ajustam a duração preservando o quadro de impacto no corte. O `.mare` referencia os presets da biblioteca. O pacote FilmCraft inclui os quadros e uma pista interna de transições, entre o vídeo principal e as pistas adicionais.
+
+**Narração na Montagem.** O processador privado sintetiza roteiros em português com ElevenLabs pela API de áudio do OpenRouter. A tomada aprovada vira mídia em uma pista de áudio adicional. O clipe guarda roteiro, modelo e voz para regeração. A prévia, o projeto portátil e os dois caminhos de exportação usam o mesmo áudio. [Operação do laboratório](labs/mare-studio/processor/README.md#narração-na-montagem)
+
+**Vídeo falado na Montagem.** O laboratório analisa o clipe selecionado em um trabalho assíncrono na VPS. Faster-whisper e Silero registram palavras e intervalos de voz no tempo da mídia de origem. MediaPipe produz a máscara da pessoa para aplicar fundo, tipografia atrás do primeiro plano e exposição seletiva. A timeline deriva a faixa de legendas dessa transcrição. O `.mare` leva as análises e os recursos usados pelos clipes. Botões e pedidos em português usam os mesmos comandos de edição. As propostas de corte são revistas antes de alterar a montagem e gravadas em um único passo de histórico. O FilmCraft monta os intervalos resultantes e exporta o MP4. [Operação e limites do laboratório](labs/mare-studio/processor/README.md#vídeo-falado)
+
+**Critério para integrar.** Na abertura Café 360, marcar a posição do triângulo em 1 s, arrastá-lo em 2 s e voltar a 1 s deve recuperar os dois eixos originais. Em seguida, pedir para atrasar apenas o título em seis quadros deve preservar a trajetória do triângulo e os cortes da montagem. Conferir esses instantes na prévia, após reabrir o projeto e no vídeo exportado pelo processador. No celular, também validar que deslizar para localizar um corte mantém a ordem dos clipes.
+
+**Autonomia do assistente nativo do Maré (direção de produto, 2026-11-24).** A meta é dar ao assistente acesso a 100% das operações de criação, edição, inspeção e entrega disponíveis ao usuário nos dois ambientes. A cobertura será medida pelo inventário dessas operações e suas opções, incluindo as de clipes, pistas, mídias, composições, camadas, keyframes, transições, áudio, histórico e exportação. Para cada operação, registrar o ponto de entrada manual, o comando correspondente, suas opções e um teste de equivalência. Novos recursos entram no inventário ao serem implementados.
+
+O laboratório implementa a sessão nativa `projectEditor`, disponível em Animação e Montagem pelo **Assistente do projeto**. O catálogo descreve comandos, parâmetros, ações de sessão e trabalhos de mídia disponíveis no ambiente. A consulta fornece seleção, IDs, recortes, pistas, camadas, curvas e pose no tempo. O executor prepara uma cópia, valida o lote, permite inspecionar o quadro candidato e confirma a edição em uma entrada de histórico se a revisão local ainda for válida. O rascunho aberto na Animação participa da consulta. Uma edição específica de um clipe pode duplicar e revincular a fonte quando outras ocorrências a compartilham. O interpretador de composição e o de vídeo falado alimentam essa sessão. O modelo remoto pode propor um lote de operações ou uma edição composta que o executor expande em comandos nativos. A [matriz de equivalência](labs/mare-studio/COMANDOS.md) vincula os controles permanentes e catálogos dinâmicos aos comandos. A suíte compara a interface e o executor em Chromium. Um teste de integração separado exercita transcrição, máscara, síntese e render no laboratório privado.
+
+**Criação editorial no laboratório.** Em um projeto vazio, o assistente pode produzir um primeiro corte em duas chamadas. O roteirista recebe o briefing, o inventário, miniaturas das imagens e quadros da gravação com seus tempos na fonte. O diretor recebe o roteiro e especifica enquadramentos, entradas animadas, recortes e trilha. O motor valida as referências e a duração, prepara comandos nativos e produz o MP4 com áudio e o arquivo editável da mesma revisão antes da confirmação. A sessão mede tempos de modelo, preparação e mídia, tokens e custo informado pelo provedor. O processador de mesma origem usa um modelo multimodal configurável pelo laboratório. [Operação e limites](labs/mare-studio/processor/README.md#direção-editorial-em-duas-chamadas)
+
+**Decisão da frente 2 no laboratório.** Duas chamadas, roteiro e direção, são o padrão para criar uma peça completa. A calibração das janelas de leitura levou o anúncio PostSpark à aprovação. No segundo briefing, Café Intervalo, o usuário aprovou o primeiro corte para publicação com zero segundos de correção manual. Nesse caso, a revisão audiovisual manteve o vídeo idêntico e acrescentou US$ 0,00268 e 4,8 s. A revisão fica disponível sob demanda. Antes de aplicar, o usuário pode solicitar uma terceira chamada sobre uma cópia reduzida do MP4 renderizado, com áudio. O revisor informa o instante, o motivo e as correções locais. O Maré preserva o primeiro corte e oferece uma segunda cópia editável quando há mudanças válidas. Um parecer de aprovação conserva o primeiro render. Uma quarta chamada continua como hipótese para alterações editoriais relevantes. A comparação usa o mesmo briefing e os mesmos materiais e mede qualidade editorial, tempo de correção manual até publicação, custo e latência. Pedidos de alteração reconhecidos pelo interpretador podem seguir localmente após reabrir o arquivo.
+
+**Verificação de autonomia.** O teste de navegador abre o anúncio PostSpark de 26 segundos quando recebe o arquivo de referência. Exercita a sequência de três cards, desfaz, substitui a chamada final e prolonga a leitura em um segundo. Salva e reabre o arquivo portátil em outro contexto, compara a estrutura e as mídias e exporta 810 quadros. Outra jornada cria uma peça curta a partir de um projeto vazio por comandos, renderiza e faz uma edição posterior à reabertura. A [jornada de criação editorial](labs/mare-studio/tests/editorial.browser.mjs) parte de um projeto vazio, aceita o pacote de materiais do experimento e permite reproduzir as respostas do modelo, comparar o render e conferir a edição posterior do CTA. [Jornadas reproduzíveis](labs/mare-studio/tests/project-autonomy.browser.mjs)
+
 ### Tutorial no loading (item 11):
 - `ProductionOverlay` exibe, junto ao % e às microetapas, o mini-tutorial ilustrado `LoadingTutorial` (4 passos SVG inline, rotação 3.5s, swipe no mobile, respeita `prefers-reduced-motion`).
 
 ### Legado preservado (referência histórica):
 - O **Estúdio de Texturas** (6 materiais nobres) e o **Dial Orbital Polar** seguem disponíveis via `RadialTextureSelector`/`BackgroundsDrawer` dentro do CanvasLab.
-- `Home.tsx`, `HoloDeck.tsx`, `WorkbenchV2/` e `CanvasLab` experimental redirecionado: **legado órfão** — não rotear sem decisão explícita do dono.
+- A interface antiga de Home, HoloDeck e WorkbenchV2 foi arquivada. `PostCardV2` continua em uso em `/familias` e no renderizador de posts.
 
 ---
 
@@ -407,9 +463,9 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 O sistema de autenticação utiliza o Supabase Auth integrado por uma ponte segura de cookies HTTP-only:
 
 1. **Tokens de Sessão**:
-   - `sb-access-token`: JWT de acesso com validade curta;
-   - `sb-refresh-token`: token de renovação transparente;
-   - `app_session_id`: identificador de sessão interna do PostSpark.
+   - O cliente Supabase gerencia o token de acesso e sua renovação. A ponte guarda o token de acesso verificado no cookie HTTP-only `app_session_id`.
+   - O dropdown **Impersonar** permite a administradores e contas DEV com acesso integral selecionar Solo, PRO, PRO+ ou Agência na sessão corrente. O cookie HTTP-only `postspark_session_plan` é assinado e vinculado ao UUID autenticado e ao `session_id` do Supabase. Expira após oito horas e é removido ao restaurar o perfil ou sair.
+   - O perfil efetivo governa os recursos do editor e suspende o papel administrativo durante o teste. Projetos, saldo, assinatura e vínculos de equipe continuam pertencendo ao usuário autenticado. A simulação não cria contratos ou integrantes. As verificações financeiras usam o plano real.
 2. **Entrada e sincronização de sessão**:
    - A landing ativa (`/`, `InspiracaoShowcasePage`) abre `StudioAuthModal`. O padrão é e-mail/senha via `signInWithPassword`; `/criar` encaminha seus CTAs para essa landing.
    - `VITE_POSTSPARK_AUTH_MODE=email-google` habilita Google explicitamente, conservando e-mail/senha. Ausência, `email` ou valor desconhecido mantém apenas senha. Google retorna por `/auth/google-callback`.
@@ -424,6 +480,8 @@ O sistema de autenticação utiliza o Supabase Auth integrado por uma ponte segu
 ---
 
 ## 9. Billing, Sparks & Planos de Assinatura
+
+O extrato de `/billing` usa a RPC de servidor `read_spark_statement`. O pagador é o ID da sessão autenticada. A migração `0089_spark_statement.sql` passa a registrar cada variação de `profiles.sparks` com data, diferença e saldo resultante na mesma transação. As reservas que apenas bloqueiam saldo aparecem quando se convertem em débito. A cobertura começa com a aplicação da migração, sem recriação de lançamentos históricos.
 
 O PostSpark adota um modelo híbrido de assinaturas com saldo de créditos consumíveis (**Sparks**):
 
@@ -474,11 +532,9 @@ O PostSpark adota um modelo híbrido de assinaturas com saldo de créditos consu
 
 | Rota | Acesso | Componente de Página | Finalidade Principal |
 | :--- | :--- | :--- | :--- |
-| Rota | Acesso | Componente de Página | Finalidade Principal |
-| :--- | :--- | :--- | :--- |
-| **`/`** | Pública | [`InspiracaoShowcasePage`](file:///client/src/pages/InspiracaoShowcase/InspiracaoShowcasePage.tsx) | **Home Oficial de Não Logados (Definitiva)**: Vitrine imersiva definitiva com palco 3D coverflow no desktop (matemática pura nativa sem GSAP), stories dinâmicos no mobile, typewriter reverso com acionamento por card e fundo cósmico TheVoid com 6 posts canônicos. Redireciona imediatamente para `/thevoid` assim que autenticado. |
-| **`/criar`** | Pública | [`PreviewHomePage`](file:///client/src/pages/PreviewHome/PreviewHomePage.tsx) | **Landing Page Oficial de Tráfego / Anúncios (Dark Studio Editorial)**: Página de alta conversão para tráfego pago reformulada no padrão TheVoid (`oklch(0.04 0.06 280)`). Apresenta Hero com Live Sandbox tonal e backgrounds artísticos canônicos, Atelier de Brand DNA por URL (sem clichês de Mac dots), Galeria dos 6 espécimes canônicos em proporções 1:1, 4:5 e 9:16, e Estúdio de Texturas táteis interativo. Todos os CTAs e links de ação da página redirecionam diretamente para a rota `/` (Showcase de Insumo e Captura), maximizando conversão e retenção sem barreiras mecânicas de modal. |
-| **`/thevoid`**, **`/studio`** | Protegida | [`StudioAppV2BPage`](file:///client/src/pages/StudioApp/StudioAppV2BPage.tsx) | **Estúdio Oficial Logado**: máquina `create → gallery → editor` (StudioCreateViewV2B → StudioGalleryView/StudioMobileFlashcards → **CanvasLabPage**, o editor oficial Konva). Também lê `sessionStorage("postspark.open_canvas_post")` para reabrir posts salvos com fidelidade total. (*Alias: `/studio-v2b`*). |
+| **`/`** | Pública | [`InspiracaoShowcasePage`](./client/src/pages/InspiracaoShowcase/InspiracaoShowcasePage.tsx) | **Home Oficial de Não Logados (Definitiva)**: Vitrine imersiva definitiva com palco 3D coverflow no desktop (matemática pura nativa sem GSAP), stories dinâmicos no mobile, typewriter reverso com acionamento por card e fundo cósmico TheVoid com 6 posts canônicos. Redireciona imediatamente para `/thevoid` assim que autenticado. |
+| **`/criar`** | Pública | [`PreviewHomePage`](./client/src/pages/PreviewHome/PreviewHomePage.tsx) | **Landing Page Oficial de Tráfego / Anúncios (Dark Studio Editorial)**: Página de alta conversão para tráfego pago reformulada no padrão TheVoid (`oklch(0.04 0.06 280)`). Apresenta Hero com Live Sandbox tonal e backgrounds artísticos canônicos, Atelier de Brand DNA por URL (sem clichês de Mac dots), Galeria dos 6 espécimes canônicos em proporções 1:1, 4:5 e 9:16, e Estúdio de Texturas táteis interativo. Todos os CTAs e links de ação da página redirecionam diretamente para a rota `/` (Showcase de Insumo e Captura), maximizando conversão e retenção sem barreiras mecânicas de modal. |
+| **`/thevoid`**, **`/studio`**, **`/studio-v2b`** | Protegida | [`StudioAppV2BPage`](./client/src/pages/StudioApp/StudioAppV2BPage.tsx) | **Estúdio Oficial Logado**: máquina `create → gallery → editor` (StudioCreateViewV2B → StudioGalleryView/StudioMobileFlashcards → **CanvasLabPage**, o editor oficial Konva). Também lê `sessionStorage("postspark.open_canvas_post")` para reabrir posts salvos com fidelidade total. (*Alias: `/studio-v2b`*). |
 | **`/pricing`** | Pública | `Pricing.tsx` | Adesão ao Pro mensal ou anual e entrada no portal Stripe. |
 | **`/billing/success`** | Identidade Supabase | `MembershipSuccess.tsx` | Confirma o pagamento e abre a sessão do Studio. |
 | **`/billing`** | Protegida | `Billing.tsx` | Painel de gestão de assinatura, histórico de faturas e saldo de Sparks. |
@@ -531,7 +587,7 @@ As operações em runtime ocorrem diretamente via cliente Supabase sobre as segu
 | `GEMINI_API_KEY` | - | Recomendada | Chave do Google Gemini para fallback de contingência |
 | `STRIPE_SECRET_KEY` | - | Em Prod | Chave secreta da API do Stripe para billing |
 | `STRIPE_WEBHOOK_SECRET` | - | Em Prod | Assinatura de validação de webhooks do Stripe |
-| `RAILWAY_SCREENSHOT_SERVICE_URL` | - | Não | URL do microsserviço no Railway para captura e bypass de Cloudflare |
+| `SCREENSHOT_SERVICE_URL` | - | Para captura remota | Endpoint de captura da VPS. O backend usa `SCREENSHOT_SERVICE_TOKEN` e `SCREENSHOT_PUBLIC_NETWORK_ONLY=true` |
 | `AI_LLM_JUDGE_ENABLED` | `false` | Não | Juiz LLM opcional, desligado por padrão; latência real depende das chamadas efetivas |
 | `AI_SITE_INTELLIGENCE_ENABLED` | `true` | Não | Habilita a extração automática de Brand DNA por URL |
 
@@ -539,7 +595,11 @@ As operações em runtime ocorrem diretamente via cliente Supabase sobre as segu
 
 ---
 
-## 13. Registro de Decisão Arquitetural (ADR): A Arquitetura em Grafos e a Transição para o Orquestrador Único
+## 13. Histórico de decisões e verificações
+
+> Os registros abaixo descrevem as versões e os ambientes das respectivas datas. A execução vigente está no [mapa do motor](./docs/motor-integracao.md).
+
+### ADR sobre a transição do grafo para o orquestrador único
 
 ### 📜 Contexto Histórico:
 Em versões anteriores do PostSpark (fases pré-SPEC-003), a geração de posts foi modelada e experimentada como uma **arquitetura orientada a grafos** (`shared/graphEngine.ts`, `shared/generationGraph.ts`, com nós para brief, workers paralelos, shadow graph e pipeline multi-etapas). 
@@ -550,12 +610,12 @@ Durante os testes de carga e validação da **Reforma SPEC-003 / SPEC-005**, for
 2. **Multiplicação de Custos e Timeouts**: Múltiplas etapas encadeadas quadruplicavam o consumo de tokens e multiplicavam a probabilidade de falhas de rede (erros 429, 503 e abortos de contexto em modelos como Gemini e OpenRouter).
 3. **Divergência de Contratos**: Cada nó do grafo operava com pequenos deltas de tipagem, dificultando a garantia da invariante de normalização canônica.
 
-### 🎯 A Decisão e a Arquitetura Atual (Consolidada na SPEC-003/SPEC-005):
-1. **Orquestrador Único (`generationOrchestrator.ts`)**: Todo o pipeline produtivo foi simplificado para uma chamada generativa rica e única, que entrega as variações completas em **2 a 4 segundos**.
+### Decisão registrada na reforma SPEC-003/SPEC-005
+1. **Orquestrador Único (`generationOrchestrator.ts`)**: Naquela revisão, o caminho foi simplificado para uma chamada generativa. A medição de **2 a 4 segundos** pertence à versão da reforma.
 2. **Planejamento Determinístico em Memória**: Decisões que não exigem raciocínio generativo aberto (seleção de ângulos, diversidade de famílias com `ensureDistinctFamilies` e validação WCAG com `BrandVisualGuardian`) ocorrem de forma síncrona em milissegundos, sem chamadas extras de IA.
 3. **Preservação de Legado no Banco**: A coluna `generation_runs.graph_state` no Supabase foi mantida unicamente para telemetria histórica e compatibilidade de leitura com registros antigos.
 
-> ⛔ **Invariante Mandatória:** É terminantemente proibido reintroduzir máquinas de estado concorrentes, filas assíncronas, juízes paralelos de IA ou grafos multi-roundtrip no caminho crítico de `post.generate`. Qualquer proposta de alteração generativa deve preservar o teto estrito de latência (2 a 4s) e a chamada generativa única.
+O pedido na geração vigente entra por `generation.start`, é durável no PostgreSQL e é processado pelo executor configurado. A coordenação e os limites são os implementados no [router da geração](./server/routers/generation.ts) e em [server/ai/workflows](./server/ai/workflows/).
 
 ---
 
@@ -593,7 +653,7 @@ Consolidação definitiva do motor gráfico e ciclo de eventos no CanvasLab:
    - `.agent/skills/konva-canvas-architecture/SKILL.md`: padrão canônico de medição tipográfica do Konva, pass-through de duplo clique no Transformer e desseleção no Stage.
    - `.agent/skills/image-pipeline-resilience/SKILL.md`: cadeia de fallback resiliente (OpenRouter → Pollinations → Unsplash), validação de assinatura binária e manipulação no Canvas estilo Canva (`getCoverCrop`, `bgTransform`).
    - `.agent/skills/contrast-color-guardian/SKILL.md`: regras WCAG 2.1, contraste assimétrico no Brutal Split e políticas de cores e badges de baixo contraste.
-   - `.agent/skills/post-visual-snapshot/SKILL.md`: a invariante mandatória da fonte única da verdade dos posts (`variationSnapshot.ts`), versionamento e isolamento de slides sem cross-talk.
+   - A skill histórica de `PostVisualSnapshot`, agora arquivada, registrava a normalização de snapshots, seu versionamento e o isolamento por slide.
    - `.agent/skills/canvas-export-4k/SKILL.md`: renderização offscreen em resolução 4K Ultra-HD (`pixelRatio: 4`), empacotamento assíncrono em ZIP via `JSZip` e preloading de fontes dinâmicas.
 
 ---
@@ -1138,7 +1198,7 @@ Autorizado pelo proprietário após definir recuperação por filtros/pontuaçã
 - **Save/reopen:** geometria/tipografia nos campos oficiais; `catalogCompilation` conserva proveniência e resultado e é validado por `normalizeCanvasModel`. O post continua em `posts.canvas_model`, sem nova tabela de posts, sem pacote diagnóstico/fontes base64. Reabertura não consulta o catálogo; o Stage recarrega os pesos das fontes e recalcula sua geometria quando disponíveis.
 - **Traces:** `catalog.retrieve`, `catalog.select`, `catalog.compile` correlacionados por run/slot/version; pontuações, contagens, recusas, duração e fallback, sem copy/imagens nos novos eventos. Backend usa trace existente, console e nova tabela. Relato do cliente exige ownership do run, seleção correspondente e hash/version; é idempotente e explicitamente `client_report`. Falha de gravação é logada e degradável. Admin2 lista/filtra os últimos 100 eventos. Não há inferência de publicação a partir da compilação.
 - **Limites:** V1 suporta estáticos com título/apoio e efeitos nativos vinculados ao texto. Não entrega grupos arbitrários, mídia em slots, recortes, texturas ou autoaprovação agendada. A diversidade das estruturas aprovadas passa a complementar a diversidade antiga de famílias; a família neutra impede fundos fixos interferindo nas matrizes.
-- **Migration comprovada:** TypeScript passou; parser PostgreSQL aceitou o SQL externo. Após restabelecer OAuth, a migration `0018_design_catalog.sql` foi aplicada via MCP ao projeto `spbuwcwmxlycchuwhfir`, registrada como `20260930154457_postspark_design_catalog`. Consultas de metadados confirmaram as quatro tabelas com RLS, ausência de privilégios para `anon`/`authenticated`, SELECT/INSERT para `service_role`, duas RPCs `SECURITY INVOKER` com `search_path` vazio e execução permitida ao backend, índices e trigger de imutabilidade ativo. As verificações funcionais posteriores estão registradas abaixo. As falhas anteriores do pooler e da rota IPv6 não foram corrigidas: a aplicação utilizou o MCP autenticado. Código não exige nova biblioteca em produção; cliente PostgreSQL usado no diagnóstico anterior foi temporário fora do repositório.
+- **Migration comprovada:** TypeScript passou; parser PostgreSQL aceitou o SQL externo. Após restabelecer OAuth, a migration `0018_design_catalog.sql` foi aplicada via MCP ao projeto Cloud aposentado, registrada como `20260930154457_postspark_design_catalog`. Consultas de metadados confirmaram as quatro tabelas com RLS, ausência de privilégios para `anon`/`authenticated`, SELECT/INSERT para `service_role`, duas RPCs `SECURITY INVOKER` com `search_path` vazio e execução permitida ao backend, índices e trigger de imutabilidade ativo. As verificações funcionais posteriores estão registradas abaixo. As falhas anteriores do pooler e da rota IPv6 não foram corrigidas: a aplicação utilizou o MCP autenticado. Código não exige nova biblioteca em produção; cliente PostgreSQL usado no diagnóstico anterior foi temporário fora do repositório.
 - **Validação conectada posterior (2026-09-30):** `harness/designCatalog/databaseProbe.sql` executou as RPCs reais como `service_role`, comprovando criação/deduplicação, versionamento, aprovação idempotente, substituição/arquivamento, imutabilidade, vínculos e auditoria; também verificou recusas sob `anon` e `authenticated`. A transação foi desfeita e o banco continuou com zero versões/eventos do catálogo. `apiProbe.ts` passou em oito verificações via PostgREST/middleware, incluindo acesso à coluna `canvas_model`; contextos tRPC são injetados, não sessões reais. `contracts.ts` passou em 27 verificações locais, com nove combinações preset/formato e preservação da compilação pelos adaptadores de salvar/reabrir. Usa Canvas nativo e fontes genéricas, sem provar renderização ou carregamento de fontes no navegador. Ensaios documentados em `harness/designCatalog/README.md`; relatórios em `artifacts/design-catalog/`. Nesta conexão remota, CUA não disponibilizou navegador (`iab` indisponível). Admin2 visual, autenticação real, aprovação de um blueprint, geração LLM com traces correlacionados e salvamento real de post permanecem pendentes. Nenhum conteúdo foi aprovado nem houve chamada paga/deploy nesta validação.
 
 - **Ensaio das referências reais (2026-09-30):** `harness/designCatalog/referenceProbe.ts` avaliou sete receitas já exportadas, conferindo SHA-256 dos JPEGs em Downloads e das fontes incorporadas. Para os pares de camadas selecionados, seis drafts passaram no schema; cada um recebeu duas copies em três formatos, com apenas 3/36 compilações aceitas (com redução) e 33 fallbacks por encaixe. O caso do papel/prancheta foi recusado por caixa de apoio com altura relativa 0,025 (<0,03). Isso revela uma lacuna da conversão `draftFromRecipe`: copia linhas isoladas como blocos, preserva caixas pequenas, herda limites 100/260 e os três formatos do preset sem dimensionar capacidade. Tarjas/superfícies independentes também não são vinculadas nessa conversão. Não houve chamada LLM, aprovação nem gravação de blueprint; medição usou Canvas nativo e fontes incorporadas com transporte simulado, não navegador. Relatório: `artifacts/design-catalog/references/REPORT.md`. Esse ensaio histórico motivou a correção abaixo; o sucesso dos presets não valida a importação das referências.
@@ -1226,7 +1286,7 @@ O proprietário pediu conectar o arsenal ao pipeline de geração. A inspeção 
 
 ## 13.36 Catálogo Arsenal V2 persistido e integração M2/M3 (2026-10-01)
 
-**Estado confirmado, ainda sem aceite operacional:** o MCP Supabase voltou a responder após o proprietário autenticar. Projeto `spbuwcwmxlycchuwhfir`, schema runtime `postspark`, pgvector **0.8.0** em `extensions`. As migrations aditivas `0019`–`0023` foram aplicadas e conferidas no histórico remoto; `0018`, preexistente, não foi reaplicada. A flag local permanece **off** (ausente), com **zero versões aprovadas e zero variantes elegíveis**. Nenhuma geração paga, publicação administrativa ou aprovação humana foi produzida nesta etapa. M3 end-to-end e M4 permanecem pendentes; os testes abaixo não os substituem. Relatório permanente: `docs/relatorio-arsenal-v2.md`.
+**Estado confirmado, ainda sem aceite operacional:** o MCP Supabase voltou a responder após o proprietário autenticar. Projeto Cloud aposentado, schema runtime `postspark`, pgvector **0.8.0** em `extensions`. As migrations aditivas `0019`–`0023` foram aplicadas e conferidas no histórico remoto; `0018`, preexistente, não foi reaplicada. A flag local permanece **off** (ausente), com **zero versões aprovadas e zero variantes elegíveis**. Nenhuma geração paga, publicação administrativa ou aprovação humana foi produzida nesta etapa. M3 end-to-end e M4 permanecem pendentes; os testes abaixo não os substituem. Relatório permanente: `docs/relatorio-arsenal-v2.md`.
 
 **Catálogo e importação real:** `shared/arsenalCatalog.ts`, `server/designCatalog/arsenalStore.ts` e `arsenalAssets.ts` validam pacote, definição, peças, graph/bindings, hashes, capacidades e assets privados. `harness/arsenalV2/importCorpus.ts` tem dry-run padrão, procedência/manifesto, relatório por arquivo e deduplicação por identidade/hash. Dos **69 arquivos** do manifesto real foram importadas **18 variantes em 10 versões draft**, com **18 documentos de busca, 18 evidências técnicas e quatro fontes verificadas**. A repetição preservou essas quantidades. Os outros 51 arquivos requerem autoria (por exemplo, peso real da fonte divergente, efeito não representável ou papel textual indefinido); não foram fabricadas receitas equivalentes. Há sete variantes sem foto, incluindo Minimal Air nos três formatos. Originais e backups foram preservados; transformar uma receita cria hashes novos e não herda aprovação.
 
@@ -1255,7 +1315,7 @@ A autorização do proprietário substituiu a obrigatoriedade universal de títu
 - Contrato é armazenado em `catalogSelectionV2.contentContract` e no evento de orquestração com hash. `content` continua fonte única dos textos; headline/body legados são projeções de compatibilidade. Não há getters ou segunda copy autoritativa. O bundle é conferido antes da entrega; a composição preserva conteúdo/hash para salvar e reabrir em `canvas_model`.
 - Bindings novos `block:<tipo-ou-papel>:<ordinal>:<parte>` exigem compiler `arsenal-v3.0.0`. A cobertura confere **cada** bloco, inclusive papéis repetidos. IDs diretos `content:<id>:<parte>` são privados do fallback, recusados em imports/publicação. Designs V2 podem receber V3 apenas quando cobrirem o conteúdo completo; incompatibilidade leva a alternativa/fallback sem cortes.
 - Fallback editorial cria bindings/textos para todo o conteúdo e sinaliza `needs_adjustment` se houver overflow. O painel permite adicionar/excluir/reordenar blocos, editar partes e listas, legenda/hashtags. Edição direta resolve o bloco/item por ID. Alterações estruturais regeneram o fallback privado; tamanhos e overrides de IDs sobreviventes são mantidos (digitar não reduz fonte). Bases publicadas permanecem imutáveis: conteúdo fora de sua cobertura mantém os dados e sinaliza necessidade de ajustar a composição.
-- `0024_design_arsenal_variable_content.sql` aplicada no projeto `spbuwcwmxlycchuwhfir` (`20261001232448`). Permite publicação V3 sem título obrigatório, mantendo hashes, evidências técnicas, revisão humana, assets e privilégio exclusivo de serviço na recuperação. A busca normaliza seletores semânticos e exclui requisitos incompatíveis com conteúdo V3. Métrica L1/48 eixos não mudou. Há zero versões aprovadas; não houve promoção nem alteração da flag.
+- `0024_design_arsenal_variable_content.sql` aplicada no projeto Cloud aposentado (`20261001232448`). Permite publicação V3 sem título obrigatório, mantendo hashes, evidências técnicas, revisão humana, assets e privilégio exclusivo de serviço na recuperação. A busca normaliza seletores semânticos e exclui requisitos incompatíveis com conteúdo V3. Métrica L1/48 eixos não mudou. Há zero versões aprovadas; não houve promoção nem alteração da flag.
 
 Validação: 978 testes em 103 arquivos, tipagem e builds isolados; casos 1/15 blocos, 15 itens totais, faixas, negações, conflitos, excesso, evidências inventadas, reparo limitado, cobertura, edição, overrides, projeção de formato e persistência/arquivo portátil. Probe PostgreSQL+pgvector isolado verifica também publicação V3 sem título e filtro de papéis, sem substituir revisão real. Probe com provedor real produziu três variações válidas por pedido (“uma frase” / “15 dicas”), sem reparo; evidência em `artifacts/arsenal-v2/variable-live-generation.json`. Originalidade nesse probe é um double isolado; não prova billing, sessão HTTP, Stage no navegador ou gravação de post remoto. A conexão de automação ao navegador expirou em duas tentativas. Billing regular continua com as pendências de §13.36; isto não autoriza rollout geral do catálogo.
 
@@ -1326,9 +1386,9 @@ Esta rodada alterou apenas documentação. Não houve alteração de interface, 
 
 ## 13.42 Auditoria integrada da geração, do acervo e do editor (2026-10-02)
 
-O proprietário solicitou um relatório extenso antes da nova integração do CanvasLab. A auditoria está em [`docs/relatorio-auditoria-geracao-editor-unificado-2026-10-02.md`](./docs/relatorio-auditoria-geracao-editor-unificado-2026-10-02.md) e complementa o plano de §13.41. Esta rodada modificou somente documentação; as correções recomendadas ainda não foram implementadas.
+O proprietário solicitou um relatório extenso antes da nova integração do CanvasLab. A auditoria complementou o plano de §13.41. O relatório está no backup de legado. Esta rodada modificou somente documentação; as correções recomendadas ainda não foram implementadas.
 
-**Evidências atuais:** o MCP Supabase funcionou em consultas somente de leitura no projeto `spbuwcwmxlycchuwhfir`. Há 11 versões, todas draft, e 21 documentos de busca, sem versão aprovada. Os três runs examinados do briefing BizuMiner receberam zero candidatos e usaram `none`. A geração estática com contrato V3 segue o orquestrador novo mesmo sem catálogo elegível; desligar a seleção não restaura automaticamente o renderer/fluxo anterior. A frase do TheVoid “Gerar agora usa as famílias atuais” não descreve o fallback observado. O despacho V3 examinado é limitado a posts estáticos, sem comprovar migração do gerador de carrosséis.
+**Evidências de 02/10/2026.** O MCP Supabase fez consultas somente de leitura no projeto Cloud aposentado. Há 11 versões, todas draft, e 21 documentos de busca, sem versão aprovada. Os três runs examinados do briefing BizuMiner receberam zero candidatos e usaram `none`. A geração estática com contrato V3 segue o orquestrador novo mesmo sem catálogo elegível; desligar a seleção não restaura automaticamente o renderer/fluxo anterior. A frase do TheVoid “Gerar agora usa as famílias atuais” não descreve o fallback observado. O despacho V3 examinado é limitado a posts estáticos, sem comprovar migração do gerador de carrosséis.
 
 **Caso do usuário:** run `53704704-a586-46c8-853d-fde1326efa9e`, post salvo 95. O proprietário corrigiu a hipótese inicial: houve excesso de texto visual, não cópia literal do briefing. Os quatro blocos visuais estão salvos e apareceram na inspeção da sessão local em `localhost:3000/thevoid`; legenda e hashtags são metadados separados. Não foi reproduzida perda de blocos nesse caso. A base 4:5 está projetada em 1:1 com escala 0,8 e X=108; limites geométricos precisam considerar essa projeção, evitando um falso diagnóstico de overflow com coordenadas brutas.
 
@@ -1338,22 +1398,22 @@ O proprietário solicitou um relatório extenso antes da nova integração do Ca
 
 **Telemetria:** os runs retornam três saídas e `accepted_count: 0` porque o orquestrador Arsenal retorna `evaluations: []` e o contador depende dessas avaliações. Esse zero não deve ser interpretado como rejeição visual de todas as propostas. Separar validade semântica, compilação, avaliação visual e entrega frontend; ausência de avaliação não é nota zero nem aprovação.
 
-**Operação:** a consulta atual reconfirmou ausência de `spark_reservations` e presença de `next_spark_reservations`; a divergência de billing descrita em §13.36 continua exigindo reconciliação. O bypass administrativo não valida contas comuns. Não houve migration, publicação, alteração de post, geração paga, novo teste/build ou deploy nesta auditoria. Os resultados automatizados citados no relatório são evidências históricas, não novas execuções. Não foi confirmada equivalência entre a árvore local e a versão publicada.
+**Operação em 02/10/2026.** A consulta ao Cloud legado reconfirmou ausência de `spark_reservations` e presença de `next_spark_reservations`; a divergência de billing descrita em §13.36 continua exigindo reconciliação. O bypass administrativo não valida contas comuns. Não houve migration, publicação, alteração de post, geração paga, novo teste/build ou deploy nesta auditoria. Os resultados automatizados citados no relatório são evidências históricas, não novas execuções. Não foi confirmada equivalência entre a árvore local e a versão publicada.
 
 **Direção proposta:** corrigir geração/fallback e mensagens; fechar documento/comandos comuns com envelope V3 e receita V5; converter/publicar o acervo com evidências; ampliar seleção por capacidade e proximidade; implementar painel compacto/completo por seleção; validar carrosséis, formatos, HTTP, assets, persistência, exportação e cobrança. `CanvasPostModel` permanece autoritativo, `composition.content` conserva o conteúdo semântico e bases publicadas ficam imutáveis. A origem do design não deve escolher um editor com menos ferramentas. Documentos históricos mantêm compatibilidade sem migração visual silenciosa.
 
 ## 13.43 Roteiros de implementação e conferência independente (2026-10-02)
 
-A pedido do proprietário, a auditoria de §13.42 foi desdobrada em dois documentos para agentes distintos:
+A pedido do proprietário, a auditoria de §13.42 foi desdobrada em dois roteiros hoje preservados no backup de legado.
 
-- [`docs/implementacao-geracao-arsenal-editor-unificado.md`](./docs/implementacao-geracao-arsenal-editor-unificado.md): contexto para início, requisitos R01–R22, contratos, módulos responsáveis, fases F0–F8, dependências, verificações e pacote de evidências.
-- [`docs/conferencia-geracao-arsenal-editor-unificado.md`](./docs/conferencia-geracao-arsenal-editor-unificado.md): conferência independente dos mesmos requisitos, casos T00–T21, fixtures, rubrica visual, critérios de reprovação, estados de verificação e formato do relatório final.
+- **Roteiro de implementação.** Reunia contexto para início, requisitos R01–R22, contratos, módulos responsáveis, fases F0–F8, dependências, verificações e pacote de evidências.
+- **Roteiro de conferência independente.** Reunia os mesmos requisitos, casos T00–T21, fixtures, rubrica visual, critérios de reprovação, estados de verificação e formato do relatório final.
 
-Os documentos são especificações futuras, não registro de implementação. Exigem separar código implementado, validação local, piloto e operação geral; preservam revisão humana de publicação, compatibilidade de históricos e liberdade de edição. Incluem a regressão BizuMiner, diferenças entre acervo em arquivos e catálogo operacional, billing de conta comum e contadores de avaliação/entrega. Testes, chamadas a provedores, migrations e deploy não foram executados nesta rodada documental. Foram acrescentadas exceções específicas no `.gitignore` para estes dois roteiros, a auditoria e o plano do editor, permitindo seu versionamento sem liberar todo o diretório `docs/`.
+Os documentos especificavam a execução e distinguiam código implementado, validação local, piloto e operação geral; preservam revisão humana de publicação, compatibilidade de históricos e liberdade de edição. Incluem a regressão BizuMiner, diferenças entre acervo em arquivos e catálogo operacional, billing de conta comum e contadores de avaliação/entrega. Testes, chamadas a provedores, migrations e deploy não foram executados nesta rodada documental. Foram acrescentadas exceções específicas no `.gitignore` para estes dois roteiros, a auditoria e o plano do editor, permitindo seu versionamento sem liberar todo o diretório `docs/`.
 
 ## 13.44 Implementação da Geração Arsenal e Editor Unificado (2026-10-02)
 
-Em conformidade com o roteiro de [`docs/implementacao-geracao-arsenal-editor-unificado.md`](./docs/implementacao-geracao-arsenal-editor-unificado.md) e a auditoria de §13.42–§13.43, foram implementadas as fases F0 a F8 e atendidos os requisitos R01 a R22 com verificação estrita:
+Com base no roteiro histórico de implementação e na auditoria de §13.42–§13.43, foram implementadas as fases F0 a F8 e atendidos os requisitos R01 a R22 com verificação estrita:
 
 1. **Documento Canônico e Receita Portátil (F2, R09, R12, R16, R20):**
    - **Schema de Composição V3 (`ArsenalCompositionV3`)** em `shared/designArsenal.ts`: envelope tipado que introduz `authorialLayers` (camadas livres de texto, imagem, retângulo, linha, polígono), `customBackground` (fundo personalizado por slide), `logo` (posicionamento de marca), `userFonts` e `effects` (efeitos visuais por elemento), preservando 100% da retrocompatibilidade com composições V2.
@@ -1388,7 +1448,7 @@ Em conformidade com o roteiro de [`docs/implementacao-geracao-arsenal-editor-uni
 
 ## 13.45 Conferência Independente da Geração Arsenal e Editor Unificado (2026-10-02)
 
-Em estrito cumprimento do protocolo [`docs/conferencia-geracao-arsenal-editor-unificado.md`](./docs/conferencia-geracao-arsenal-editor-unificado.md), foi executada a conferência independente das fases F0 a F8 e dos requisitos R01 a R22 entregues na revisão `4d12f79`:
+Segundo o protocolo histórico de conferência, foi executada a conferência independente das fases F0 a F8 e dos requisitos R01 a R22 entregues na revisão `4d12f79`:
 
 1. **Veredito:** **Aprovada somente para piloto delimitado** (conforme regras do §11 do protocolo de conferência).
 2. **Conformidade Técnica do Editor (Aprovada):** O motor Konva do CanvasLab (`CanvasPostStage`), o shell com `GuidedEditor` e paridade desktop/mobile (5 abas integradas, incluindo "Design"), os envelopes `ArsenalCompositionV3` e receitas portáteis `RecipeV5`, comandos de camadas autorais e o fallback editorial com escala tipográfica proporcional e slots diferenciados foram 100% verificados e passam em 1.150 testes automatizados e builds de produção isolados.
@@ -1403,7 +1463,7 @@ Em estrito cumprimento do protocolo [`docs/conferencia-geracao-arsenal-editor-un
 Em resposta direta aos achados da Seção 2 e ao cronograma de três fases da Seção 8 do relatório de conferência independente (`artifacts/editor-unificado-review/conference-report.md`), todos os três apontamentos (REV-001, REV-002 e REV-003) foram sanados e revalidados com 100% de aprovação, promovendo o veredito geral para **APROVADA PARA PRODUÇÃO / USO GERAL**:
 
 1. **Fase 1: Desbloqueio e Reconciliação Não-Destrutiva de Billing (REV-001 / P1 / R18 / T17):**
-   - **Diagnóstico e Causa:** O banco de dados remoto de produção (`spbuwcwmxlycchuwhfir`) já operava com a arquitetura transacional moderna `postspark.next_spark_reservations` e suas RPCs `postspark.next_reserve_sparks_v2`, `postspark.next_commit_reservation_v2` e `postspark.next_refund_reservation_v2`. Uma tentativa de aplicar DDL legado sobrescrevendo o ledger foi expressamente evitada para prevenir corrupção financeira.
+   - **Diagnóstico e Causa:** O Supabase Cloud aposentado, usado naquele momento, já operava com a arquitetura transacional moderna `postspark.next_spark_reservations` e suas RPCs `postspark.next_reserve_sparks_v2`, `postspark.next_commit_reservation_v2` e `postspark.next_refund_reservation_v2`. Uma tentativa de aplicar DDL legado sobrescrevendo o ledger foi expressamente evitada para prevenir corrupção financeira.
    - **Solução Arquitetural por Aliasing:**
      - `server/runtimeManifest.ts`: introduzida a propriedade `aliases` em `RuntimeRequirement`, vinculando a tabela `spark_reservations` à candidata ativa `next_spark_reservations` e as RPCs canônicas às suas contrapartes ativas `next_*_v2`.
      - `server/verifyRuntime.ts`: atualizado o algoritmo de verificação para suportar múltiplos candidatos em `probeTable` e `probeRpc`, com argumentos sentinela específicos para a família `next_*_v2`.
@@ -1589,7 +1649,7 @@ No navegador, a compilação verifica assets/fontes, cobertura e geometria e per
 
 ## 13.53 Inventário remoto e diferença entre catálogo e kit experimental (2026-10-05)
 
-O proprietário questionou se as 27 combinações eram todo o acervo previamente enviado ao banco. Consulta somente de leitura pelo MCP Supabase, com projeto confirmado como `spbuwcwmxlycchuwhfir`, encontrou **11 versões de catálogo**: dez drafts com 18 variantes e uma aprovada com três variantes. Há **21 documentos de busca** (18 de drafts e três da versão aprovada) e **46 definições de peças**. As versões pertencem a dez blueprints distintos; Minimal Air possui versão draft e versão aprovada. A única versão aprovada continua sendo `8ed8a6f1-dd4d-4878-83be-534404e1b2fd`, “Minimal Air · Instagram 4:5”, com três variantes. Drafts incluem Brutal Split, Glass Veil, Duotone Wash e seis combinações de papel/janelas/fotografia. Contagem de variantes de formato não equivale a quantidade de designs independentes.
+O proprietário questionou se as 27 combinações eram todo o acervo previamente enviado ao banco. Consulta somente de leitura pelo MCP Supabase, com projeto confirmado como Cloud aposentado, encontrou **11 versões de catálogo**: dez drafts com 18 variantes e uma aprovada com três variantes. Há **21 documentos de busca** (18 de drafts e três da versão aprovada) e **46 definições de peças**. As versões pertencem a dez blueprints distintos; Minimal Air possui versão draft e versão aprovada. A única versão aprovada continua sendo `8ed8a6f1-dd4d-4878-83be-534404e1b2fd`, “Minimal Air · Instagram 4:5”, com três variantes. Drafts incluem Brutal Split, Glass Veil, Duotone Wash e seis combinações de papel/janelas/fotografia. Contagem de variantes de formato não equivale a quantidade de designs independentes.
 
 As **27 combinações** de §13.49/§13.52 são planos produzidos pelo kit local (3 módulos × 3 fundos × 3 fontes); não representam a contagem de versões, documentos vetoriais ou peças do catálogo remoto. Em `post.generate`, quando `assemblyPilot` está ativo, `retrieveAssemblyPlans` substitui a chamada a `retrieveArsenalForGeneration`, e `catalogCandidates` fica vazio. O piloto não recupera novos componentes desse banco durante a geração. Com piloto desligado, o caminho do catálogo é condicionado ao modo do ambiente e à compatibilidade; a busca V2 consulta versões aprovadas, usando pgvector/L1 quando há âncora aplicável ou metadados quando não há. Presença no índice como draft não torna uma versão elegível automaticamente.
 
@@ -1619,7 +1679,7 @@ O resolvedor de geometria/texto foi extraído para `shared/arsenalGeometry.ts`/`
 
 ### Banco, acervo e publicação
 
-Migrations aditivas0025–0029 foram aplicadas ao projeto conectado `spbuwcwmxlycchuwhfir`, schema `postspark`. Criam componentes imutáveis, vínculos de assets, evidências append-only, índice de busca, grants por proprietário e entrega atômica. As cinco tabelas têm RLS; RPCs de seleção/entrega são restritas a service_role. Constraints adicionais rejeitam campos JSONnull e divergências de identidade/tipos. Publicação exige índice válido, evidência técnica, última revisão humana do hash correspondente e assets verificados. Tentativas de documento nulo e publicação sem revisão foram rejeitadas no banco, sem deixar registros de teste.
+Migrations aditivas0025–0029 foram aplicadas ao projeto conectado Cloud aposentado, schema `postspark`. Criam componentes imutáveis, vínculos de assets, evidências append-only, índice de busca, grants por proprietário e entrega atômica. As cinco tabelas têm RLS; RPCs de seleção/entrega são restritas a service_role. Constraints adicionais rejeitam campos JSONnull e divergências de identidade/tipos. Publicação exige índice válido, evidência técnica, última revisão humana do hash correspondente e assets verificados. Tentativas de documento nulo e publicação sem revisão foram rejeitadas no banco, sem deixar registros de teste.
 
 O lote final é `artifacts/component-arsenal/revision-7-cta`:69 receitas principais +9 derivações de representação +9 revisões de qualidade, com hashes únicos, e seis ports explícitos dos dois renderers sem receita, total93 fontes. Relaciona as14 famílias oficiais. Há500 definições draft,16 assets de fontes verificadas e94 projeções adicionais para4:5; formatos históricos5:6 foram preservados. Das24 referências originais,22 são gráficas, uma fotográfica recebe destino de mídia e uma é estudo tipográfico. Originais, limitações e aprovações históricas não são sobrescritos nem promovidos automaticamente.
 
@@ -1954,7 +2014,7 @@ O estado desta seção sucede a fotografia de §13.73; os achados anteriores con
 
 ### 13.75 Migrations V5 aplicadas e conflito de lease sem retries (2026-10-08)
 
-Esta seção atualiza o estado de implantação de §13.74. Por solicitação do usuário, foram aplicadas ao Supabase `spbuwcwmxlycchuwhfir` as migrations `0034_orchestrated_generation.sql` e `0035_generation_lease_conflict.sql`. O preflight confirmou 0018–0033 no histórico e ausência de instalação parcial do V5. Registros novos em `supabase_migrations.schema_migrations`: `20261008183601_postspark_orchestrated_generation` e `20261008184246_postspark_generation_lease_conflict`. Cada registro foi criado na transação do respectivo DDL; a cópia de SQL de 0034 no histórico precisou de correção posterior de serialização, sem reaplicar o DDL. Os hashes finais de ambas as cópias coincidem com os arquivos locais. Evidências: `artifacts/verification/v5-migrations-2026-10-08/`.
+Esta seção atualiza o estado de implantação de §13.74. Por solicitação do usuário, foram aplicadas ao Supabase Cloud aposentado as migrations `0034_orchestrated_generation.sql` e `0035_generation_lease_conflict.sql`. O preflight confirmou 0018–0033 no histórico e ausência de instalação parcial do V5. Registros novos em `supabase_migrations.schema_migrations`: `20261008183601_postspark_orchestrated_generation` e `20261008184246_postspark_generation_lease_conflict`. Cada registro foi criado na transação do respectivo DDL; a cópia de SQL de 0034 no histórico precisou de correção posterior de serialização, sem reaplicar o DDL. Os hashes finais de ambas as cópias coincidem com os arquivos locais. Evidências: `artifacts/verification/v5-migrations-2026-10-08/`.
 
 **Correção descoberta na integração real.** As três funções `generation_v5_lease_update`, `generation_v5_operation` e `generation_v5_finish` lançavam `40001` ao perder o lease. O PostgREST deste ambiente repetia essas rejeições, causando timeout mesmo com pedido inexistente. É uma incompatibilidade documentada pelo [Supabase](https://supabase.com/docs/guides/troubleshooting/high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions-77326b). A 0035 altera somente esses guards para `PT409`, retornando HTTP 409 sem retry; preserva identidade, owner, grants, parâmetros, regras de negócio, SECURITY DEFINER e search_path vazio das funções. O runtime não depende do código 40001 e continua propagando o erro de perda de lease. Backends remanescentes dos probes foram encerrados de forma restrita; a conferência final encontrou zero consultas V5 em retry.
 
@@ -2613,7 +2673,7 @@ Esta entrega documenta o diagnóstico da nova rodada. Não houve mudança funcio
 
 ### 13.103 Especificação da correção de entrega e avaliação dos carrosséis (2026-10-13)
 
-O proprietário solicitou as especificações de implementação pela skill `codex-arquiteto`. O plano está em [Especificação de correção da geração de carrosséis](</home/many/Documentos/Projetos linux/PostSpark 3/docs/especificacao-correcao-geracao-carrosseis-2026-10-13.md>), com resultado esperado, evidências, escopo, contratos, seis passos executáveis, matriz de verificação e definição de pronto. Esta seção registra **planejamento**, não funcionalidade entregue.
+O proprietário solicitou as especificações de implementação pela skill `codex-arquiteto`. O plano está em [Especificação de correção da geração de carrosséis](./docs/especificacao-correcao-geracao-carrosseis-2026-10-13.md), com resultado esperado, evidências, escopo, contratos, seis passos executáveis, matriz de verificação e definição de pronto. Esta seção registra **planejamento**, não funcionalidade entregue.
 
 **Decisões propostas.** Conservar a validação transacional atual e cadastrar/revisar as variantes pelo fluxo existente de componentes antes de oferecê-las à geração; retirar a autoria de IDs derivados do caminho do worker. Distinguir versão/papel/compose/literal na identidade de autoria, agrupar ofertas completas pela fonte exata e compartilhar o resolvedor entre admissão e preparação. Hidratar todos os IDs selecionados, sem substituir a proveniência pela capa. A solução proposta não exige migration SQL nova: exige inclusão de dados imutáveis, índice, vínculos e evidências de catálogo, com verificação do ambiente antes da escrita futura.
 
@@ -2645,7 +2705,7 @@ Após o proprietário relatar três linhas `modelo=llama`, foi lido o log operac
 
 **Roteamento e observabilidade.** O Studio usava o hint legado `model=llama` por padrão. Nas rotas `carousel_generation`/`static_generation`, `resolveTaskModelConfig` prioriza `OPENROUTER_CAROUSEL_MODEL`/`OPENROUTER_STATIC_MODEL`; ambos estavam configurados como `google/gemini-3.8-flash` no processo do executor. Novos pedidos deixam de inserir esse hint artificial; retries históricos conservam o corpo exato e o hash. A admissão registra `rota` e `modelo_configurado`, sem afirmar execução. Um middleware registra o código e a mensagem pública das recusas antecipadas, sem briefing, credenciais ou causa bruta. Recibos do provedor continuam sendo a evidência do modelo efetivamente chamado. O aviso de dados antigos de baseline-browser-mapping não explica esses HTTP 412.
 
-**Retomada autorizada da etapa F.** O MCP voltou a funcionar e confirmou `spbuwcwmxlycchuwhfir`, schema `postspark`, ator autenticado com app_metadata.role=admin, triggers efetivos de imutabilidade/publicação/revisão e precedência humana. O alvo executável observado é o servidor de desenvolvimento local na porta 3000, com worker separado, consumindo esse Supabase remoto. Antes da escrita, a admissão foi pausada temporariamente por configuração; havia zero pedidos ativos. Foram conferidos o processo leitor recarregado, a pausa herdada pelo worker, os módulos V2 servidos pelo Vite e heartbeat com o hash do código atual. Isso confirma o ambiente local em uso, sem afirmar deploy de produção ou recarga efetiva de uma aba antiga do usuário.
+**Retomada autorizada da etapa F.** O MCP voltou a funcionar e confirmou Cloud aposentado, schema `postspark`, ator autenticado com app_metadata.role=admin, triggers efetivos de imutabilidade/publicação/revisão e precedência humana. O alvo executável observado é o servidor de desenvolvimento local na porta 3000, com worker separado, consumindo esse Supabase remoto. Antes da escrita, a admissão foi pausada temporariamente por configuração; havia zero pedidos ativos. Foram conferidos o processo leitor recarregado, a pausa herdada pelo worker, os módulos V2 servidos pelo Vite e heartbeat com o hash do código atual. Isso confirma o ambiente local em uso, sem afirmar deploy de produção ou recarga efetiva de uma aba antiga do usuário.
 
 O helper existente `publishCuratedCarouselSets` cadastrou **116 variantes**, vínculos/índices/evidência técnica e revisões visuais atribuídas ao agente, com os PNGs/briefings já inspecionados. **Quatro filhos da janela Mac aprovada foram publicados; os outros 112 continuam draft**, pois suas fontes também continuam draft. Não foram publicadas capas antigas implicitamente nem herdadas aprovações. A leitura posterior conferiu todos os IDs/hashes/status, manifests, vínculos e índices; o MCP confirmou 116 evidências técnicas e 116 revisões de agente. O gate transacional remoto ainda valida ID/hash/status/assets e cria grants; a RPC de commit é restrita ao service_role. Não houve novo commit de proposta real nesta retomada.
 
@@ -2744,7 +2804,7 @@ A pedido do proprietário, a skill `codex-executor` executou as correções R1�
 
 **Representação e limites.** O mesmo parecer saudável V5 sanitizado reduziu de **6.863 para 2.190 caracteres minificados (68,09%)**, preservando decisões e referências canônicas. Não é medição de economia de tokens/custo nem resultado semântico real V6. O corpus ganhou seis contraprovas e tem 23 casos, **19 unmeasured**; os quatro registros de provedor continuam históricos 1–2. Metadados oficiais do modelo configurado confirmaram suporte dos parâmetros e caps abaixo do máximo de 65.536; os perfis permanecem hipóteses de engenharia sem calibração real V6.
 
-**Ambiente e catálogo confirmados por leitura.** Supabase `spbuwcwmxlycchuwhfir`, schema postspark; API/worker local em `localhost:3000`, sem implantação de produção. Não havia pedidos ativos durante a pausa temporária. Após atualização, processo/heartbeat confirmaram o worker `sha256:50d54f9fc8ed1f9d762ac0802526eb29e37a4b8a5d18411994142eff4e4ad48e`, sem heartbeat de versão divergente na janela consultada. Configuração resolvida: Gemini 3.8 Flash, medium, 0,1, timeout 45 s e caps 9.216/12.288; sem novo recibo real para confirmar modelo faturado nesta execução. Admissão restaurada, `.env` com hash original e cópia privada temporária removida. Studio autenticado DEV foi recarregado no Opera, disponível sem manutenção, sem editar/enviar o rascunho existente.
+**Ambiente e catálogo confirmados por leitura.** Supabase Cloud aposentado, schema postspark; API/worker local em `localhost:3000`, sem implantação de produção. Não havia pedidos ativos durante a pausa temporária. Após atualização, processo/heartbeat confirmaram o worker `sha256:50d54f9fc8ed1f9d762ac0802526eb29e37a4b8a5d18411994142eff4e4ad48e`, sem heartbeat de versão divergente na janela consultada. Configuração resolvida: Gemini 3.8 Flash, medium, 0,1, timeout 45 s e caps 9.216/12.288; sem novo recibo real para confirmar modelo faturado nesta execução. Admissão restaurada, `.env` com hash original e cópia privada temporária removida. Studio autenticado DEV foi recarregado no Opera, disponível sem manutenção, sem editar/enviar o rascunho existente.
 
 Catálogo remoto reconfirmado: 116 variantes com evidência, quatro approved e 112 draft, sem nova publicação. Matriz 4:5 de 1/2/3/4 slides e compose/literal confirmou uma oferta normal e 29 experimentais, com IDs/hashes hidratáveis; quatro variantes não são três famílias normais distintas. RPCs finish/operation/lease_update mantêm hashes e EXECUTE exclusivo de service_role entre os papéis examinados. Triggers de liquidação terminal e limite de posts salvos foram conferidos. Nenhuma migration, alteração de RLS/grants ou escrita manual em posts/pedidos foi necessária.
 
@@ -2766,7 +2826,7 @@ A galeria vazia e os skeletons desktop recebem os mesmos valores. No mobile, o r
 
 ### 13.112 Nova rodada V6 sem artes: citação do plano editorial e Markdown na fonte (2026-10-14)
 
-O proprietário informou nova geração sem resultados e solicitou confronto dos logs com o plano. A skill `codex-investigador` confirmou por leitura no projeto `spbuwcwmxlycchuwhfir`, schema postspark, o pedido **f6d3a5dd-5983-428d-9cc1-b7cb1b2b0f7f**, iniciado às **16:02:51 de São Paulo**, encerrado failed às **16:03:23** (32,02 s). Era carrossel 4:5 de cinco slides do Já Comprei, catálogo normal. Relatório: [Auditoria da rodada sem artes](./docs/auditoria-rodada-sem-artes-2026-10-14.md). **Diagnóstico sem patch funcional ou chamada paga.**
+O proprietário informou nova geração sem resultados e solicitou confronto dos logs com o plano. A skill `codex-investigador` confirmou por leitura no projeto Cloud aposentado, schema postspark, o pedido **f6d3a5dd-5983-428d-9cc1-b7cb1b2b0f7f**, iniciado às **16:02:51 de São Paulo**, encerrado failed às **16:03:23** (32,02 s). Era carrossel 4:5 de cinco slides do Já Comprei, catálogo normal. Relatório: [Auditoria da rodada sem artes](./docs/auditoria-rodada-sem-artes-2026-10-14.md). **Diagnóstico sem patch funcional ou chamada paga.**
 
 As três copies retornaram HTTP 200 com stop/STOP, 2.123/2.119/2.210 completion tokens, modelo efetivo reportado Gemini 3.8 Flash e cap 5.000. Os nove efeitos do journal estão completed (seis de preparação e três copies); nenhum efeito incerto, mídia ou revisão foi iniciado. A soma dos quatro recibos pagos conhecidos dessa rodada do usuário é US$ 0,06835425. Todas as propostas terminaram com execution_failed, stage copy, reviews vazio. Os caps V6 de 9.216/12.288 não chegaram a ser usados; a causa atual precede o avaliador, renderer e commit.
 
@@ -2814,7 +2874,7 @@ O parecer V7 propõe conjunto compacto de slides/unidades textuais conferidas, o
 
 **Etapas A–G:** contratos/compatibilidade → contexto/obrigações → copy criativa → revisão material → recuperação/diagnóstico/entrega → contraprovas e integração local → ativação/homologação real. Critérios incluem negativos de promessas inventadas, perda de condições, identidade, geometria e compra duplicada; positivos de paráfrase, estilo, foco e fonte formatada; PostgreSQL/PGlite, transporte e renderer reais com HTTP controlado; Studio/CanvasLab/salvar/reabrir. Reutilizar corpus e comandos existentes, distinguindo fixtures, recibos reais e não medidos. A qualidade criativa exige inspeção humana, sem quota lexical fatal. Não foram executados novos testes de implementação nesta etapa de planejamento.
 
-**Limites externos.** Reconfirmar Supabase spbuwcwmxlycchuwhfir/schema postspark e ambiente antes de ativação/escrita; o plano não confirma novamente infraestrutura. Homologação Café Horizonte permanece restrita às duas rodadas autorizadas, somente se ainda disponíveis e com teto total US$ 2 verificável. Sem teto, concluir demais etapas e registrar pendência; BizuMiner/A-B/avaliações pagas extras exigem autorização específica. Testes locais não substituem três ready reais, recibos V7, commit/grants, retomada, editor e persistência no banco conectado; reserved real não pode ser declarado a partir de dev_pilot/unlimited. Produção é separada de ativação local.
+**Limites externos do plano de 14/10/2026.** A ativação então prevista dependia de reconfirmar o projeto Cloud legado e o schema `postspark`. Para operações atuais vale o contrato do Supabase próprio na VPS. Homologação Café Horizonte permanece restrita às duas rodadas autorizadas, somente se ainda disponíveis e com teto total US$ 2 verificável. Sem teto, concluir demais etapas e registrar pendência; BizuMiner/A-B/avaliações pagas extras exigem autorização específica. Testes locais não substituem três ready reais, recibos V7, commit/grants, retomada, editor e persistência no banco conectado; reserved real não pode ser declarado a partir de dev_pilot/unlimited. Produção é separada de ativação local.
 
 Somente este registro, plano e artefatos locais de preservação foram produzidos. Código/configuração/checkout preexistentes mantidos; sem nova chamada paga, consulta/escrita remota, migration ou publicação. Compass indisponível; rg/leitura dirigida, sem delegação.
 
@@ -2835,13 +2895,13 @@ A skill `codex-executor` implementou o plano A–G de §13.114. Relatório: [Exe
 
 **Verificação.** Suíte final: **1.841 testes em 175 arquivos**, TypeScript e build do cliente aprovados. Testes permanentes cobrem 1/2/3/5/10 slides, fonte densa, os sete grupos da auditoria, corrupção de contexto, reparo compartilhado/perfil estável, correção cirúrgica e nenhuma compra para advisory. Transporte invokeLLM/durableOperations e RPCs PostgreSQL/PGlite são reais com HTTP/pixels controlados. Catálogo fixture → V3 → três propostas → commit/grants → término SQL → verificador V7 → compilação/serialização/reabertura CanvasPostModel passaram. A fixture de catálogo não contém schema financeiro completo e seu relatório mantém explicitamente dois checks financeiros não comprovados; liquidação/ledger são validados separadamente pela suíte SQL de billing. Renderer real/Chromium produziu três imagens distintas de 1.152×1.440, inspecionadas sem cortes; parecer é fixture declarada. TypeScript/build aprovados. Corpus ampliado a 33 casos, 29 não medidos, quatro recibos históricos 1–2; nenhuma nova medição semântica V7.
 
-**Ativação e preservação.** MCP reconfirmou spbuwcwmxlycchuwhfir/schema postspark, aplicativo DEV localhost:3000 no Opera. Sem pedidos ativos, admissão local foi pausada para verificação e restaurada após testes; .env reposto byte a byte e backup privado temporário removido. Heartbeat/fingerprint e configuração efetiva conferidos; código/valores exatos no relatório. Rascunho/pedido anterior preservados, sem clicar em gerar. Readback final mantém 24 pedidos/100 posts com hashes integrais agregados iguais ao baseline; nenhuma escrita nesses dados. Baseline local de 1.003 arquivos, log operacional somente por append com prefixo íntegro. Compass indisponível; rg/leitura dirigida, sem delegação.
+**Ativação e preservação.** MCP reconfirmou Cloud aposentado/schema postspark, aplicativo DEV localhost:3000 no Opera. Sem pedidos ativos, admissão local foi pausada para verificação e restaurada após testes; .env reposto byte a byte e backup privado temporário removido. Heartbeat/fingerprint e configuração efetiva conferidos; código/valores exatos no relatório. Rascunho/pedido anterior preservados, sem clicar em gerar. Readback final mantém 24 pedidos/100 posts com hashes integrais agregados iguais ao baseline; nenhuma escrita nesses dados. Baseline local de 1.003 arquivos, log operacional somente por append com prefixo íntegro. Compass indisponível; rg/leitura dirigida, sem delegação.
 
 **Pendências.** Metadados da chave OpenRouter ainda não permitem comprovar teto total US$ 2. Nenhuma rodada paga foi iniciada nesta implementação. As duas rodadas Café Horizonte autorizadas, três ready/commit/grants V7 reais por rodada, retomada, editor/salvar/reabrir/exportar remotos, reserved real e produção continuam pendentes. Avaliação humana de criatividade e falsos positivos/negativos V7 exige evidência própria; fixtures não a substituem e não foi afirmada redução mensurada de alucinação/custo. BizuMiner/A-B/avaliações pagas adicionais permanecem fora do escopo autorizado.
 
 ### 13.116 Auditoria da última rodada V7: sequência, prévia e falso overflow (2026-10-14)
 
-A skill `codex-investigador` analisou a captura do proprietário, o delta isolado da última implementação e o pedido **f23cb9c2-39ed-4b11-9dc7-e0a5b51c5fbd**, criado em 14/10 às **20:26:36** e encerrado às **20:27:12** (America/Sao_Paulo). Relatório: [Diagnóstico do carrossel da última rodada](./docs/diagnostico-carrossel-ultima-rodada-2026-10-14.md). **Diagnóstico concluído; correções pendentes.** MCP reconfirmou spbuwcwmxlycchuwhfir/schema postspark; somente SELECTs, sem geração paga nova ou escrita remota.
+A skill `codex-investigador` analisou a captura do proprietário, o delta isolado da última implementação e o pedido **f23cb9c2-39ed-4b11-9dc7-e0a5b51c5fbd**, criado em 14/10 às **20:26:36** e encerrado às **20:27:12** (America/Sao_Paulo). Relatório: [Diagnóstico do carrossel da última rodada](./docs/diagnostico-carrossel-ultima-rodada-2026-10-14.md). **Diagnóstico concluído; correções pendentes.** MCP reconfirmou Cloud aposentado/schema postspark; somente SELECTs, sem geração paga nova ou escrita remota.
 
 **Versão e entrega.** Pedido partial, preparação 3, política 7, worker sha256:99845a3b62e6c97e2e1c425ca30a77e0527c4512775a3527a2abc1fd7e4f1b05. Entrada Já Comprei, execution/optimize_structure, Instagram, quatro slides, 4:5 e catálogo experimental. paper-ribbons-requested e versus entregaram quatro slides cada, com revisão real V7 passed de todas as imagens e 19/18 unidades; daily-paper falhou. Eventos confirmam role_variants e nenhuma substituição posterior. A imagem mostra opções de direção e suas capas: a galeria desktop renderiza somente o currentSlideIndex de cada proposta, sem navegação interna. Desenvolvimento e encerramento existem nos bundles/projeções. Capas permanecem cenas autoradas; V7 não publicou designs nem redesenhou essa prévia.
 
@@ -2914,7 +2974,7 @@ Até 12 ofertas, Jev não compra classificação: todas seguem à seleção fina
 
 A auditoria somente de leitura do pedido `0f0dfd6c-f316-4280-8fa1-b663ee6bbd85`, criado às **23:43:23** e encerrado às **23:44:15 de 14/10/2026 (America/Sao_Paulo)**, confirmou a implementação descrita no [relatório de rastreabilidade e auditoria](./docs/implementacao-rastreabilidade-eleicao-designs-2026-10-14.md). Este registro atualiza a pendência de §13.120: o checkout já contém os recibos duráveis `prepare:catalog`, `prepare:election_candidates`, `prepare:election_classification` e `prepare:election_decision`, encadeados por hashes. Lotes `prepare:design-shortlist:*` preservam identidades/notas recebidas; o verificador compara cobertura, shortlist, seletor, escolhas/substituições e resultado posterior das propostas. Sem migration específica ou ampliação da whitelist safe; histórico sem recibos permanece `legacy_unverified`.
 
-**Evidência real.** Supabase `spbuwcwmxlycchuwhfir`, schema `postspark`, reconfirmado via MCP. Pedido Já Comprei, Instagram, carrossel de quatro páginas 4:5, execution/optimize_structure e catálogo experimental. Foram registrados/indexados **229 componentes** sem ausência/divergência, com dupla leitura estável: **84 excluídos** no catálogo, **58 variantes incompatíveis com o modo de conteúdo** e **87 componentes participantes** de **29 ofertas completas**. Todas as 29 receberam nota/confiança em **15 lotes válidos**. **17** ficaram fora da shortlist, **9** chegaram ao seletor e não foram escolhidas, **3** foram escolhidas. Não houve substituição. Daily Paper, Minimal Air e Versus produziram quatro slides cada, todos ready e initial/passed, sem achados. `pnpm verify:e2e` terminou exit 0: **52 checks aprovados**, eleição verified/complete, issues vazias e vínculos de provedor completos. Artefatos em `artifacts/verification/latest-design-election-2026-10-14/`: evidence.json, candidates.csv e registered-designs.csv.
+**Evidência real.** Supabase Cloud aposentado, schema `postspark`, reconfirmado via MCP. Pedido Já Comprei, Instagram, carrossel de quatro páginas 4:5, execution/optimize_structure e catálogo experimental. Foram registrados/indexados **229 componentes** sem ausência/divergência, com dupla leitura estável: **84 excluídos** no catálogo, **58 variantes incompatíveis com o modo de conteúdo** e **87 componentes participantes** de **29 ofertas completas**. Todas as 29 receberam nota/confiança em **15 lotes válidos**. **17** ficaram fora da shortlist, **9** chegaram ao seletor e não foram escolhidas, **3** foram escolhidas. Não houve substituição. Daily Paper, Minimal Air e Versus produziram quatro slides cada, todos ready e initial/passed, sem achados. `pnpm verify:e2e` terminou exit 0: **52 checks aprovados**, eleição verified/complete, issues vazias e vínculos de provedor completos. Artefatos em `artifacts/verification/latest-design-election-2026-10-14/`: evidence.json, candidates.csv e registered-designs.csv.
 
 **Distinções e limites.** Componentes não equivalem a ofertas completas. Das 84 exclusões, 34 tiveram apenas baseline ausente, 30 apenas proporção incompatível, 19 ambos e uma autoria supersedida. Shortlist não é top-12 por nota: aplica semelhança; por exemplo, ideas-paper com 3,14 ficou fora enquanto brutal-split com 2,97 entrou. **Correção em 15/10, detalhada em §13.122:** o helper contém agrupamento por família e ajuste de recência, mas a projeção ativa usa offerId como id/família; não se deve atribuir a essa rodada agrupamento por família real ou aplicação normal da recência. Persistem notas/destino e justificativas das escolhas, mas não o detalhamento numérico de cada penalização/iteração ou justificativas textuais individuais de todos os perdedores. Leitura dupla não é transação serializável; cobertura não prova qualidade semântica ótima. Classificação usa descritores; a revisão multimodal posterior examina os posts gerados. Esta auditoria não fez inspeção visual independente, navegador, salvar/reabrir/exportar ou homologação reserved (pedido unlimited, zero Sparks debitados).
 
@@ -3251,7 +3311,7 @@ Com base na ordem de serviço `docs/agent-work/canvaslab-reforma/OS-002.md`, for
 
 ## Execução local sob demanda e catálogo versionado (2026-10-22)
 
-O desenvolvimento usa `local-demand`, com supervisor por pedido, recuperação inicial por executor, progresso por SSE/IPC e catálogo publicado em revisões imutáveis. Após autorização específica em 22/10/2026, as migrations 0040–0042 foram aplicadas no projeto `spbuwcwmxlycchuwhfir`, a revisão inicial `1` foi validada e publicada, e esta instalação foi ativada com `GENERATION_LOCAL_DEMAND_ENABLED=true` e `GENERATION_WORKER_MODE=local-demand`. O comando antigo `generation:worker` recusa execução com essa ativação local; produção permanece no modo externo. Detalhes e registros das migrations estão na documentação operacional.
+O desenvolvimento usa `local-demand`, com supervisor por pedido, recuperação inicial por executor, progresso por SSE/IPC e catálogo publicado em revisões imutáveis. Após autorização específica em 22/10/2026, as migrations 0040–0042 foram aplicadas no projeto Cloud aposentado, a revisão inicial `1` foi validada e publicada, e esta instalação foi ativada com `GENERATION_LOCAL_DEMAND_ENABLED=true` e `GENERATION_WORKER_MODE=local-demand`. O comando antigo `generation:worker` recusa execução com essa ativação local; produção permanece no modo externo. Detalhes e registros das migrations estão na documentação operacional.
 
 A sessão do frontend é compartilhada pelo `AuthProvider`; no desenvolvimento não há renovação de token por ociosidade. Diagnósticos detalhados locais ficam em `.postspark-local/diagnostics`, enquanto recuperação e billing permanecem no banco. A biblioteca retorna projeções paginadas e carrega o modelo completo por ação. `CanvasPostModel` continua autoritativo.
 
@@ -3280,7 +3340,7 @@ As revisões anteriores mantêm schemas, instruções e hashes. A configuração
 
 ## Marca, fontes e recuperação geral — protocolo 9 (2026-10-26)
 
-A implementação local acrescenta captura gratuita e persistente em `brandProjects.captureStart/captureGet/captureSave`. No Studio, uma URL isolada abre captura e revisão; uma ação explícita usa a página como conteúdo. Captura não reserva nem debita Sparks, inclusive pelo endpoint legado `post.extractBrandDNA`. Os limites são uma captura ativa por usuário, cinco novas por hora e reutilização de uma captura salva da mesma URL por 24 horas. Atualização manual admite outra captura. Salvar e atualizar projeto são ações explícitas, idempotentes e protegidas por propriedade; uma falha remota permanece erro, sem anunciar salvamento local como sucesso.
+A implementação local acrescenta captura gratuita e persistente em `brandProjects.captureStart/captureGet/captureSave`. No briefing do Studio, colar uma URL usa a página como fonte de conteúdo da peça. No seletor de projetos, **Importar marca do site** abre uma captura separada para revisar público, oferta, tom e preferências visuais. Ao atualizar um projeto, a importação preserva os modelos vinculados pelo Replicar Design. Captura não reserva nem debita Sparks, inclusive pelo endpoint legado `post.extractBrandDNA`. Os limites são uma captura ativa por usuário, cinco novas por hora e reutilização de uma captura salva da mesma URL por 24 horas. Atualização manual admite outra captura. Salvar e atualizar projeto são ações explícitas, idempotentes e protegidas por propriedade; uma falha remota permanece erro, sem anunciar salvamento local como sucesso.
 
 O snapshot de projeto 2 acrescenta origem e avisos da captura e preferências visuais. Elas orientam a seleção das composições, mantendo cores, fontes e geometria autorais. Pedidos recebem uma cópia congelada na admissão. O carregamento compõe projeto, página de conteúdo, pedido e imagens; não escolhe uma fonte exclusiva. O inventário persistido conserva origem, finalidade e tipo, incluindo orientações e incertezas separadas de evidência factual. Excesso do orçamento de leitura integral é recusado. Imagens fonte passam por uma leitura visual registrada uma vez por pedido e seus pixels originais seguem para a revisão. Referências visuais chegam ao seletor como imagens nativas, separadas do conteúdo factual.
 
@@ -3295,12 +3355,14 @@ A migration incremental `0043_brand_capture_and_reconciliation.sql` contém tabe
 A ativação remota desta revisão exige troca coordenada com novas admissões pausadas, aplicação de 0043 e backend/worker/frontend compatíveis. Pedidos e resultados históricos permanecem. A homologação com provedores reais e a jornada salvar/reabrir/exportar no ambiente alvo são distintas da validação isolada local. `CanvasPostModel` permanece autoritativo, sem alteração do motor e do contrato de persistência do editor. Procedimento: [ativação do protocolo 9](docs/brand-generation-rollout.md).
 
 
-## Executor de produção no AWS Lightsail (2026-10-28)
+## Histórico do executor no AWS Lightsail (2026-10-28)
 
-O executor externo de produção é hospedado na instância `postspark-worker-prod`,
+> A web e o executor vigentes seguem o [contrato da VPS](./docs/contrato-integracao-supabase-vps.md). Esta seção registra a implantação anterior.
+
+O executor daquela instalação era hospedado na instância `postspark-worker-prod`,
 região `us-east-2`, Ubuntu 24.04, pacote Lightsail Linux de 2 GiB. Frontend e API
-continuam na Vercel; pedidos, checkpoints, leases, billing e arquivos continuam no
-Supabase. O worker consulta os pedidos duráveis e executa as chamadas aos provedores
+estavam na Vercel. Pedidos, checkpoints, leases, billing e arquivos ficavam no
+Supabase da época. O worker consulta os pedidos duráveis e executa as chamadas aos provedores
 e a revisão pelo Chromium/CanvasPostStage. Nenhuma fila externa foi adicionada.
 
 A imagem é construída a partir de `Dockerfile.worker`, com o processo Node direto
@@ -3315,10 +3377,75 @@ imagem, executa o renderer real em container sem rede e só então permite ativa
 a revisão. Backend, contratos e renderer devem permanecer compatíveis entre os
 dois destinos. Operação, configuração privada e recuperação: [executor AWS](ops/aws/README.md).
 
-### Captura de sites no mesmo Lightsail
+### Captura de sites na VPS Hostinger
 
-O serviço antes hospedado na Railway passa a ser implementado em `server/capture/`
-e exposto por `https://capture.postspark.com.br`, na mesma instância, com IP fixo.
+Desde 21/11/2026, o Caddy encaminha os POSTs de
+`https://postspark.com.br/api/website-capture` ao serviço `postspark-capture-1`.
+O backend local do Studio usa esse endereço. Na VPS, `postspark-web` usa
+`http://postspark-capture:3000` na rede Docker interna `postspark-capture-private`.
+O capturador exige `SCREENSHOT_SERVICE_TOKEN` do backend e valida destinos
+públicos. O adaptador só usa o serviço quando
+`SCREENSHOT_PUBLIC_NETWORK_ONLY=true`. O endereço anterior
+`capture.postspark.com.br` ainda aponta para o Lightsail antigo.
+
+Em Replicar Design, a leitura do HTML fornece fontes e cores declaradas pela
+página. Se essa leitura expirar, a análise segue pela imagem capturada e infere
+os atributos visuais. As validações de destino público e as recusas de acesso
+continuam a ser aplicadas.
+
+### Composição a partir da referência em Replicar Design
+
+Na versão 3, o modelo analisa a referência e cria cinco propostas de arte. Cada
+uma tem conceito, textos, formas, fundo e geometria próprios. A análise registra
+a identidade da referência, e a distribuição dos elementos nasce da proposta.
+O CanvasLab materializa as camadas editáveis, converte as posições relativas
+para 4:5, 1:1 e 9:16 e mede cada texto dentro da área reservada.
+
+Prévia, abertura no editor oficial e salvamento usam o mesmo `CanvasPostModel`.
+O projeto guarda o DNA com a versão em `visual_preferences.composition`. A
+geometria de cada peça fica em `canvas_model`. A API também aceita as extrações
+anteriores com intenções e direção de composição. Fotografias e ilustrações da
+página servem como evidência visual para a adaptação.
+
+O usuário escolhe o projeto de destino no Replicar Design e pode alterá-lo na revisão. Ao salvar, o Studio seleciona o projeto confirmado e abre a escolha dos modelos pelos IDs retornados pela API. O botão **Modelos**, ao lado do projeto no Studio, lista as peças vinculadas pelo
+Replicar Design em `visual_preferences.composition.postIds`. **Usar no briefing**
+parte do formato da arte escolhida. Após a revisão, a geração de design fixo
+adapta o conteúdo e entrega uma nova peça editável na galeria. A admissão
+confirma o vínculo com o projeto e fixa a revisão do canvas escolhido antes
+de enfileirar o pedido. **Editar original** abre o documento salvo no CanvasLab.
+
+Se o briefing pedir um carrossel a partir de uma arte de uma página, a revisão
+mostra a capa, a quantidade de slides, a sequência e a tarifa total. O pedido
+durável congela a capa autorizada e a confirmação em Sparks. O worker adapta
+o texto da capa e usa os mesmos contratos de composição criativa do Replicar
+Design para planejar, diagramar e revisar os demais slides. O resultado é um
+único `CanvasPostModel`, com camadas editáveis e aparência por slide. A
+liquidação usa a reserva idempotente existente para a entrega inteira. A
+tarifa comercial é definida por `POSTSPARK_ARTWORK_CAROUSEL_SPARKS`. Com a
+tarifa em definição, DEV e FOUNDER podem testar pelo valor de 0 Sparks.
+
+O seletor do Replicar Design oferece Gemini 3.8 Flash como padrão, GPT-6.2 Sol e
+Gemini 4 Neon. A escolha vale para URL e imagem e fixa o modelo no OpenRouter
+durante a extração. Chamadas legadas sem seleção seguem a rota de visão
+configurada. A revisão mostra o modelo usado e permite testar outro com a mesma
+referência, formato de captura e projeto.
+
+### Operação da captura na VPS
+
+Na VPS, o bloco de [roteamento](ops/hostinger/capture-route.caddy) fica dentro
+do site `postspark.com.br` em `/opt/postspark/caddy/Caddyfile`. O
+[override do Compose](ops/hostinger/compose.capture-web.yml) carrega
+`/etc/postspark/capture-web.env` no serviço web. O arquivo privado tem modo
+`0600` e usa o mesmo token do capturador. A rede é externa aos dois projetos
+Compose e deve existir como bridge interna antes da subida. Inclua o override
+ao recriar a web.
+Os manifestos anteriores à ativação ficam em
+`/opt/postspark/releases/website-capture-20261121` para rollback.
+
+### Histórico da captura no Lightsail
+
+O serviço antes hospedado na Railway passou a ser implementado em `server/capture/`
+e foi exposto por `https://capture.postspark.com.br`, na mesma instância, com IP fixo.
 Um container próprio mantém Chromium e um contexto de navegação ativo por vez;
 Caddy termina HTTPS e persiste os certificados em volumes separados. O capturador
 não recebe credenciais de banco, modelos ou AWS. O adaptador compartilhado
@@ -3350,7 +3477,7 @@ Requisitos `kind: content` representam entregas; `kind: execution` representa
 diretrizes de formato, mídia, tom e limites factuais, mantidas no contexto editorial.
 A migração 0054 compara a revisão V10 com a projeção material desses requisitos;
 recibos sem `kind` preservam a semântica anterior. A
-verificação e implantação coordenada estão em [ativação dos modelos](docs/generation-model-rollout.md).
+ativação de novembro foi registrada em [histórico de implantação dos modelos](docs/generation-model-rollout.md).
 O servidor resolve a escolha enumerada e grava `generation_config` na mesma
 transação da admissão e reserva de Sparks. A configuração inclui a versão da
 estratégia, o modelo, os parâmetros e o modo de saída; fica separada da entrada
@@ -3360,16 +3487,16 @@ a propriedade desse pedido. JEV, leitura de fontes, imagens e revisão conservam
 seus responsáveis próprios.
 
 `GENERATION_STRATEGY_VERSION=2` habilita o novo caminho para novas admissões.
-O padrão continua `1` para permitir implantação coordenada; mudar o ambiente não
-reinterpreta pedidos já admitidos. A estratégia 2 produz preparação versão 6,
+O padrão atual é `2`. Definir `1` muda a estratégia de novas admissões. Pedidos
+já admitidos conservam o recibo da estratégia escolhida. A estratégia 2 produz preparação versão 6,
 perfis versão 3 e revisão protocolo 10, com configuração de revisão versão 5.
 As versões anteriores mantêm seus leitores, semântica e operações duráveis.
 
 Em 03/11/2026, a publicação do catálogo R9 criou a revisão ativa 5 a partir
 da revisão 4 de staging. As 29 famílias e 156 lâminas derivadas ficaram
 disponíveis no catálogo aprovado. Os pedidos fixam a revisão na admissão.
-A estratégia 2 está ativa nas novas admissões de produção. A API Vercel e o
-worker AWS receberam a mesma versão de código. A preparação mantém a
+Na publicação de 03/11/2026, a estratégia 2 foi ativada na API e no worker
+da instalação anterior, com a mesma versão de código. A preparação mantém a
 quantidade confirmada de lâminas como restrição de formato. Citações abreviadas
 de requisitos de execução são expandidas a partir do pedido quando todos os
 trechos existem na ordem indicada. A auditoria aplica a mesma normalização ao
@@ -3936,6 +4063,8 @@ PNG, miniatura e ZIP omitem as guias do editor e restauram sua visibilidade mesm
 
 O projeto passa a manter três recursos independentes: contexto textual (`structured_data`/`compiled_document`), templates extraídos (`visual_preferences` e peças salvas) e identidade visual cadastrada (`visual_identity`). O cadastro aceita descrição livre e logo opcional, sem exigir nicho ou calibração editorial. `brandProjects.saveIdentity` interpreta somente definições informadas; cores sem papel permanecem numa paleta sem função fixa, e campos desconhecidos continuam nulos. A interpretação original e sua revisão são persistidas. Fontes são resolvidas para assets empacotados verificáveis, conservando nome solicitado, nome aplicado, peso disponível e aviso de substituição. O salvamento da identidade não reserva Sparks.
 
+Em **Modelos** e **Identidade visual**, “Extrair identidade visual” associa a paleta do kit salvo à identidade do projeto, com as funções de fundo, texto e destaque. A extração ocorre por escolha do usuário, sem inferência adicional. O servidor registra os IDs de origem em `visual_identity.extractedFrom`, confere o proprietário e a versão do projeto e reaproveita o resultado quando o mesmo kit é solicitado novamente. A admissão congela a identidade do projeto nos pedidos novos. A geração com o acervo aplica as cores aos elementos editáveis antes da revisão de cada slide, preservando as mídias e a composição da família. As artes de origem conservam sua direção de cor original.
+
 A edição da identidade usa `brand_project_save_identity`, que atualiza apenas nome e identidade, preservando contexto e templates mesmo se a interpretação demorar. A criação usa um UUID estável para retry; falhas de persistência não são anunciadas como sucesso local. As RPCs permanecem exclusivas do runtime e conferem propriedade. O snapshot de projeto versão 3 inclui a identidade, sem reinterpretar versões 1 e 2. O backend valida hash, fontes e logo privado e conserva o snapshot recebido para aquela criação; retomadas e gerar mais reutilizam a identidade já admitida.
 
 No Studio, selecionar um projeto com identidade a aplica por padrão quando não existe outro design explicitamente escolhido. A ação “Já tenho meu conteúdo” oferece “Colar texto” e “Slide por slide”. O detector compartilhado aceita marcadores no início da linha como `slide1`, `Slide 1:`, cabeçalhos Markdown, `[Slide 1]`, Lâmina/Tela/Página com ou sem espaço e o separador `---` em linha própria. A divisão é local, sem chamada de IA; conserva o texto interno e abre os cartões para conferência, edição e ordenação. Os dois modos mantêm os rascunhos durante a alternância; o reconhecimento no campo principal usa o mesmo detector. “Preservar meu texto” envia `visual_only`, com fronteiras e ordem dos slides, e as orientações visuais viajam separadamente em `notes`. Rascunhos conservam esses controles. Acima de dez slides, a interface bloqueia a preservação até reorganização, sem descartar silenciosamente as páginas excedentes.
@@ -4020,3 +4149,41 @@ real do recorte. Publicação apenas de frontend em
 ### Frequência dos designs no debugger administrativo
 
 A consulta `generation.designFrequency` consolida os recibos de pedidos encerrados por ordem de criação. A RPC `design_frequency_receipts` (migração 0081) é uma leitura com permissão de execução para o papel de serviço. O painel agrega todos os usuários por formato, quantidade de páginas, autorização de imagem e revisões registradas da seleção e do acervo. Cada família conta uma vez por etapa e pedido. A escolha inicial vem do plano, a entrega final vem das propostas prontas e a manutenção da escolha exige a mesma família no mesmo slot. Pedidos sem recibos suficientes aparecem no total da amostra e ficam fora das taxas. A consulta só acontece por solicitação administrativa. O gerador, o histórico de seleção e o faturamento seguem independentes desse relatório.
+
+### Recuperação local de texto e primeira entrega
+
+O executor local por demanda e os workers externos que anunciam `textRecoveryVersion: 1` em `/readyz` recebem essa versão no recibo dos novos pedidos automáticos. Workers externos anteriores recebem o formato que já reconhecem. Gerar mais preserva o recibo do pedido original e exige um executor compatível. Na inspeção de layout, dois fragmentos tipográficos podem redistribuir palavras por largura medida. A quebra aprovada acompanha a composição e o hash do texto canônico até o CanvasLab. Para campos de índice de página identificados no design e rótulos opcionais afetados, o worker verifica uma correção local antes e depois do reparo dirigido. Reconfere as obrigações do briefing, os fatos literais presentes na arte e a composição resultante. O modo literal preserva a redação. A revisão final segue a política da entrega.
+
+Enquanto a galeria está vazia, as três propostas originais rodam em paralelo. O coordenador ordena o acesso às reservas pela quantidade de defeitos observados e libera as demais após o primeiro commit. Na última tentativa de uma galeria vazia, o worker também pode recuperar a redação original do journal e transferir o conteúdo restante do mesmo slide para um corpo de texto compatível. O worker mede a transferência dentro do prazo e do acervo fixado antes de escolher entre reutilização e reparo. As decisões de reserva são persistidas por tentativa.
+
+Os novos pedidos automáticos também podem fixar `finalFitRepairVersion: 1` quando o executor anuncia suporte. Ao esgotar as alternativas de uma proposta, se restar apenas texto excedendo caixas editáveis e o briefing permitir reescrita, o worker usa primeiro o reparo normal disponível. A última reserva agrupa os campos ou itens afetados em uma chamada de texto. O motor mede o resultado antes de avançar para mídia e revisão editorial. A operação `copy_final_fit` tem uma chave única por proposta, inclusive ao retomar o pedido. O custo operacional é do PostSpark, sem débito adicional de Sparks. O debugger registra o resultado de encaixe e associa o custo disponível à entrega da proposta.
+
+### Planejamento e recuperação do trio automático
+
+Novos pedidos automáticos gravam `trioDeliveryVersion: 1` quando o executor anuncia suporte. O planejamento escolhe em conjunto três famílias elegíveis e grava as alternativas compatíveis com cada vaga, inclusive as vagas sem oferta inicial. A execução libera a família de uma tentativa rejeitada. As famílias em uso ou entregues são protegidas contra duplicação, e os recibos das tentativas permitem reconstruir a ocupação durante a retomada. A galeria recebe propostas conforme cada commit é concluído.
+
+A redação recebe dimensões e limite de linhas por caixa, com identificação dos fragmentos. O worker aproveita o texto que couber em outro design e pode fazer um reparo de overflow antes de outra redação completa. Um primeiro patch que reduza os defeitos pode ser reaproveitado internamente. O passe sobre os campos restantes tem chave própria no journal e reserva tempo para a revisão. Colisões combinadas com overflow podem entrar na tentativa; a medição decide se o ajuste resolveu o conjunto.
+
+O worker compara a estrutura visível de todas as páginas em coordenadas normalizadas, antes da mídia e novamente antes da entrega. As métricas registram o trio estruturalmente distinto e o tempo da admissão até a conclusão da primeira e da terceira proposta entre as que tiveram entrega persistida. Rejeições de contrato identificadas antes do despacho têm recibo local. A reconciliação do provedor continua protegendo operações de efeito incerto.
+
+### Requisitos do briefing e legibilidade na geração planejada
+
+Novas preparações automáticas e do seletor `editorial_v1` que usam o contrato compacto fixam `compactIntentVersion=2`. A intenção guarda o objetivo completo, requisitos atribuídos ao briefing e três direções de composição por vaga. Antes do JEV e da avaliação editorial, o catálogo precisa comportar os fatos obrigatórios na arte e o CTA solicitado, além de respeitar restrições explícitas de fotografia. Em comparações, a primeira vaga dá prioridade a campos pareados. As demais podem usar composições editoriais, tipográficas ou de lista, com o nome, valores e benefícios de cada alternativa juntos. As mesmas condições valem para as reservas. O plano liga os fatos aos campos que os comportam e conserva a formulação exata do CTA quando fornecida. Se houver menos famílias compatíveis que vagas, o coordenador pode entregar um resultado parcial.
+
+O seletor editorial aproveita até oito instruções por candidata. Se uma resposta exceder o limite de instruções ou o tamanho da justificativa, o seletor ajusta esses campos e valida cada avaliação de forma independente. A redação de reserva de uma comparação reaproveita o texto quando pode manter a associação dos campos entre os dois layouts.
+
+Novas preparações automáticas fixam `artworkBriefPolicyVersion: 1`. Quando um único corpo recebe várias alternativas, a redação põe cada uma em sua própria linha canônica e mede a distribuição nos fragmentos do template. O CTA obrigatório é conferido no campo da lâmina final. O preflight verifica a frase literal ou a ação reconhecida no briefing. A V10 trata problemas de composição com texto legível e requisitos comprovadamente cumpridos como observações. Cortes, fatos divergentes e obrigações ausentes no destino pedido continuam bloqueantes.
+
+Nessas preparações, o Fontkit reserva margem para a quebra do Chromium, mede a distância entre glifos e caixas vizinhas e verifica o interior das superfícies que contêm o texto. Os fragmentos de um mesmo campo com tamanho de origem comum usam o menor tamanho ajustado que respeita o intervalo das caixas. A composição grava os ajustes de fonte, entrelinha e posição. A redistribuição medida preserva o campo canônico em até oito fragmentos e fica vinculada ao hash do texto. Colisões e extravasamentos remanescentes bloqueiam a proposta. A V10 identifica o trecho ilegível e trata grafias monetárias equivalentes como o mesmo fato. Achados sobre espaçamento ou colisão direcionam a recuperação ao layout. O reparo editorial troca a versão anterior somente após passar pela conferência técnica. A política de revisão continua valendo para a versão que passou pelo preflight.
+
+### Equipe editorial do Automático do TheVoid (24/11/2026)
+
+Na admissão de uma nova criação, a API verifica a capacidade `editorialTeamVersion=1` do worker e grava `generation_config.editorialTeam` com o redator e os especialistas. As três propostas usam GLM-5.3 como redator criativo padrão, Qwen4 Max para humor ou narrativa, GPT-6.2 Sol para campanhas comerciais e Gemini 3.8 Flash para comunicados ou execução literal. A escolha considera o objetivo, o nível de intervenção e o texto do briefing. Uma reescrita comercial para encaixar em outro design usa GLM. DeepSeek interpreta a intenção e faz reparos pontuais. Haiku seleciona designs e revisa a arte. Na correção editorial de uma contradição factual bloqueante, Sol confere as fontes e devolve o ajuste dentro da operação existente.
+
+Kimi K3.1 Pro lê imagens de conteúdo e seleciona trechos de fontes textuais longas (a partir de 8.000 caracteres). O worker aceita apenas trechos encontrados nas fontes e mantém o contexto integral. O GLM completo recebe a leitura textual da imagem. As chamadas e os modelos efetivos ficam no trace. No contrato V2 de preparação, `taskRouting.copy` e o campo legado `generation_config.model` ainda identificam Haiku. O redator admitido fica em `editorialTeam.writer`.
+
+Para rollback, configure `POSTSPARK_EDITORIAL_TEAM=legacy` na API e reinicie-a. Novos pedidos automáticos voltam ao roteamento DeepSeek/Haiku. Pedidos em andamento, replays e “Gerar mais” conservam o recibo original. Mantenha um worker compatível até o término dos pedidos que já receberam a equipe V1.
+
+### Coesão de texto na entrada de designs completos
+
+A entrada de novas definições verifica os vínculos de conteúdo e a geometria das caixas antes de gravar o rascunho. O relatório por família e a reprodução da checagem estão descritos na [operação do catálogo](docs/pipeline-designs-completos.md#coesão-das-caixas-de-texto).

@@ -6,6 +6,7 @@ import type { EditorialContextV3 } from "./editorialContextV9";
 import { resolvedEditorialContext } from "./editorialContextV8";
 import { requirementUnitMatchesV7 } from "./proposalReviewPolicy";
 import { buildReviewEvidenceAliases } from "./reviewEvidence";
+import { planningFactText } from "@shared/compactGenerationIntent";
 const invalid = (rule: string): never => {throw Object.assign(new Error("proposal_review_incomplete_evidence"),{violation:{rule}});};
 /** Duplicate keys remain invalid even though the new receipt has no positive audit. */
 export function decodeReviewExceptionsV10(raw: string): ReviewExceptionsResponseV10 {
@@ -17,10 +18,41 @@ export function decodeReviewExceptionsV10(raw: string): ReviewExceptionsResponse
     else {if(token===undefined)invalid("json_syntax");JSON.parse(token);}}
   try{walk();if(index!==tokens.length)invalid("json_syntax");const parsed=proposalReviewExceptionsResponseV10Schema.safeParse(JSON.parse(raw));if(!parsed.success)return invalid("response_schema");return parsed.data;}catch(error){if((error as any)?.violation)throw error;return invalid("json_syntax");}
 }
+function comparableFact(text: string) {
+  const normalized = planningFactText(text).normalize("NFC").toLocaleLowerCase("pt-BR").replace(/[.;!?]+$/, "");
+  if (!/r\$/.test(normalized)) return normalized;
+  return normalized
+    .replace(/r\$\s*(\d+(?:\.\d{3})*)(?:,(\d{2}))?/g, (_, amount: string, cents?: string) =>
+      "r$ " + amount.replace(/\./g, "") + (cents && cents !== "00" ? "," + cents : ""))
+    .replace(/(r\$ \d+(?:,\d{2})?)\s*(?:\/\s*mês|por\s+mês|mensal|mensais)\b/g, "$1 por mês")
+    .replace(/\s+\+\s+|,\s+|\s+e\s+/g, " ");
+}
+function containsEquivalentFact(source: string, text: string) {
+  const escaped = comparableFact(text).replace(/[.*+?^$(){}|[\]\\]/g, "\\$&");
+  return Boolean(escaped) && new RegExp("(?:^|[^\\p{L}\\p{N}])" + escaped + "(?=$|[^\\p{L}\\p{N}])", "u").test(comparableFact(source));
+}
+
+function isNonblockingArtworkObservation(finding: ReviewExceptionsResponseV10["findings"][number]) {
+  const { category, detail, expected } = finding;
+  const noCorrection = /^(?:nenhum[ao]\s+(?:reparo|correção|ajuste|alteraç[aã]o)\b|sem\s+(?:necessidade de correção|correção material)\b|não (?:é necessári[oa]|há necessidade de)\s+(?:corrigir|reparar|ajustar))/i.test(expected.trim());
+  const acknowledgesFulfillment = /\b(?:cumpre|atende|satisfaz)\s+(?:(?:o|a|ao|à)\s+)?(?:requisito|exigência|pedido|instrução)\b|\b(?:já|integralmente)\s+presente\b/i.test(detail) &&
+    !/\bnão\s+(?:cumpre|atende|satisfaz)\b/i.test(detail);
+  if (noCorrection && acknowledgesFulfillment && (category === "explicit_requirement" || category === "fact_omission")) return true;
+  const visualDamage = /\b(?:cortad[oa]s?|recortad[oa]s?|truncad[oa]s?|ileg[ií]ve(?:l|is)|encobert[oa]s?|ocult[oa]s?|apag[aã]d[oa]s?|sumiu|desapareceu)\b|\b(?:cobre|encobre|oculta|corta|intercepta)\b[^.!?]{0,70}\b(?:texto|trecho|letras?|caracteres|palavras?)\b/i.test(detail);
+  if (category === "visible_text_loss") return !visualDamage;
+  if (category !== "explicit_requirement") return false;
+  const presentation = /hierarquia|alinhamento|par[aá]grafo corrido|bloco(?: de texto)? corrido|separaç[aã]o visual|quebras? de linha/i.test(detail);
+  const missingContent = /\b(?:faltam?|faltou|ausente|ausência|omitid[oa]s?|omiss[aã]o|não\s+(?:cont[eé]m|inclui|exibe|traz|aparece|consta)|(?:só|somente|apenas) na legenda|incorret[oa]s?|invertid[oa]s?|trocad[oa]s?)\b/i.test(detail);
+  return presentation && !visualDamage && !missingContent;
+}
+
 export function normalizeReviewExceptionsV10(input: {
   response: ReviewExceptionsResponseV10; units: ReviewTextUnitV7[]; evidenceInventory: ReviewSourceEvidenceV10[];
   context: EditorialContextV3; aliases: ReturnType<typeof buildReviewEvidenceAliases>; slideCount:number;
   round:"initial"|"recheck"; inputHash:string; operationKeys:string[];
+  structuralIntent?: boolean;
+  objectiveArtworkReview?: boolean;
+  cleanNativeUnitIds?: ReadonlySet<string>;
 }): ProposalReviewExceptionsRecordV10 {
   const {response:r,units,evidenceInventory}=input;
   if(new Set(r.reviewedSlides).size!==r.reviewedSlides.length||r.reviewedSlides.some(i=>i>=input.slideCount)||
@@ -33,13 +65,24 @@ export function normalizeReviewExceptionsV10(input: {
     if(slideIndex>=input.slideCount||((unit?.scope??"art")==="art"&&!r.reviewedSlides.includes(slideIndex)))invalid("uninspected_target");
     if(new Set(f.evidenceIds).size!==f.evidenceIds.length)invalid("duplicate_evidence_id");
     const refs=f.evidenceIds.map(id=>evidenceInventory.find(e=>e.id===id)??invalid("unknown_evidence_id"));
-    if(["unsupported_claim","factual_contradiction","entity_changed","fact_omission","explicit_requirement","visible_text_loss","media_missing"].includes(f.category)&&f.consequence==="none")invalid("category_consequence_inconsistent");
+    const objectiveAdvisory = input.objectiveArtworkReview && isNonblockingArtworkObservation(f);
+    if(!objectiveAdvisory&&["unsupported_claim","factual_contradiction","entity_changed","fact_omission","explicit_requirement","visible_text_loss","media_missing"].includes(f.category)&&f.consequence==="none")invalid("category_consequence_inconsistent");
     if(["narrative_gap","narrative_structure"].includes(f.category)&&!["none","meaning_loss","explicit_requirement"].includes(f.consequence))invalid("category_consequence_inconsistent");
-    if(["factual_contradiction","entity_changed","fact_omission"].includes(f.category)&&(!refs.length||refs.some(e=>compactEditorialEvidenceKind(e)!=="content")))invalid("content_evidence_required");
-    if(f.category==="explicit_requirement"&&(!refs.length||refs.every(e=>compactEditorialEvidenceKind(e)==="guidance")))invalid("requirement_evidence_required");
-    const isFalseVisualLoss = f.category === "visible_text_loss" && /não (aparece|está|foi) cortad|texto íntegro|sem corte|não há corte/i.test(f.detail);
-    const category = isFalseVisualLoss ? "aesthetic" : f.category;
-    const consequence = (f.category === "contrast" || isFalseVisualLoss) ? "none" : f.consequence;
+    if(!objectiveAdvisory&&["factual_contradiction","entity_changed","fact_omission"].includes(f.category)&&(!refs.length||refs.some(e=>compactEditorialEvidenceKind(e)!=="content")))invalid("content_evidence_required");
+    if(!objectiveAdvisory&&f.category==="explicit_requirement"&&(!refs.length||refs.every(e=>compactEditorialEvidenceKind(e)==="guidance")))invalid("requirement_evidence_required");
+    const isFalseVisualLoss = f.category === "visible_text_loss" &&
+      (/não (aparece|está|foi) cortad|texto íntegro|sem corte|não há corte/i.test(f.detail) ||
+        (input.structuralIntent && /(?:o texto(?: em si)? (?:está|permanece) (?:completo|inteiro|legível)|sem prejudicar o texto)/i.test(f.detail)) ||
+        (Boolean(unit && input.cleanNativeUnitIds?.has(unit.id)) && Boolean(input.objectiveArtworkReview) &&
+          !/\b(?:cobre|encobre|oculta|sobrep[õo]e|contraste|ileg[ií]vel\s+sobre|fundo\s+(?:claro|escuro))\b/i.test(f.detail)));
+    const selfContradictedFactual = f.category === "factual_contradiction" &&
+      /\b(?:sem\s+diverg[êe]ncia(?:\s+textual)?(?:\s+real)?|n[aã]o\s+h[aá]\s+diverg[êe]ncia)\b/i.test(f.detail);
+    const equivalentFact = selfContradictedFactual || (input.structuralIntent && f.category === "factual_contradiction" && Boolean(unit?.text.trim()) &&
+      /\b(?:equivale|equivalente|preserva o valor|corresponde aos fatos|sem altera[çc][ãa]o de valores)\b/i.test(f.detail) &&
+      refs.some(ref => containsEquivalentFact(ref.text, unit!.text)));
+    const aesthetic = objectiveAdvisory || isFalseVisualLoss || equivalentFact;
+    const category = aesthetic ? "aesthetic" : f.category;
+    const consequence = (f.category === "contrast" || aesthetic) ? "none" : f.consequence;
     const material = materialFindingV7({ ...f, category, consequence } as any);
     if(material&&!f.expected.trim())invalid("missing_material_correction");
     const source=refs[0];

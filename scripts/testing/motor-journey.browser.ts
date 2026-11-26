@@ -64,10 +64,15 @@ try {
   await page.waitForFunction(() => Boolean((window as any).__motorFixture));
   fixture = await page.evaluate(() => (window as any).__motorFixture);
   await page.getByRole("textbox",{name:"Tema ou ideia do post"}).fill("Uma ideia de café artesanal para a comunidade");
+  const exposureRecorded = page.waitForResponse(response => response.url().includes("generationTelemetry.record") &&
+    events.some(event => event.kind === "exposure" && event.proposalId === "proposal-1"));
   await page.getByRole("button",{name:"Criar posts",exact:true}).click();
   await page.getByRole("button",{name:"Personalizar Post",exact:true}).nth(2).waitFor({timeout:30000});
+  await exposureRecorded;
+  const target = events.find(event => event.kind === "exposure" && event.proposalId === "proposal-1");
+  assert.ok(Number.isInteger(target?.position));
   await page.screenshot({path:path.join(output,"gallery.png")});
-  await page.getByRole("button",{name:"Personalizar Post",exact:true}).nth(1).click();
+  await page.getByRole("button",{name:"Personalizar Post",exact:true}).nth(target.position).click();
   await page.getByRole("button",{name:"Salvar post",exact:true}).waitFor();
   await page.getByRole("button",{name:"Desativar ímã",exact:true}).click();
   await page.getByRole("button",{name:"Legenda",exact:true}).click();
@@ -92,11 +97,13 @@ try {
   assert.equal(await page.getByRole("textbox",{name:"Legenda do post",exact:true}).inputValue(),original.caption);
   await page.getByRole("button",{name:"Fechar painel",exact:true}).click();
   await page.screenshot({path:path.join(output,"reopened.png")});
-  for (const [label,file] of [["Imagem do slide atual · PNG 4K","export.png"],["Todos os slides · ZIP","export.zip"]]) {
+  for (const [label,file] of [["Imagem do slide atual · PNG 4K","export.png"],["Todos os slides · ZIP 4K","export.zip"]]) {
     await page.getByRole("button",{name:"Baixar post",exact:true}).click();
-    const downloaded=page.waitForEvent("download");
-    await page.getByRole("menuitem",{name:label,exact:true}).click();
-    await (await downloaded).saveAs(path.join(output,file));
+    const [downloaded] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("menuitem",{name:label,exact:true}).click(),
+    ]);
+    await downloaded.saveAs(path.join(output,file));
     assert.ok((await readFile(path.join(output,file))).length>100);
   }
   await page.waitForTimeout(2500);

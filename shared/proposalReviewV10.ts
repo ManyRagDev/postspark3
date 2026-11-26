@@ -340,6 +340,7 @@ export const reviewExecutionConfigV5Schema =
     nativeGlyphProjection: z.literal(1).optional(),
     nativeGlyphManifestHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     copyInstructionsVersion: z.literal(2).optional(),
+    artworkBriefPolicyVersion: z.literal(1).optional(),
   });
 export type ReviewExecutionConfigV5 = z.infer<
   typeof reviewExecutionConfigV5Schema

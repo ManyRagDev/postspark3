@@ -1,3 +1,7 @@
+import { extractedPalette } from "@shared/projectPalette";
+import { fitEditorialParagraphs } from "./editorialTextLayout";
+import { measuredWordSplits, repairLayoutLabels } from "./localTextRecovery";
+import { bodyComparisons, closingActionMatches, comparisonCopyIssues, saveGuideCta, separateComparisonCopy, usesArtworkBriefCopy } from "./artworkBriefCopy";
 import { usesVisualTextRepair, visualTextRepairCall } from "./visualTextRepair";
 import { ENV } from "../../_core/env";
 import { LENIENT_REVIEW_DIAGNOSTIC } from "@shared/generationReviewWarning";
@@ -6,11 +10,16 @@ import { normalizeCopyProfileHandles, profileHandleValueNormalizer } from "./pro
 import { usesCompactEditorialContract, usesCopyInstructionsV2 } from "./compactEditorialContract";
 import { compactComponentCard } from "@shared/componentAssembly";
 import { designTextBudgetsV3 } from "@shared/designSelection";
+import { planningFactText } from "@shared/compactGenerationIntent";
+import { editorialModelOptions, proposalWriter } from "../editorialTeam";
 import { generationModelCallOptions, generationTaskModelCallOptions } from "../generationModel";
 import {
   usesCompactProposalCopy, compactCopyPrompt, compactCopySystemPromptFor, compactCopyTransportSchema, compactCopyValidationSchema,
+  normalizeCompactCopyPayload,
+  editorialDesignReading, editorialDesignWritingInstruction, editorialFieldAssignments,
   targetedCopyRepairPrompt, targetedCopyRepairSchema, targetedRepairSystemPromptFor,
   applyTargetedCopyRepair, editorialRepairTargets, enrichTargetedCopyRepairTargets, TARGETED_REPAIR_MAX_TOKENS,
+  isTextSpacingReviewFinding,
   type TargetedCopyRepairTarget, type TargetedCopyRepairFitContext,
 } from "./compactProposalCopy";
 import { copyInstructionsV10, copyInstructionsV10V2 } from "./reviewExecutionConfigV10";
@@ -99,6 +108,7 @@ export interface ProposalMediaAdapter {
 }
 
 export interface ProposalGraphDeps {
+  attemptId?: string;
   /** Relative review operation keys and their durable results, scoped to this proposal. */
   reviewOperations?: (proposalId: string) => Promise<import("./generationStore").GenerationOperationRecord[]>;
   /** Non-durable harnesses only; production always supplies reviewOperations. */
@@ -107,6 +117,9 @@ export interface ProposalGraphDeps {
   reviewRepairBudget?: Set<string>;
   persistReviewExpectation?:(key:string,expectation:unknown)=>Promise<void>;
   generateText: (params: InvokeParams) => Promise<InvokeResult>;
+  finalFitOperation?: ProposalGraphDeps["executeOperation"];
+  claimLayout?: (signature: string) => boolean;
+  hasUncertainEffect?: () => Promise<boolean>;
   /** Relative durable recovery keys already purchased for this proposal. */
   recoveryOperationKeys?: (proposalId: string,attemptId?:string) => Promise<string[]>;
   /** Tests may inject a measured implementation; production defaults to Fontkit-backed assets. */
@@ -163,6 +176,7 @@ export interface ProposalExecutionInput {
   editorialContext?: import("./editorialContextV8").EditorialContext;
   sourceReferences?: ProposalSourceReference[];
   referenceImages?: string[];
+  editorialSourceQuotes?: string[];
   sourceImages?: string[];
   selectedDefinition?: ComponentDefinitionV1;
   selectedDefinitions?: ComponentDefinitionV1[];
@@ -181,6 +195,7 @@ export interface ProposalExecutionInput {
   deliveryRecoveryEnabled?: boolean;
   firstDeliveryReviewRecovery?: boolean;
   deferCopyRepair?: boolean;
+  finalFit?: boolean;
   recoveryCopy?: CopyResponse;
   /** Content to adapt to a different design; never bypasses writing or review. */
   recoverySourceCopy?: CopyResponse;
@@ -420,14 +435,68 @@ function combinedCopyText(copy: CopyResponse): string {
   ].join("\n");
 }
 
+function preservesArtworkRequirements(before:CopyResponse, after:CopyResponse, input:ProposalExecutionInput) {
+  const art = (copy:CopyResponse) => copy.slides.flatMap(s=>s.values.flatMap(v=>v.value)).join("\n");
+  const original=art(before), updated=art(after);
+  const name = input.projectSnapshot?.name.trim().toLocaleLowerCase("pt-BR");
+  if (name && original.toLocaleLowerCase("pt-BR").includes(name) && !updated.toLocaleLowerCase("pt-BR").includes(name)) return false;
+  const comparisonFacts = input.generationIntent?.designRequirements?.requiredFacts.filter(fact => fact.comparisonGroup !== null) ?? [];
+  if (comparisonFacts.length) {
+    const normalize = (value: string) => planningFactText(value).normalize("NFC").toLocaleLowerCase("pt-BR");
+    const preserves = (page: NonNullable<ProposalExecutionInput["narrativePlan"]>["pages"][number]) => page.assignments.every(assignment => {
+      const read = (copy: CopyResponse) => {
+        const value = copy.slides[page.slideIndex]?.values.find(row => row.fieldId === assignment.fieldId)?.value;
+        return normalize(Array.isArray(value) ? value.join(" ") : value ?? "");
+      };
+      const previous = read(before), next = read(after);
+      return comparisonFacts.filter(fact => assignment.contentIds.includes(fact.contentId))
+        .flatMap(fact => normalize(fact.text).split(/,\s+|\s+e\s+/))
+        .every(phrase => !previous.includes(phrase) || next.includes(phrase));
+    });
+    if (input.narrativePlan?.pages.some(page => !preserves(page))) return false;
+  }
+  return proposalContentRequirements(input).every(r=>r.kind==="forbidden" || r.scope==="caption" ||
+    !requirementMatches(original,r) || requirementMatches(updated,r));
+}
+
+function detectBriefingMetaLeakage(copy: CopyResponse, input: ProposalExecutionInput): string[] {
+  const metaPattern = /\b(?:(?:esta|última|primeira|segunda|terceira|quarta|quinta)\s+(?:lâmina|tela|página|slide)\s+(?:deve|apresenta|mostra|traz|convida)|a\s+capa\s+(?:apresenta|mostra|traz|abre|convida))\b|^\s*\d+\.\s*(?:a\s+pergunta\s+final|o\s+fechamento|a\s+capa)\b/i;
+  const domainAboutSlides = /\b(?:apresenta[çc][ãa]o|slides?|carrossel|diagrama[çc][ãa]o)\b/i.test(input.generationIntent?.objective ?? "");
+  if (domainAboutSlides) return [];
+  const leaked: string[] = [];
+  copy.slides.forEach((slide, slideIndex) => {
+    for (const row of slide.values) {
+      const texts = Array.isArray(row.value) ? row.value : [row.value];
+      if (texts.some(t => typeof t === "string" && metaPattern.test(t))) {
+        leaked.push(`briefing_meta_instruction_leaked:slide-${slideIndex + 1}:${row.fieldId}`);
+      }
+    }
+  });
+  return leaked;
+}
+
 function checkBriefConstraints(
   copy: CopyResponse,
   input: ProposalExecutionInput
 ): string[] {
   const brief = input.executionBrief;
-  if (!brief && !usesAffirmativeContext(input)) return [];
+  const enforceArtwork = usesArtworkBriefCopy(input);
+  if (!brief && !usesAffirmativeContext(input) && !enforceArtwork) return [];
   const text = combinedCopyText(copy);
-  const issues: string[] = [];
+  const definitions = input.selectedDefinitions ?? (input.selectedDefinition ? [input.selectedDefinition] : []);
+  const issues = [
+    ...comparisonCopyIssues(copy, bodyComparisons(input, definitions)),
+    ...(enforceArtwork ? detectBriefingMetaLeakage(copy, input) : []),
+  ];
+  const cta = requiredCtaField(input);
+  if (cta) {
+    const value = copy.slides[cta.slideIndex]?.values.find(row => row.fieldId === cta.fieldId)?.value;
+    if (typeof value !== "string" || (cta.text ? value !== cta.text :
+      !new RegExp("\\p{L}", "u").test(value) || (enforceArtwork && !closingActionMatches(value, cta.quote))))
+      issues.push("requirement_unmet:required-cta");
+  } else if (enforceArtwork && input.generationIntent?.designRequirements?.requiresTextCta) {
+    issues.push("requirement_unmet:required-cta");
+  }
   if (brief?.interventionLevel === "visual_only") {
     const isSingleStatic =
       brief.format === "static" &&
@@ -437,9 +506,6 @@ function checkBriefConstraints(
       const normalizeWhitespace = (value: string) =>
         value.trim().replace(/\s+/g, " ");
       const source = normalizeWhitespace(brief.rawInput);
-      const definitions =
-        input.selectedDefinitions ??
-        (input.selectedDefinition ? [input.selectedDefinition] : []);
       const visibleText = copy.slides
         .flatMap((slide, index) => {
           // A provider may return values in any order; the authored field order is
@@ -499,6 +565,22 @@ function checkBriefConstraints(
     )
       issues.push(`forbidden_term:${forbidden}`);
   return issues;
+}
+
+function requiredCtaField(input: ProposalExecutionInput) {
+  const requirements = input.generationIntent?.designRequirements;
+  if (!requirements?.requiresTextCta || input.generationIntent?.adaptation === "literal") return;
+  const page = input.narrativePlan?.pages.at(-1);
+  const definitions = input.selectedDefinitions ?? (input.selectedDefinition ? [input.selectedDefinition] : []);
+  const slideIndex = page?.slideIndex ?? definitions.length - 1;
+  const definition = definitions[slideIndex];
+  const fieldId = page?.assignments.find(assignment => assignment.contentIds.includes("required-cta"))?.fieldId ??
+    (usesArtworkBriefCopy(input) && definition ? completeDesignFields(definition, nativeGlyphProjectionFor(input))
+      .find(field => field.kind === "text" && field.role === "callToAction")?.id : undefined);
+  if (slideIndex >= 0 && fieldId) {
+    const requirement = input.generationIntent?.requirements.find(item => item.id === "required-cta");
+    return { slideIndex, fieldId, text: requirements.textCta, quote: requirement?.requestQuote ?? requirement?.description ?? "" };
+  }
 }
 
 function mediaReferences(
@@ -575,8 +657,11 @@ export function inspectProposalScenes(
   adaptiveTextFit = false,
   localContrast = false,
   textFlexibilityVersion?: 1,
+  recoverSplits = false,
+  guardTextSpacing = false,
+  comparisons: ReturnType<typeof bodyComparisons> = [],
 ) {
-  const inspected = compositions.map((source, index) => {
+  const inspectSlide = (source: ArsenalComposition, index: number): {composition:ArsenalComposition; findings:TechnicalFinding[]; diagnostics:ProposalDiagnostic[]} => {
     let composition = resolveArsenalGeometry(source, {
       measureText,
       allowReduction: true,
@@ -584,10 +669,12 @@ export function inspectProposalScenes(
       allowSubpixelTextOverflow,
       adaptiveTextFit,
       textFlexibilityVersion,
+      guardTextSpacing,
     });
     const contrast = localContrast ? correctArsenalSurfaceContrast(composition) : { composition, corrections: [] };
     if (contrast.corrections.length) composition = resolveArsenalGeometry(contrast.composition, {
       measureText, allowReduction: true, elasticReduction: true, allowSubpixelTextOverflow, adaptiveTextFit, textFlexibilityVersion,
+      guardTextSpacing,
     });
     // Persist the already authored, bounded fit as an explicit resolved override.
     // Canvas edits/reopening may resolve relations again with reduction disabled.
@@ -694,7 +781,30 @@ export function inspectProposalScenes(
     const normalized = composition.issues.length || textFlexibilityVersion === 1
       ? { ...composition, issues: [], state: "applied" as const }
       : composition;
+    if (recoverSplits && findings.length) {
+      const hardBreakSources = new Set(comparisons.filter(item => item.slideIndex === index).map(item => item.source));
+      const hardBreakBindings = new Set((definitions[index]?.fragment.bindings ?? []).filter(binding => hardBreakSources.has(binding.source)).map(binding => binding.id));
+      const splits = measuredWordSplits(normalized, findings, measureText, guardTextSpacing, hardBreakBindings);
+      if (splits) {
+        const trial = inspectProposalScenes([{...source, measuredSplits:splits}], [definitions[index]], measureText,
+          allowSubpixelTextOverflow, adaptiveTextFit, localContrast, textFlexibilityVersion, false, guardTextSpacing).slides[0];
+        const renumber = <T extends {target:string}>(item:T) => ({...item,target:item.target.replace(/^slide-1:/, `slide-${index+1}:`)});
+        const remaining = trial.findings.map(renumber);
+        if (remaining.length < findings.length && remaining.every(f => findings.some(old=>old.rule===f.rule && old.target===f.target)))
+          return {...trial, findings:remaining, diagnostics:trial.diagnostics.map(renumber)};
+      }
+    }
     return { composition: normalized, findings, diagnostics };
+  };
+  const inspected = compositions.map((source, index) => {
+    if (adaptiveTextFit && textFlexibilityVersion === 1) {
+      const fitted = fitEditorialParagraphs(source, definitions[index], measureText);
+      if (fitted !== source) {
+        const candidate = inspectSlide(fitted, index);
+        if (!candidate.findings.length) return candidate;
+      }
+    }
+    return inspectSlide(source, index);
   });
   return {
     slides: inspected,
@@ -710,11 +820,32 @@ export function readProposalCopy(copy: unknown, definitions: ComponentDefinition
   return parsed.success ? parsed.data as CopyResponse : undefined;
 }
 
+function fitAuthoredLabels(original: CopyResponse, input: ProposalExecutionInput, definitions: ComponentDefinitionV1[],
+  build: (copy:CopyResponse)=>ArsenalComposition[], inspect: (scenes:ArsenalComposition[])=>ReturnType<typeof inspectProposalScenes>) {
+  const scenes = build(original);
+  const checked = inspect(scenes);
+  const unchanged = {candidate:original,scenes,checked};
+  if (input.generationConfig?.textRecoveryVersion !== 1 || input.executionBrief?.interventionLevel === "visual_only" ||
+      input.generationIntent?.adaptation === "literal") return unchanged;
+  const corrected = repairLayoutLabels(original, definitions, checked.findings, nativeGlyphProjectionFor(input),
+    next => preservesArtworkRequirements(original,next,input) && !checkBriefConstraints(next,input).length);
+  if (!corrected) return unchanged;
+  const trialScenes = build(corrected);
+  const trial = inspect(trialScenes);
+  if (trial.findings.length > checked.findings.length ||
+      trial.findings.some(f=>!checked.findings.some(old=>old.target===f.target && old.rule===f.rule))) return unchanged;
+  recordGenerationEvent({stage:"proposal_checkpoint",status:"completed",detail:"local_text_recovery",
+    data:{slot:input.slot,proposalId:input.proposalId,initialFindings:checked.findings.length,remainingFindings:trial.findings.length,paidEffect:false}});
+  return {candidate:corrected,scenes:trialScenes,checked:trial};
+}
+
 export async function fitExistingProposalCopy(args: {
   copy: unknown;
   source: ComponentDefinitionV1[];
   target: ComponentDefinitionV1[];
   input: ProposalExecutionInput;
+  lastChance?: boolean;
+  reportMeasured?: (candidate:CopyResponse, defects:number)=>void;
   deps: Pick<ProposalGraphDeps, "measureText" | "createTextMeasurer">;
 }): Promise<CopyResponse | undefined> {
   const { source, target, input, deps } = args;
@@ -734,7 +865,17 @@ export async function fitExistingProposalCopy(args: {
       if (match) used.add(match.id);
       return { fieldId: field.id, value: match ? values.get(match.id)! : field.kind === "list" ? [] : "" };
     });
-    if (slide.values.some(field => !used.has(field.fieldId) && (typeof field.value === "string" ? field.value.trim() : field.value.length))) return;
+    const leftovers = slide.values.filter(row=>!used.has(row.fieldId) && (typeof row.value === "string" ? row.value.trim() : row.value.length));
+    if (leftovers.length) {
+      // A fresh draft follows the destination's fact groups. Appending old
+      // labels, prices and list items to its body can repeat or detach facts.
+      if (input.generationIntent?.designRequirements?.requiresComparison) return;
+      if (!args.lastChance || input.executionBrief?.interventionLevel==="visual_only" || input.generationIntent?.adaptation==="literal") return;
+      const body = after.find(f=>f.role==="body" && f.kind==="text");
+      const receiver = mapped.find(row=>row.fieldId===body?.id);
+      if (!receiver || typeof receiver.value!=="string") return;
+      receiver.value = [receiver.value,...leftovers.flatMap(row=>row.value)].filter(Boolean).join(" ");
+    }
     const originalMedia = source[index].fragment.mediaSlots ?? [];
     const targetMedia = target[index].fragment.mediaSlots ?? [];
     if (originalMedia.length !== targetMedia.length || slide.mediaPrompts.some(item => !originalMedia.some(slot => slot.id === item.slotId))) return;
@@ -744,22 +885,85 @@ export async function fitExistingProposalCopy(args: {
   }
   const copy = readProposalCopy({ ...original, slides }, target, nativeGlyphProjectionFor(input));
   if (!copy) return;
-  if (checkBriefConstraints(copy, { ...input, selectedDefinitions: target }).length) return;
-  let compositions: ArsenalComposition[];
-  try {
-    compositions = target.map((definition, slide) => instantiateCompleteDesign({ nativeGlyphProjection: nativeGlyphProjectionFor(input),
-      definition, ...copy.slides[slide], runId: input.runId, slot: input.slot, slide,
-      planHash: arsenalHash({ prompt: input.prompt, slot: input.slot, slide, defId: definition.id }),
-      experimental: input.experimental ?? true,
-    }));
-  } catch {
-    return;
-  }
+  const targetInput = { ...input, selectedDefinitions: target };
+  const comparisons = bodyComparisons(targetInput, target);
+  separateComparisonCopy(copy, comparisons);
+  if (checkBriefConstraints(copy, targetInput).length) return;
+  const build = (candidate:CopyResponse) => target.map((definition, slide) => instantiateCompleteDesign({projectPalette: extractedPalette(input.projectSnapshot), nativeGlyphProjection:nativeGlyphProjectionFor(input),
+    definition, ...candidate.slides[slide], runId: input.runId, slot: input.slot, slide,
+    planHash: arsenalHash({prompt:input.prompt,slot:input.slot,slide,defId:definition.id}),experimental:input.experimental ?? true}));
   const assets = Array.from(new Map(target.flatMap(definition => definition.assets).map(asset => [asset.id, asset])).values());
   const measure = deps.measureText ?? await (deps.createTextMeasurer ?? createComponentTextMeasurer)(assets, undefined, input.signal);
   const policy = input.generationConfig?.layoutFitPolicy;
-  const preflight = inspectProposalScenes(compositions, target, measure, policy === "subpixel_v1" || policy === "adaptive_v2", policy === "adaptive_v2", false, input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.textFlexibilityVersion : undefined);
-  if (!preflight.findings.some(finding => finding.rule !== "contrast")) return copy;
+  const inspectTarget = (scenes:ArsenalComposition[]) => inspectProposalScenes(scenes,target,measure,
+    policy==="subpixel_v1" || policy==="adaptive_v2",policy==="adaptive_v2",Boolean(extractedPalette(input.projectSnapshot)),
+    input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.textFlexibilityVersion : undefined,
+    input.generationConfig?.textRecoveryVersion===1, Boolean(input.generationIntent?.designRequirements), comparisons);
+  let fitted;
+  try {
+    fitted = fitAuthoredLabels(copy,{...input,selectedDefinitions:target},target,build,inspectTarget);
+  } catch (error) {
+    input.signal?.throwIfAborted();
+    return;
+  }
+  const defects = fitted.checked.findings.filter(f=>f.rule!=="contrast");
+  if (!defects.length) return fitted.candidate;
+  if (args.lastChance && defects.every(f=>["overflow","collision","required_text_fragment"].includes(f.rule)))
+    args.reportMeasured?.(fitted.candidate,defects.length);
+}
+
+/** Each overflow or collision resolves to writable bindings; unmapped ornaments are skipped. */
+function measuredOverflowTargets(findings: TechnicalFinding[], scenes: ArsenalComposition[],
+  definitions: ComponentDefinitionV1[], copy: CopyResponse, glyphs?: 1): TargetedCopyRepairTarget[] {
+  const targets = new Map<string, TargetedCopyRepairTarget>();
+  for (const finding of findings) {
+    const match = /^slide-(\d+):(.+)$/.exec(finding.target);
+    if (!match) continue;
+    const slideIndex = Number(match[1]) - 1;
+    const scene = scenes[slideIndex];
+    const definition = definitions[slideIndex];
+    if (!scene || !definition) continue;
+    for (const elementId of match[2].split("/")) {
+      const element = scene.elements.find(e => e.id === elementId);
+      if (element?.kind !== "text" || !element.bindingId) continue;
+      const binding = definition.fragment.bindings.find(b => b.id === element.bindingId);
+      const field = completeDesignFields(definition, glyphs).find(f => f.source === binding?.source);
+      const value = copy.slides[slideIndex]?.values.find(v => v.fieldId === field?.id)?.value;
+      if (!field || value === undefined) continue;
+      const itemIndex = Array.isArray(value) ? contentListItems(scene.content, field.source).findIndex(item => item.id === element.itemId) : null;
+      if (itemIndex !== null && itemIndex < 0) continue;
+      const current = itemIndex === null ? value : value[itemIndex];
+      if (typeof current !== "string" || !current.trim()) continue;
+      const key = JSON.stringify([slideIndex, field.id, itemIndex]);
+      const target = targets.get(key) ?? { slideIndex, fieldId: field.id, itemIndex, current, reason: [] };
+      target.reason.push(`${finding.rule}: ${finding.evidence}`);
+      targets.set(key, target);
+    }
+  }
+  return Array.from(targets.values());
+}
+
+export function canRepairOverflow(findings: TechnicalFinding[], includeCollision = false) {
+  return findings.some(f => f.rule === "overflow") &&
+    findings.every(f => f.rule === "overflow" || (includeCollision && ["collision", "vertical_collision"].includes(f.rule)));
+}
+
+/** Compare the visible arrangement of every page in a resolution-independent grid. */
+export function proposalLayoutSignature(scenes: ArsenalComposition[]) {
+  const grid = (ratio: number) => Math.round(ratio * 24);
+  return arsenalHash(scenes.map(scene => {
+    const { width, height } = scene.artboard;
+    return scene.elements.flatMap(element => {
+      if (element.opacity === 0 || (element.kind === "text" && !element.text.trim())) return [];
+      const world = arsenalWorldGeometry(element, scene.groups);
+      const w = element.width * world.scale / width;
+      const h = element.height * world.scale / height;
+      if (element.kind !== "text" && (w * h < .012 || (w >= .95 && h >= .95))) return [];
+      // Text content, palette, asset IDs and native layer IDs cannot make a new layout.
+      return [JSON.stringify([element.kind, grid(world.x / width), grid(world.y / height), grid(w), grid(h),
+        Math.round(world.rotation / 15), ...(element.kind === "text" ? [element.align] : [])])];
+    }).sort();
+  }));
 }
 
 export function formatHumanTextCapacityGuidance(
@@ -848,6 +1052,9 @@ export async function executeProposalWorkflow(
       return kind === "copy_recovery" ? relative === kind : relative.startsWith(kind);
     });
   };
+  const canRunFinalFit = () =>
+    !priorRecoveryKeys.has("previous_attempt:copy_final_fit") &&
+    !priorRecoveryKeys.has("previous_attempt:copy_final_fit_residual");
   const spendRecovery = (key: string) => {
     recoveryUsed = true;
     priorRecoveryKeys.add(key);
@@ -875,7 +1082,9 @@ export async function executeProposalWorkflow(
       for (const key of await deps.recoveryOperationKeys(proposalId))
         priorRecoveryKeys.add(key);
     if (deps.reviewRepairOperationKeys) for (const key of await deps.reviewRepairOperationKeys(proposalId)) deps.reviewRepairBudget!.add(key);
-    recoveryUsed = priorRecoveryKeys.size > 0;
+    recoveryUsed = Array.from(priorRecoveryKeys).some(
+      key => !key.endsWith("copy_final_fit") && !key.endsWith("copy_final_fit_residual")
+    );
     if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
       const pinnedConfig = assertPinnedReviewConfig(input.reviewExecutionConfig);
       if(pinnedConfig.policyVersion !== input.reviewPolicyVersion) throw new GenerationFailureError("preparation_contract_incompatible","copy");
@@ -948,9 +1157,14 @@ export async function executeProposalWorkflow(
     const adaptiveTextFit = input.generationConfig?.layoutFitPolicy === "adaptive_v2";
     const allowSubpixelTextOverflow = adaptiveTextFit || input.generationConfig?.layoutFitPolicy === "subpixel_v1";
     const textFlexibilityVersion = input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.textFlexibilityVersion : undefined;
+    const guardTextSpacing = Boolean(input.generationIntent?.designRequirements);
+    const comparisons = bodyComparisons(input, definitions);
+    const reflowFragmentArrays = guardTextSpacing && input.generationIntent?.adaptation !== "literal" &&
+      input.executionBrief?.interventionLevel !== "visual_only";
     const localContrast = input.reviewExecutionConfig?.version === 5 && input.reviewExecutionConfig.localContrastPolicyVersion === 1;
     const inspect = (scenes: ArsenalComposition[], final = false) => {
-      const inspected = inspectProposalScenes(scenes, definitions, measureText, allowSubpixelTextOverflow, adaptiveTextFit, final && localContrast, textFlexibilityVersion);
+      const inspected = inspectProposalScenes(scenes, definitions, measureText, allowSubpixelTextOverflow, adaptiveTextFit, (final && localContrast) || Boolean(extractedPalette(input.projectSnapshot)),
+        textFlexibilityVersion, input.generationConfig?.textRecoveryVersion === 1, guardTextSpacing, comparisons);
       if (getGenerationTrace()) recordGenerationEvent({
         stage: "scene_inspection", status: "completed", detail: final ? "final" : "preflight",
         data: { slot, proposalId, inspectedSlides: inspected.slides.map(({ composition, findings, diagnostics }, index) => ({
@@ -991,7 +1205,7 @@ export async function executeProposalWorkflow(
       completeDesignFields(definition, nativeGlyphProjectionFor(input))
     );
     const copyScenes = (candidate: CopyResponse) => definitions.map((definition, index) =>
-      instantiateCompleteDesign({ nativeGlyphProjection: nativeGlyphProjectionFor(input), definition, values: candidate.slides[index].values, mediaPrompts: candidate.slides[index].mediaPrompts, runId, slot, slide: index, planHash: arsenalHash({ prompt: input.prompt, slot, slide: index, defId: definition.id }), experimental: input.experimental ?? true }));
+      instantiateCompleteDesign({ projectPalette: extractedPalette(input.projectSnapshot), nativeGlyphProjection: nativeGlyphProjectionFor(input), definition, values: candidate.slides[index].values, mediaPrompts: candidate.slides[index].mediaPrompts, runId, slot, slide: index, planHash: arsenalHash({ prompt: input.prompt, slot, slide: index, defId: definition.id }), experimental: input.experimental ?? true }));
     const fitsTargetedAlternative = (candidate: CopyResponse, target: TargetedCopyRepairTarget, context?: TargetedCopyRepairFitContext) => {
       if (target.fieldId.startsWith("$")) return true;
       const checked = inspect(copyScenes(candidate));
@@ -1040,6 +1254,12 @@ export async function executeProposalWorkflow(
     const carouselCaption = input.carouselCaptionPolicy === 1 &&
       definitions.length > 1 && input.generationIntent?.adaptation !== "literal" &&
       (!input.executionBrief || input.executionBrief.interventionLevel === "optimize_structure");
+    const designReading = editorialDesignReading(input);
+    const designReadingNote = designReading
+      ? [`Leitura escolhida para a composição:\n${JSON.stringify(designReading)}`, editorialDesignWritingInstruction]
+      : [];
+    const legacyApproach = input.narrativePlan?.editorialDesign ? undefined : input.editorialApproach;
+    const fieldAssignments = definitions.map((definition, index) => editorialFieldAssignments(input, index, definition.id));
     const fieldSchemaNotes = definitions.map((definition, index) => ({
       slide: index,
       ...((input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? {artboard:definition.fragment.artboard,authoredGroups:definition.fragment.groups} : {}),
@@ -1160,12 +1380,14 @@ export async function executeProposalWorkflow(
           ? input.narrativePlan?.pages.find(page => page.slideIndex === index)
               ?.assignments.find(assignment => assignment.fieldId === field.id)?.itemCount
           : undefined;
+        const writingPurpose = fieldAssignments[index]?.find(assignment => assignment.fieldId === field.id)?.instruction;
         return {
           id: field.id,
           role: field.role,
           kind: field.kind,
           required: field.required,
           cardinality: field.cardinality,
+          ...(writingPurpose ? { writingPurpose } : {}),
           ...(plannedItemCount != null ? { plannedItemCount } : {}),
           ...(usesAffirmativeContext(input) ? {textContract: field.kind === "list" ? "native_list: array de itens; prefixos e distribuição seguem os bindings" : fragments.length ? "word_partition: value é uma única string canônica; o motor divide as palavras entre caixas. Preserve a frase contínua e as quebras autoradas no texto, sem converter os fragmentos em array" : "continuous_text: valor inteiro na caixa; quebras autoradas consomem linhas e seguem o orçamento físico", authoredLines: targets.map(t => ({targetId:t.id, maxLines:t.maxLines, height:t.height})), optionalEmpty:!field.required} : {}),
           bindings: definition.fragment.bindings
@@ -1205,7 +1427,11 @@ export async function executeProposalWorkflow(
     const capacityGuidance = formatHumanTextCapacityGuidance(definitions, fieldSchemaNotes, capabilityPolicy);
     const userCopyPrompt = compactPolicy ? compactCopyPrompt(input, definitions) : affirmative ? [
       `Contexto editorial congelado (projeto, playbook e pedido):\n${JSON.stringify(input.editorialContext ?? editorialContextV7(input, 6))}`,
-      (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? `Abordagem editorial da proposta ${slot + 1}: ${input.editorialApproach ?? "Preserve a distribuição literal e as escolhas expressas da peça."}` : `Direção da proposta ${slot + 1}: ${input.selectionReason ?? "composição compatível"}. Desenvolva uma abordagem própria a partir desta direção.`,
+      ...(designReading ? designReadingNote : [
+        (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)
+          ? `Abordagem editorial da proposta ${slot + 1}: ${legacyApproach ?? "Preserve a distribuição literal e as escolhas expressas da peça."}`
+          : `Direção da proposta ${slot + 1}: ${input.selectionReason ?? "composição compatível"}. Desenvolva uma abordagem própria a partir desta direção.`,
+      ]),
       ...(input.narrativePlan ? [`Plano narrativo e visual congelado (execute as atribuições de conteúdo por campo):\n${JSON.stringify({ intent: input.generationIntent, plan: input.narrativePlan })}`, "Preserve a superfície e a quantidade de itens pedidos. O plano orienta a redação; IDs e justificativas não são fontes de fatos."] : []),
       ...(editorialReadingPrompt ? [editorialReadingPrompt] : []),
       capacityGuidance,
@@ -1224,6 +1450,7 @@ export async function executeProposalWorkflow(
       `Pedido textual complementar:\n${input.prompt}`,
       `Grafias canônicas protegidas (não separar, abreviar ou inserir espaços dentro dos nomes): ${JSON.stringify(protectedEditorialEntities(input))}`,
       `Direção selecionada para esta proposta (${slot + 1}): ${input.selectionReason ?? "composição compatível com o pedido"}. Essa justificativa orienta a direção; não é fonte de fatos sobre o produto.`,
+      ...designReadingNote,
       capacityGuidance,
       `Composições nativas, capacidade, cardinalidade e alvos reais:\n${ENV.minifyLegacyPrompts ? JSON.stringify(fieldSchemaNotes) : JSON.stringify(fieldSchemaNotes, null, 2)}`,
       ...(narrativeContract
@@ -1268,6 +1495,10 @@ export async function executeProposalWorkflow(
       execution,
     ].join("\n");
 
+    const writer = proposalWriter(input.generationConfig?.editorialTeam, input.rewriteForRecovery);
+    const writerOptions = writer ? editorialModelOptions(writer) : generationTaskModelCallOptions(input.generationConfig, "copy");
+    // The full GLM receives Kimi's reading through the source contract. Other writers can inspect the originals.
+    const copyImages = compactPolicy && writer !== "z-ai/glm-5.3" ? input.sourceImages : undefined;
     let copyDispatched = false;
     const copyReceiptOptions: Pick<InvokeParams, "structuredValidationOwner" | "durableProposalCopyReceipt" | "disableFallback"> = input.deliveryRecoveryEnabled
       ? { structuredValidationOwner: "caller", durableProposalCopyReceipt: true, disableFallback: true }
@@ -1300,15 +1531,15 @@ export async function executeProposalWorkflow(
               ...copyReceiptOptions,
               maxCompletionTokens: 5000,
               ...(compactPolicy ? { signal: input.signal } : {}),
-              ...generationTaskModelCallOptions(input.generationConfig, "copy"),
+              ...writerOptions,
               response_format: jsonSchemaFormat(
                 compactPolicy ? compactCopyTransportSchema(definitions, nativeGlyphProjectionFor(input)) : freshCopySchema,
                 compactPolicy ? "proposal_copy_compact_v1" : (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "proposal_copy_v3" : narrativeContract ? "proposal_copy_v2" : "proposal_copy_v1"
               ),
               messages: [
                 { role: "system", content: copySystemPrompt },
-                { role: "user", content: compactPolicy && input.sourceImages?.length
-                  ? [{ type: "text", text: userCopyPrompt }, ...input.sourceImages.map(url => ({ type: "image_url" as const, image_url: { url } }))]
+                { role: "user", content: copyImages?.length
+                  ? [{ type: "text", text: userCopyPrompt }, ...copyImages.map(url => ({ type: "image_url" as const, image_url: { url } }))]
                   : userCopyPrompt },
               ],
             });
@@ -1333,15 +1564,15 @@ export async function executeProposalWorkflow(
             ...copyReceiptOptions,
             maxCompletionTokens: 5000,
             ...(compactPolicy ? { signal: input.signal } : {}),
-              ...generationTaskModelCallOptions(input.generationConfig, "copy"),
+              ...writerOptions,
             response_format: jsonSchemaFormat(
               compactPolicy ? compactCopyTransportSchema(definitions, nativeGlyphProjectionFor(input)) : freshCopySchema,
               compactPolicy ? "proposal_copy_compact_v1" : (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "proposal_copy_v3" : narrativeContract ? "proposal_copy_v2" : "proposal_copy_v1"
             ),
             messages: [
               { role: "system", content: copySystemPrompt },
-              { role: "user", content: compactPolicy && input.sourceImages?.length
-                  ? [{ type: "text", text: userCopyPrompt }, ...input.sourceImages.map(url => ({ type: "image_url" as const, image_url: { url } }))]
+              { role: "user", content: copyImages?.length
+                  ? [{ type: "text", text: userCopyPrompt }, ...copyImages.map(url => ({ type: "image_url" as const, image_url: { url } }))]
                   : userCopyPrompt },
             ],
           });
@@ -1350,10 +1581,13 @@ export async function executeProposalWorkflow(
     if (afterCopy) throw afterCopy;
     await deps.checkpoint?.("copy_completed", { operationKey: "copy" });
     const answer = textResult.choices?.[0];
-    const parsed = safeJsonParse(
+    const rawParsed = safeJsonParse(
       extractTextContent(answer?.message?.content),
       null
     );
+    const parsed = compactPolicy
+      ? normalizeCompactCopyPayload(rawParsed, definitions, nativeGlyphProjectionFor(input), reflowFragmentArrays)
+      : rawParsed;
     const parsedObj = parsed && typeof parsed === "object" ? (parsed as Record<string, any>) : null;
     let copy: CopyResponse;
     if (input.deliveryRecoveryEnabled) {
@@ -1364,7 +1598,10 @@ export async function executeProposalWorkflow(
           const sliceSchema = compactPolicy
             ? compactCopyValidationSchema(sliceDefs, nativeGlyphProjectionFor(input))
             : copyResponseSchema(sliceDefs, false, usesAffirmativeContext(input), usesAffirmativeContext(input), nativeGlyphProjectionFor(input));
-          const sliceVal = sliceSchema.safeParse(parsedObj);
+          const sliceParsed = compactPolicy
+            ? normalizeCompactCopyPayload(parsedObj, sliceDefs, nativeGlyphProjectionFor(input), reflowFragmentArrays)
+            : parsedObj;
+          const sliceVal = sliceSchema.safeParse(sliceParsed);
           if (sliceVal.success) {
             definitions.length = parsedObj.slides.length;
             validated = sliceVal;
@@ -1378,7 +1615,25 @@ export async function executeProposalWorkflow(
         }
       }
       if (!validated.success || (answer && "finish_reason" in answer && answer.finish_reason === "length")) {
-        console.error(`[proposal:${proposalId}:copy] Falha de validação da cópia:`, !validated.success ? validated.error?.issues : "finish_reason=length");
+        const validationIssues = !validated.success
+          ? validated.error.issues.slice(0, 12).map((issue) => ({
+              path: issue.path.join("."),
+              code: issue.code,
+              message: issue.message,
+            }))
+          : [{ path: "finish_reason", code: "length", message: "finish_reason=length" }];
+        console.error(`[proposal:${proposalId}:copy] Falha de validação da cópia:`, validationIssues);
+        diagnostics.push({
+          code: "copy_response_invalid_detail",
+          target: "proposal",
+          evidence: JSON.stringify(validationIssues),
+        });
+        recordGenerationEvent({
+          stage: "proposal_copy_validation_failed",
+          status: "failed",
+          detail: "copy_response_invalid",
+          data: { proposalId, attemptId: deps.attemptId ?? proposalId, issues: validationIssues },
+        });
         throw new GenerationFailureError("copy_response_invalid", "copy", true);
       }
       copy = validated.data as CopyResponse;
@@ -1407,6 +1662,15 @@ export async function executeProposalWorkflow(
     const normalizedHandles = normalizeCopyProfileHandles(copy, input);
     if (arsenalHash(normalizedHandles) !== arsenalHash(copy)) recordGenerationEvent({stage:"copy_profile_handle_normalization",status:"completed",detail:"editorial_placeholder",data:{paidEffect:false,proposalId}});
     copy = normalizedHandles;
+    separateComparisonCopy(copy, comparisons);
+    const fixedCta = requiredCtaField(input);
+    if (fixedCta) {
+      const value = copy.slides[fixedCta.slideIndex]?.values.find(row => row.fieldId === fixedCta.fieldId);
+      const fallback = typeof value?.value === "string" && usesArtworkBriefCopy(input) &&
+        !closingActionMatches(value.value, fixedCta.quote) ? saveGuideCta(fixedCta.quote) : undefined;
+      const text = fixedCta.text ?? fallback;
+      if (value && text) value.value = text;
+    }
     const constraintIssues = [
       ...checkBriefConstraints(copy, input),
       ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? [] : validateEditorialPlan(copy, input)),
@@ -1422,42 +1686,24 @@ export async function executeProposalWorkflow(
     const preference = studioPreferencesSchema.parse(
       input.visualPreference ?? defaultStudioPreferences
     );
-    let compositions: ArsenalComposition[] = definitions.map(
-      (definition, index) =>
-        instantiateCompleteDesign({ nativeGlyphProjection: nativeGlyphProjectionFor(input),
-          definition,
-          values: copy.slides[index].values,
-          mediaPrompts: copy.slides[index].mediaPrompts,
-          runId,
-          slot,
-          slide: index,
-          planHash: arsenalHash({
-            prompt: input.prompt,
-            slot,
-            slide: index,
-            defId: definition.id,
-          }),
-          experimental: input.experimental ?? true,
-        })
-    );
-
-    let preflight = inspect(compositions);
-    // Raster slots are not fulfilled yet. Their placeholder cannot prove a
-    // contrast defect; the final inspection evaluates the completed surface.
-    let preflightFindings = preflight.findings.filter(
-      finding => finding.rule !== "contrast"
-    );
-
+    const preflightCopy = (original: CopyResponse) =>
+      fitAuthoredLabels(original, input, definitions, copyScenes, inspect);
+    const initialFit = preflightCopy(copy);
+    copy = initialFit.candidate;
+    let compositions = initialFit.scenes;
+    let preflight = initialFit.checked;
+    let preflightFindings = preflight.findings.filter(f => f.rule !== "contrast");
     if (preflightFindings.length) {
-      const isFixable = preflightFindings.every(f =>
+      const isFixable = (guardTextSpacing && canRepairOverflow(preflightFindings, true)) || preflightFindings.every(f =>
         ["overflow", "collision", "required_text_fragment"].includes(f.rule)
       );
       if (
         isFixable &&
         (!input.deferCopyRepair || usesVisualTextRepair(input)) && canRecover("copy_recovery") &&
-        input.executionBrief?.interventionLevel !== "visual_only"
+        input.executionBrief?.interventionLevel !== "visual_only" &&
+        ((!input.finalFit && input.generationConfig?.trioDeliveryVersion !== 1) || input.generationIntent?.adaptation !== "literal")
       ) {
-        spendRecovery("copy_recovery");
+        const hadPriorCopyRecovery = priorRecoveryKeys.has("copy_recovery");
         await deps.checkpoint?.("recovering", {
           reason: "authored_text_contract_recovery",
           findings: preflightFindings,
@@ -1468,7 +1714,7 @@ export async function executeProposalWorkflow(
           return preflightFindings.some(finding => {
             if (!finding.target.startsWith(prefix)) return false;
             const target = finding.target.slice(prefix.length);
-            const ids = (compactPolicy || input.recoveryCopy) && finding.rule === "collision" ? target.split("/") : [target];
+            const ids = compactPolicy || input.recoveryCopy ? target.split("/") : [target];
             return ids.some(id => id === fieldId || targetIds.includes(id));
           });
         };
@@ -1480,9 +1726,11 @@ export async function executeProposalWorkflow(
               ...fieldBindings.flatMap(binding => binding.targetIds),
               ...(affirmative ? preflight.slides[slideIndex].composition.elements.filter(element => fieldBindings.some(binding => binding.id === element.bindingId)).map(element => element.id) : []),
             ]));
+            const writingPurpose = fieldAssignments[slideIndex]?.find(assignment => assignment.fieldId === field.id)?.instruction;
             return affects(slideIndex, field.id, targetIds)
               ? [{ slideIndex, pageNumber: slideIndex + 1, fieldId: field.id,
                   value: slide.values.find(value => value.fieldId === field.id)?.value,
+                  ...(writingPurpose ? { writingPurpose } : {}),
                   targetIds }]
               : [];
           })
@@ -1527,6 +1775,7 @@ export async function executeProposalWorkflow(
         })) : undefined;
         const recoveryPrompt = [
           ...(editorialReadingPrompt ? [editorialReadingPrompt] : []),
+          ...designReadingNote,
           ...(affirmative ? [`CONTEXTO EDITORIAL EFETIVO: ${JSON.stringify(input.editorialContext ?? editorialContextV7(input,6))}`, `FRAGMENTOS RESOLVIDOS E MEDIDOS: ${JSON.stringify(resolvedFragments)}`, "Repare exclusivamente os campos autorizados, considerando o fragmento efetivamente problemático e seu orçamento de linhas/altura. Preserve os demais textos, a mídia e a geometria. Em partição por palavras componha a frase canônica conforme as caixas; em listas preserve os itens e a estrutura nativa. Conteúdo literal permanece protegido."] : []),
           "REVISÃO TÉCNICA OBRIGATÓRIA DO CONTRATO DE TEXTO AUTORADO.",
           "A inspeção constatou overflow, colisão ou fragmento declarado essencial sem texto nas seguintes caixas autoradas:",
@@ -1609,6 +1858,16 @@ export async function executeProposalWorkflow(
               )
             : recoveryWork());
 
+          if ((recoveryResult as any)?.__providerRejection) {
+            diagnostics.push({
+              code: "copy_recovery_provider_rejected",
+              target: "proposal",
+              evidence: JSON.stringify((recoveryResult as any).__providerRejection),
+            });
+            throw new Error("copy_recovery_provider_rejected");
+          }
+          if (!hadPriorCopyRecovery) spendRecovery("copy_recovery");
+
           const recoveredParsed = safeJsonParse(
             extractTextContent(recoveryResult.choices?.[0]?.message?.content),
             null
@@ -1656,39 +1915,20 @@ export async function executeProposalWorkflow(
             ...checkBriefConstraints(surgicalCopy, input),
             ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? [] : validateEditorialPlan(surgicalCopy, input)),
           ];
-          if (recoveredConstraints.length === 0) {
-            // A measured overflow may still fit another design. Preserve the
-            // agent's corrected copy for local reserve checks, without another
-            // writing call. Old admissions continue to reuse their original copy.
+          if (recoveredConstraints.length === 0 && (!guardTextSpacing || preservesArtworkRequirements(copy, surgicalCopy, input))) {
+            const recoveredFit = preflightCopy(surgicalCopy);
             if (usesVisualTextRepair(input) && deps.executeOperation) await deps.executeOperation({
               operationKey: "copy_fit_candidate", stage: "recovery", deadlineMs: input.deadlineMs, signal: input.signal,
-            }, async () => ({ version: 1, copy: surgicalCopy }));
-            const recoveredCompositions = definitions.map((definition, index) =>
-              instantiateCompleteDesign({ nativeGlyphProjection: nativeGlyphProjectionFor(input),
-                definition,
-                values: surgicalCopy.slides[index].values,
-                mediaPrompts: surgicalCopy.slides[index].mediaPrompts,
-                runId,
-                slot,
-                slide: index,
-                planHash: arsenalHash({
-                  prompt: input.prompt,
-                  slot,
-                  slide: index,
-                  defId: definition.id,
-                }),
-                experimental: input.experimental ?? true,
-              })
-            );
-            const recheck = inspect(recoveredCompositions);
+            }, async () => ({ version: 1, copy: recoveredFit.candidate }));
+            const recheck = recoveredFit.checked;
             const recheckFindings = recheck.findings.filter(
               f => f.rule !== "contrast"
             );
             if (recheckFindings.length === 0) {
-              compositions = recoveredCompositions;
+              compositions = recoveredFit.scenes;
               preflight = recheck;
               preflightFindings = recheckFindings;
-              copy = surgicalCopy;
+              copy = recoveredFit.candidate;
               await deps.checkpoint?.("preflight_recovery_succeeded", {
                 slideCount: compositions.length,
               });
@@ -1696,11 +1936,135 @@ export async function executeProposalWorkflow(
               await deps.checkpoint?.("preflight_recovery_failed", {
                 findings: recheckFindings.length,
               });
-              preflightFindings = recheckFindings;
+              // Keep the evidence paired with the exact copy it measured.
+              // Only carry a partial improvement into the final targeted call.
+              if (input.finalFit && recheckFindings.length <= preflightFindings.length &&
+                  recheckFindings.every(f => preflightFindings.some(old => old.rule === f.rule && old.target === f.target)) &&
+                  preservesArtworkRequirements(copy, recoveredFit.candidate, input)) {
+                copy = recoveredFit.candidate;
+                compositions = recoveredFit.scenes;
+                preflight = recheck;
+                preflightFindings = recheckFindings;
+              } else if (!input.finalFit) {
+                preflightFindings = recheckFindings;
+              }
             }
           }
         } catch {
           // If recovery fails or throws, preflightFindings remains the original fatal defect
+        }
+      }
+
+      const trioDelivery = input.generationConfig?.trioDeliveryVersion === 1;
+      const finalFitOperation = deps.finalFitOperation;
+      if (input.finalFit && input.generationConfig?.finalFitRepairVersion === 1 && compactPolicy &&
+          finalFitOperation && canRunFinalFit() && canRepairOverflow(preflightFindings, trioDelivery) &&
+          input.executionBrief?.interventionLevel !== "visual_only" && input.generationIntent?.adaptation !== "literal" &&
+          !abortError(input) && !await deps.hasUncertainEffect?.()) {
+        const originalCopy = copy;
+        const attemptId = deps.attemptId ?? proposalId;
+        const scoreTargetExcess = (candidateCopy: CopyResponse, target: TargetedCopyRepairTarget) => {
+          if (!preservesArtworkRequirements(originalCopy, candidateCopy, input) || checkBriefConstraints(candidateCopy, input).length) {
+            return Infinity;
+          }
+          const scene = copyScenes(candidateCopy)[target.slideIndex];
+          const definition = definitions[target.slideIndex];
+          const field = completeDesignFields(definition, nativeGlyphProjectionFor(input)).find(f => f.id === target.fieldId);
+          if (!scene || !field) return Infinity;
+          const bindingIds = definition.fragment.bindings.filter(b => b.source === field.source).map(b => b.id);
+          const elements = scene.elements.filter(e => e.kind === "text" && bindingIds.includes(e.bindingId ?? ""));
+          let maxExcess = 0;
+          for (const element of elements) {
+            const box = { ...element, ...arsenalTextLayoutBox(scene, element) };
+            const measured = measureArsenalElement(box, measureText);
+            const widthRatio = Math.max(0, ...measured.lines.map(l => l.width / Math.max(1, box.width)));
+            const heightRatio = measured.height / Math.max(1, box.height);
+            maxExcess = Math.max(maxExcess, widthRatio, heightRatio);
+          }
+          return maxExcess;
+        };
+        for (const pass of trioDelivery ? [1, 2] : [1]) {
+          if (!canRepairOverflow(preflightFindings, trioDelivery) || abortError(input)) break;
+          // Leave time for the render and mandatory review after the second call.
+          const deadlineMs = pass === 2 && input.deadlineMs !== undefined ? input.deadlineMs - 25_000 : input.deadlineMs;
+          if (pass === 2 && (deadlineMs ?? Infinity) - Date.now() < 15_000) break;
+          const operationKey = pass === 1 ? "copy_final_fit" : "copy_final_fit_residual";
+          const scenes = preflight.slides.map(slide => slide.composition);
+          const targets = measuredOverflowTargets(
+            preflightFindings.filter(f => f.rule === "overflow" || (trioDelivery && ["collision", "vertical_collision"].includes(f.rule))),
+            scenes, definitions, copy, nativeGlyphProjectionFor(input));
+          if (!targets.length) break;
+          const enriched = enrichTargetedCopyRepairTargets(input, definitions, copy, targets, scenes, measureText, 2);
+          const messages: InvokeParams["messages"] = [
+            { role: "system", content: trioDelivery ? [
+              repairSystemPrompt,
+              "Em fit.boxes, maxLines é o limite da caixa na menor fonte legível. Reescreva para reduzir currentLines. Cada fragmento recebe só parte do valor canônico. Entregue uma opção mínima para cada caixa apertada.",
+              ...(pass === 2 ? ["Este passe recebe só o resíduo. Os campos já ajustados estão congelados. Encurte além das opções que mantiveram o excesso."] : []),
+            ].join("\n") : repairSystemPrompt },
+            { role: "user", content: targetedCopyRepairPrompt(input, definitions, enriched, 2) },
+          ];
+          const inputHash = arsenalHash([attemptId, definitions.map(d => d.hash), copy, messages]);
+          const fitStartedAt = Date.now();
+          let outcome = "call_failed";
+          let remainingFindings = preflightFindings.length;
+          try {
+            const receipt = await finalFitOperation({
+              operationKey, stage: "recovery", deadlineMs, signal: input.signal,
+            }, async () => {
+              const started = Date.now();
+              const response = await deps.generateText({
+                ...copyReceiptOptions, ...generationTaskModelCallOptions(input.generationConfig, "repair"),
+                traceLabel: "proposal_" + proposalId + "_" + operationKey, taskRoute: definitions.length > 1 ? "carousel_generation" : "static_generation",
+                signal: input.signal, deadlineMs, maxTransportAttempts: 1, disableFallback: true,
+                disableStructuredRepair: true, maxCompletionTokens: TARGETED_REPAIR_MAX_TOKENS,
+                response_format: jsonSchemaFormat(targetedCopyRepairSchema(enriched, definitions, 2, nativeGlyphProjectionFor(input)), "proposal_final_fit_v1"),
+                messages,
+              });
+              return { ...response, finalFit: { inputHash, attemptId, targetCount: targets.length, durationMs: Date.now() - started } };
+            });
+            outcome = "invalid_patch";
+            if (receipt.finalFit.inputHash !== inputHash || receipt.choices[0]?.finish_reason === "length") break;
+            const patched = applyTargetedCopyRepair(copy, enriched,
+              safeJsonParse(extractTextContent(receipt.choices[0]?.message?.content), null),
+              definitions, fitsTargetedAlternative, 2, profileHandleValueNormalizer(input), nativeGlyphProjectionFor(input),
+              false, trioDelivery, trioDelivery ? scoreTargetExcess : undefined);
+            outcome = "brief_constraints_failed";
+            if (!preservesArtworkRequirements(originalCopy, patched, input) || checkBriefConstraints(patched, input).length) break;
+
+            const patchedScenes = copyScenes(patched);
+            const checked = inspect(patchedScenes);
+            const defects = checked.findings.filter(f => f.rule !== "contrast");
+            remainingFindings = defects.length;
+            outcome = defects.length ? "still_does_not_fit" : "fit_passed";
+            const strictImprovement = trioDelivery && arsenalHash(patched) !== arsenalHash(copy) &&
+              defects.every(f => preflightFindings.some(old => old.rule === f.rule && old.target === f.target));
+            if (!defects.length || (trioDelivery && defects.length < preflightFindings.length &&
+                defects.every(f => preflightFindings.some(old => old.rule === f.rule && old.target === f.target))) ||
+                strictImprovement) {
+              copy = patched;
+              compositions = patchedScenes;
+              preflight = checked;
+              preflightFindings = defects;
+            }
+            if (!defects.length) {
+              diagnostics.push({ code: "final_text_fit_passed", target: attemptId,
+                evidence: JSON.stringify({ targetCount: targets.length, ...(trioDelivery ? {pass} : {}) }) });
+              break;
+            }
+          } catch (error) {
+            const aborted = abortError(input);
+            if (aborted) throw aborted;
+            if (await deps.hasUncertainEffect?.()) throw error;
+            break;
+          } finally {
+            recordGenerationEvent({ stage: "proposal_checkpoint", status: outcome === "fit_passed" ? "completed" : "rejected",
+              detail: "final_overflow_repair", data: { slot, proposalId, attemptId, outcome, targetCount: targets.length, remainingFindings,
+                elapsedMs: Date.now() - fitStartedAt, ...(trioDelivery ? {pass} : {}) } });
+          }
+        }
+        if (trioDelivery && preflightFindings.length && copy !== originalCopy && deps.executeOperation) {
+          await deps.executeOperation({ operationKey: "copy_fit_residue:candidate", stage: "recovery", deadlineMs: input.deadlineMs, signal: input.signal },
+            async () => ({ version: 1, copy }));
         }
       }
 
@@ -1719,6 +2083,9 @@ export async function executeProposalWorkflow(
           completedAt: Date.now(),
         });
       }
+    }
+    if (deps.claimLayout && !deps.claimLayout(proposalLayoutSignature(preflight.slides.map(slide => slide.composition)))) {
+      throw new GenerationFailureError("proposal_visual_duplicate", "copy");
     }
     await deps.checkpoint?.("preflight_passed", {
       slideCount: compositions.length,
@@ -2024,7 +2391,7 @@ export async function executeProposalWorkflow(
     reviews.push(initialReview);
     const observeReview = async (review: ProposalReviewRecord) => {
       const data = structuredClone({
-        version: 1, requestId: input.requestId, proposalId, slot, revision,
+        version: 1, requestId: input.requestId, proposalId, attemptId: deps.attemptId ?? proposalId, slot, revision,
         candidateId: input.narrativePlan?.candidateId ?? null,
         candidateHash: arsenalHash({ copy, compositions: finalInspection.slides.map(slide => slide.composition) }),
         componentIds: definitions.map(definition => definition.id),
@@ -2039,10 +2406,11 @@ export async function executeProposalWorkflow(
       }
     };
     await observeReview(initialReview);
+    const canRepairReviewFinding = (finding: ProposalReviewRecord["findings"][number]) =>
+      isBlockingReviewFinding(finding) && (!guardTextSpacing || !isTextSpacingReviewFinding(finding));
     if (
-      !ENV.reviewLenientDelivery &&
       initialReview.status === "correction_required" &&
-      ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10))) || initialReview.findings.some(f=>isBlockingReviewFinding(f)&&f.fieldId!==null)) &&
+      ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10))) || initialReview.findings.some(f => canRepairReviewFinding(f) && f.fieldId !== null)) &&
       canRecover(`review_correction:${initialReview.inputHash}`)
     ) {
       spendRecovery(`review_correction:${initialReview.inputHash}`);
@@ -2051,7 +2419,7 @@ export async function executeProposalWorkflow(
         inputHash: initialReview.inputHash,
       });
       const repairTargetsFor = (corrected: CopyResponse) => {
-        const targets = editorialRepairTargets(corrected, initialReview);
+        const targets = editorialRepairTargets(corrected, initialReview, guardTextSpacing);
         if (targetedRepairVersion === 1 || !targets.length) return targets;
         const inspected = inspect(copyScenes(corrected).map((scene, index) => ({ ...scene, media: compositions[index].media })));
         return enrichTargetedCopyRepairTargets(input, definitions, corrected, targets,
@@ -2063,7 +2431,7 @@ export async function executeProposalWorkflow(
         const numericCorrected = applyReviewCorrections(copy, initialReview);
         const editorialFindings = initialReview.findings.filter(
           f =>
-            isBlockingReviewFinding(f) && (f.authority === "source_grounded" ||
+            canRepairReviewFinding(f) && (f.authority === "source_grounded" ||
             f.authority === "contract_grounded")
         );
         if (!editorialFindings.length) {
@@ -2078,16 +2446,18 @@ export async function executeProposalWorkflow(
         if (compactPolicy) {
           const targets = repairTargetsFor(numericCorrected);
           if (!targets.length) return numericCorrected;
+          const factualModel = input.generationConfig?.editorialTeam?.factualCorrection;
+          const factualCheck = factualModel && editorialFindings.some(f => f.category === "factual_contradiction");
           const response = await deps.generateText({
             traceLabel: `proposal_${proposalId}_editorial_recovery`,
             taskRoute: definitions.length > 1 ? "carousel_generation" : "static_generation",
             signal: input.signal, deadlineMs: input.deadlineMs,
             ...copyReceiptOptions,
-            ...generationTaskModelCallOptions(input.generationConfig, "repair"),
+            ...(factualCheck ? { ...editorialModelOptions(factualModel), transportTimeoutMs: 60_000 } : generationTaskModelCallOptions(input.generationConfig, "repair")),
             maxCompletionTokens: TARGETED_REPAIR_MAX_TOKENS,
             response_format: jsonSchemaFormat(targetedCopyRepairSchema(targets, definitions, targetedRepairVersion, nativeGlyphProjectionFor(input)), `proposal_targeted_editorial_repair_v${targetedRepairVersion}`),
             messages: [
-              { role: "system", content: repairSystemPrompt },
+              { role: "system", content: factualCheck ? repairSystemPrompt + "\nConfira cada divergência factual na fonte citada. Preserve o valor atual se exprimir o mesmo fato, unidade, período e entidade. Corrija somente divergências sustentadas pela fonte." : repairSystemPrompt },
               { role: "user", content: targetedCopyRepairPrompt(input, definitions, targets, targetedRepairVersion) },
             ],
           });
@@ -2188,10 +2558,10 @@ export async function executeProposalWorkflow(
         ...checkBriefConstraints(corrected, input),
         ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? [] : validateEditorialPlan(corrected, input)),
       ];
-      if (constraintIssues.length)
+      if (constraintIssues.length && !usesArtworkBriefCopy(input))
         throw new Error("proposal_review_correction_violates_brief");
-      compositions = definitions.map((definition, index) => ({
-        ...instantiateCompleteDesign({ nativeGlyphProjection: nativeGlyphProjectionFor(input),
+      const correctedCompositions = constraintIssues.length ? [] : definitions.map((definition, index) => ({
+        ...instantiateCompleteDesign({ projectPalette: extractedPalette(input.projectSnapshot), nativeGlyphProjection: nativeGlyphProjectionFor(input),
           definition,
           values: corrected.slides[index].values,
           mediaPrompts: copy.slides[index].mediaPrompts,
@@ -2208,42 +2578,50 @@ export async function executeProposalWorkflow(
         }),
         media: compositions[index].media,
       }));
-      finalInspection = inspect(compositions, true);
-      if (localContrast) compositions = finalInspection.slides.map(slide => slide.composition);
-      if (finalInspection.findings.length) {
-        return checkedDelivery({
-          ...base,
-          status: "failed",
-          findings: finalInspection.findings,
-          diagnostics: finalInspection.diagnostics,
-          errorReason:
-            "Correção localizada não passou pela conferência técnica.",
-          ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? {failure:{code:"artwork_unusable" as const, stage:"review" as const, retryable:false}} : {}),
-          completedAt: Date.now(),
+      const repairedInspection = constraintIssues.length ? null : inspect(correctedCompositions, true);
+      if (!repairedInspection || repairedInspection.findings.length) {
+        recordGenerationEvent({
+          stage: "review_correction",
+          status: "rejected",
+          detail: repairedInspection ? "technical_rollback" : "brief_rollback",
+          data: {
+            proposalId, slot, previousFindings: finalInspection.findings,
+            discardedFindings: repairedInspection?.findings ?? [],
+            ...(constraintIssues.length ? { discardedConstraints: constraintIssues } : {}),
+          },
         });
+        diagnostics.push({
+          code: "review_correction_rolled_back", target: "proposal",
+          evidence: repairedInspection
+            ? repairedInspection.findings.map(finding => `${finding.rule}:${finding.target}`).join(", ")
+            : constraintIssues.join(", "),
+        });
+      } else {
+        finalInspection = repairedInspection;
+        compositions = localContrast ? finalInspection.slides.map(slide => slide.composition) : correctedCompositions;
+        if (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) input = { ...input, previousReviewContext: { previous: initialReview, changedTargets: corrected.slides.flatMap((slide,slideIndex) => slide.values.filter(v => arsenalHash(v.value) !== arsenalHash(copy.slides[slideIndex].values.find(p => p.fieldId === v.fieldId)?.value)).map(v => ({slideIndex,fieldId:v.fieldId}))) } };
+        if((input.reviewPolicyVersion===7 || input.reviewPolicyVersion===10) && input.previousReviewContext) {
+          if(corrected.caption!==copy.caption)input.previousReviewContext.changedTargets.push({slideIndex:0,fieldId:"$caption"});
+          if(arsenalHash(corrected.hashtags)!==arsenalHash(copy.hashtags))input.previousReviewContext.changedTargets.push({slideIndex:0,fieldId:"$hashtags"});
+        }
+        copy = corrected;
+        diagnostics.splice(0, diagnostics.length, ...finalInspection.diagnostics);
+        await deps.checkpoint?.("review_check_started", {
+          round: "recheck",
+          slideCount: compositions.length,
+        });
+        reviews.push(
+          await reviewProposal(
+            input,
+            deps,
+            definitions,
+            finalInspection.slides.map(slide => slide.composition),
+            copy,
+            "recheck"
+          )
+        );
+        await observeReview(reviews.at(-1)!);
       }
-      if (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) input = { ...input, previousReviewContext: { previous: initialReview, changedTargets: corrected.slides.flatMap((slide,slideIndex) => slide.values.filter(v => arsenalHash(v.value) !== arsenalHash(copy.slides[slideIndex].values.find(p => p.fieldId === v.fieldId)?.value)).map(v => ({slideIndex,fieldId:v.fieldId}))) } };
-      if((input.reviewPolicyVersion===7 || input.reviewPolicyVersion===10) && input.previousReviewContext) {
-        if(corrected.caption!==copy.caption)input.previousReviewContext.changedTargets.push({slideIndex:0,fieldId:"$caption"});
-        if(arsenalHash(corrected.hashtags)!==arsenalHash(copy.hashtags))input.previousReviewContext.changedTargets.push({slideIndex:0,fieldId:"$hashtags"});
-      }
-      copy = corrected;
-      diagnostics.splice(0, diagnostics.length, ...finalInspection.diagnostics);
-      await deps.checkpoint?.("review_check_started", {
-        round: "recheck",
-        slideCount: compositions.length,
-      });
-      reviews.push(
-        await reviewProposal(
-          input,
-          deps,
-          definitions,
-          finalInspection.slides.map(slide => slide.composition),
-          copy,
-          "recheck"
-        )
-      );
-      await observeReview(reviews.at(-1)!);
     }
     if ((input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) && reviews.length === 2) {
       const previous = reviews[0], current = reviews[1];
@@ -2405,6 +2783,12 @@ export async function executeProposalWorkflow(
       }
     }
 
+    if (deps.claimLayout) {
+      const signature = proposalLayoutSignature(readySlides.map(slide => slide.composition));
+      if (!deps.claimLayout(signature)) throw new GenerationFailureError("proposal_visual_duplicate", "copy");
+      diagnostics.push({ code: "proposal_layout_signature", target: proposalId, evidence: signature });
+    }
+
     const family = definitions[0].completeDesign!.family;
     const bundle = completeDesignVariationV1Schema.parse({
       schemaVersion: 1,
@@ -2449,9 +2833,10 @@ export async function executeProposalWorkflow(
       ? {code:"content_requirement_unmet" as const,stage:executionStage,retryable:false}
       : failureFromError(failure, executionStage);
     if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
-      const evidence=JSON.stringify({policyVersion:input.reviewPolicyVersion,stage:executionStage,code:publicFailure.code,detailHash:arsenalHash(reason)});
+      const detailHash = arsenalHash(diagnostics.find(d => d.code === "copy_response_invalid_detail")?.evidence ?? reason);
+      const evidence=JSON.stringify({policyVersion:input.reviewPolicyVersion,stage:executionStage,code:publicFailure.code,detailHash});
       diagnostics.push({code:publicFailure.code,target:"proposal",evidence});
-      recordGenerationEvent({stage:"proposal_failure",status:"failed",detail:publicFailure.code,data:{policyVersion:input.reviewPolicyVersion,proposalId,stage:executionStage,detailHash:arsenalHash(reason)}});
+      recordGenerationEvent({stage:"proposal_failure",status:"failed",detail:publicFailure.code,data:{policyVersion:input.reviewPolicyVersion,proposalId,attemptId:deps.attemptId ?? proposalId,stage:executionStage,detailHash}});
     }
     await deps
       .checkpoint?.("proposal_ended", { status, reason })

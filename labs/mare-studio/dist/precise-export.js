@@ -1,8 +1,10 @@
 import {
-  ALL_FORMATS, AudioBufferSink, AudioBufferSource, BlobSource, BufferTarget, CanvasSource, Input,
-  Mp4OutputFormat, Output, getFirstEncodableAudioCodec, getFirstEncodableVideoCodec,
+  ALL_FORMATS, AudioBufferSink, AudioBufferSource, BlobSource, BufferTarget, CanvasSink, CanvasSource, Input,
+  Mp4OutputFormat, WebMOutputFormat, Output, getFirstEncodableAudioCodec, getFirstEncodableVideoCodec,
 } from "./vendor/mediabunny-1.66.4.js";
-import {MediaEngine, readVideoBlob} from "./engine.js";
+import { createHdFrameSource, hdAvcProfile } from "./mp4-frames.js";
+import { chooseAacEncoder } from "./audio-encoder.js";
+import {MediaEngine, readVideoBlob, visualPlacements} from "./engine.js";
 import {durationOf, FPS} from "./montage-model.js";
 import {drawFrame} from "./renderer.js";
 
@@ -48,7 +50,7 @@ async function mixAudio(project, duration, signal) {
   }
   let start = 0;
   for (const clip of project.clips) {
-    if (clip.kind === "video") place(clip.assetId, {start, trim: clip.trim, duration: clip.duration, volume: 1, video: true});
+    if (clip.kind === "video" && clip.volume!==0) place(clip.assetId, {start, trim: clip.trim, duration: clip.duration, volume: clip.volume??1, video: true});
     start += clip.duration;
   }
   for (const track of project.extraTracks || []) {
@@ -83,27 +85,110 @@ async function mixAudio(project, duration, signal) {
   return context ? context.startRendering() : null;
 }
 
-export async function exportPreciseMP4(project, {signal, width, height, onProgress}) {
+// A seeked video element can still paint the previous picture. Select the decoded
+// presentation sample directly and keep separate streams for simultaneous trims.
+async function openPictures(project, frames, signal) {
+  const streams = new Map();
+  const finished = [];
+  const inputs = new Map();
+  for (let frame = 0; frame < frames; frame++) {
+    for (const {key, clip, time} of visualPlacements(project, frame / FPS)) {
+      if (!streams.has(key)) streams.set(key, {assetId: clip.assetId, timestamps: []});
+      streams.get(key).timestamps.push(Math.ceil(time * 1e6) / 1e6);
+    }
+  }
+  async function close() {
+    try {
+      await Promise.all([...streams.values()].map(stream => stream.iterator?.return()));
+    } finally {
+      for (const input of inputs.values()) input.dispose();
+    }
+  }
+  try {
+    for (const stream of streams.values()) {
+      signal.throwIfAborted();
+      if (!inputs.has(stream.assetId)) {
+        const blob = await readVideoBlob(stream.assetId, signal);
+        inputs.set(stream.assetId, new Input({source: new BlobSource(blob), formats: ALL_FORMATS}));
+      }
+      const track = await inputs.get(stream.assetId).getPrimaryVideoTrack();
+      if (!track || !(await track.canDecode())) throw Error("Não foi possível decodificar os quadros desta mídia. Escolha outra opção de exportação.");
+      // Transition handles can extend beyond a trimmed source. Hold its edge picture, as in preview.
+      const lastTime = Math.max(0, await track.computeDuration() - 0.001);
+      stream.timestamps = stream.timestamps.map(time => Math.max(0, Math.min(time, lastTime)));
+      stream.remaining = stream.timestamps.length;
+      stream.iterator = new CanvasSink(track, {alpha: true, poolSize: 1}).canvasesAtTimestamps(stream.timestamps);
+    }
+    return {close, async read(engine, time) {
+      for (const {key, clip} of visualPlacements(project, time)) {
+        signal.throwIfAborted();
+        await engine.prepareMask(clip);
+        const stream = streams.get(key);
+        const {value, done} = await stream.iterator.next();
+        if (done) throw Error("A sequência de quadros terminou antes da montagem.");
+        engine.media.set(key, value?.canvas);
+        if (--stream.remaining === 0) finished.push(key);
+      }
+    }, async releaseFinished(engine) {
+      for (const key of finished) {
+        const stream = streams.get(key);
+        await stream.iterator.return();
+        streams.delete(key);
+        engine.media.delete(key);
+      }
+      finished.length = 0;
+    }};
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
+
+let workerMp4Encoder;
+export function setWorkerMp4Encoder(encoder) {
+  workerMp4Encoder = encoder;
+}
+export async function exportPreciseMP4(project, options) {
+  if (workerMp4Encoder && !(await VideoEncoder.isConfigSupported({
+    codec: hdAvcProfile, width: options.width, height: options.height,
+    bitrate: 8_000_000, framerate: FPS,
+  })).supported) {
+    const intermediate = await encode(project, options, false, true);
+    return workerMp4Encoder(intermediate, options.signal);
+  }
+  return encode(project, options, false);
+}
+export const exportTransparentWebM=(project,options)=>encode(project,options,true);
+async function encode(project, {signal, width, height, onProgress,viewport}, transparent, workerIntermediate = false) {
   if (!globalThis.VideoEncoder) throw Error("A codificação quadro a quadro está indisponível neste navegador. Escolha outra opção de exportação.");
   const bitrate = 8_000_000;
-  const codec = await getFirstEncodableVideoCodec(["avc", "vp9"], {width, height, bitrate, frameRate: FPS});
+  const webm = transparent || workerIntermediate;
+  const fullCodecString = webm ? undefined : hdAvcProfile;
+  const codec = webm
+    ? await getFirstEncodableVideoCodec(["vp9"], {width, height, bitrate, frameRate: FPS})
+    : (await VideoEncoder.isConfigSupported({codec: fullCodecString, width, height, bitrate, framerate: FPS})).supported && "avc";
   if (!codec) throw Error("O navegador não oferece um codificador compatível com este tamanho. Escolha outra opção de exportação.");
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const engine = new MediaEngine(canvas, drawFrame);
+  const render=(canvas,document,time,media)=>drawFrame(canvas,document,time,media,transparent,viewport);
+  const engine = new MediaEngine(canvas, render);
   const target = new BufferTarget();
-  const output = new Output({format: new Mp4OutputFormat({fastStart: "in-memory"}), target});
-  const video = new CanvasSource(canvas, {codec, bitrate});
+  const output = new Output({format: webm?new WebMOutputFormat():new Mp4OutputFormat({fastStart: "in-memory"}), target});
+  const hdFrames = webm ? null : createHdFrameSource(canvas, bitrate);
+  const video = hdFrames?.source ?? new CanvasSource(canvas, {codec, bitrate, alpha:transparent?"keep":"discard"});
   output.addVideoTrack(video, {frameRate: FPS});
+  let pictures;
   try {
-    await engine.prepare(project);
+    await engine.preparePictures(project);
     const duration = durationOf(project);
     const frames = Math.ceil(duration * FPS - 1e-8);
+    pictures = await openPictures(project, frames, signal);
     const mix = await mixAudio(project, duration, signal);
     let audio;
     if (mix) {
-      const audioCodec = await getFirstEncodableAudioCodec(["aac", "opus"], {numberOfChannels: 2, sampleRate, bitrate: 128000});
+      const config = {numberOfChannels: 2, sampleRate, bitrate: 128000};
+      const audioCodec = webm ? await getFirstEncodableAudioCodec(["opus"], config) : await chooseAacEncoder(config);
       if (!audioCodec) throw Error("O navegador não consegue codificar o áudio do projeto. Escolha outra opção de exportação.");
       audio = new AudioBufferSource({codec: audioCodec, bitrate: 128000});
       output.addAudioTrack(audio);
@@ -117,16 +202,20 @@ export async function exportPreciseMP4(project, {signal, width, height, onProgre
     for (let frame = 0; frame < frames; frame++) {
       signal.throwIfAborted();
       const time = frame / FPS;
-      await engine.seekVisuals(project, time);
-      drawFrame(canvas, project, time, engine.media);
-      await video.add(time, 1 / FPS);
-      onProgress?.((frame + 1) / frames);
+      await pictures.read(engine, time);
+      render(canvas, project, time, engine.media);
+      if (hdFrames) await hdFrames.add(time, 1 / FPS);
+      else await video.add(time, 1 / FPS);
+      await pictures.releaseFinished(engine);
+      const progress=onProgress?.((frame + 1) / frames);
+      if(progress instanceof Promise)await progress;
     }
     signal.throwIfAborted();
     video.close();
     await output.finalize();
     return new Blob([target.buffer], {type: await output.getMimeType()});
   } finally {
+    await pictures?.close();
     engine.dispose();
     if (output.state === "started") await output.cancel();
   }

@@ -181,7 +181,7 @@ export default function PrivacySettingsPage() {
 
             {/* Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-4 mb-6 w-full glass">
+              <TabsList className="grid h-auto w-full grid-cols-2 mb-6 glass sm:grid-cols-4 [&>button]:min-h-11">
                 <TabsTrigger value="overview" className="data-[state=active]:text-thermal-orange">
                   <Eye className="w-4 h-4 mr-2" />
                   Visão Geral

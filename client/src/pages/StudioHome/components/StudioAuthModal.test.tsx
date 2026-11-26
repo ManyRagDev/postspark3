@@ -46,7 +46,7 @@ async function submit() {
       ["E-mail", "acervo82@postspark.test"],
       ["Senha", "local-test-password"],
     ]) {
-      const input = element.querySelector<HTMLInputElement>(
+      const input = document.body.querySelector<HTMLInputElement>(
         `input[aria-label="${label}"]`
       )!;
       Object.getOwnPropertyDescriptor(
@@ -57,7 +57,7 @@ async function submit() {
     }
   });
   await act(async () => {
-    element
+    document.body
       .querySelector("form")!
       .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
@@ -70,8 +70,8 @@ it("uses password auth and completes the backend bridge before entering the Stud
   });
   auth.bridge.mockResolvedValue(undefined);
   await render();
-  expect(element.textContent).not.toContain("Continuar com Google");
-  expect(element.textContent).not.toContain("Criar conta");
+  expect(document.body.textContent).not.toContain("Continuar com Google");
+  expect(document.body.textContent).not.toContain("Criar conta");
   await submit();
   expect(auth.signInWithPassword).toHaveBeenCalledWith({
     email: "acervo82@postspark.test",
@@ -90,7 +90,7 @@ it("keeps a rejected password on the form without calling the bridge", async () 
   });
   await render();
   await submit();
-  expect(element.textContent).toContain("E-mail ou senha incorretos.");
+  expect(document.body.textContent).toContain("E-mail ou senha incorretos.");
   expect(auth.bridge).not.toHaveBeenCalled();
   expect(window.location.pathname).toBe("/");
 });
@@ -99,11 +99,11 @@ it("offers Google only when explicitly enabled, retaining password login", async
   vi.stubEnv("VITE_POSTSPARK_AUTH_MODE", "email-google");
   auth.signInWithOAuth.mockResolvedValue({ error: null });
   await render();
-  expect(element.textContent).toContain("Continuar com Google");
-  expect(element.textContent).not.toContain("Criar conta");
-  expect(element.querySelector('input[aria-label="Senha"]')).not.toBeNull();
+  expect(document.body.textContent).toContain("Continuar com Google");
+  expect(document.body.textContent).not.toContain("Criar conta");
+  expect(document.body.querySelector('input[aria-label="Senha"]')).not.toBeNull();
   await act(async () => {
-    Array.from(element.querySelectorAll("button")).find(b => b.textContent?.includes("Continuar com Google"))!.click();
+    Array.from(document.body.querySelectorAll("button")).find(b => b.textContent?.includes("Continuar com Google"))!.click();
   });
   expect(auth.signInWithOAuth).toHaveBeenCalledWith({
     provider: "google",
@@ -114,8 +114,8 @@ it("offers Google only when explicitly enabled, retaining password login", async
 it("does not advertise signup without email delivery even when signup is requested", async () => {
   vi.stubEnv("VITE_POSTSPARK_SIGNUP_ENABLED", "true");
   await render();
-  expect(element.textContent).not.toContain("Criar conta");
-  expect(element.textContent).not.toMatch(/recuperar|esqueci/i);
+  expect(document.body.textContent).not.toContain("Criar conta");
+  expect(document.body.textContent).not.toMatch(/recuperar|esqueci/i);
 });
 
 it("retains signup when explicitly enabled with email delivery", async () => {
@@ -123,15 +123,15 @@ it("retains signup when explicitly enabled with email delivery", async () => {
   vi.stubEnv("VITE_POSTSPARK_EMAIL_DELIVERY_ENABLED", "true");
   auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
   await render();
-  expect(element.textContent).toContain("Criar conta");
+  expect(document.body.textContent).toContain("Criar conta");
   await act(async () => {
-    Array.from(element.querySelectorAll("button")).find(b => b.textContent === "Criar conta")!.click();
+    Array.from(document.body.querySelectorAll("button")).find(b => b.textContent === "Criar conta")!.click();
   });
   await submit();
   expect(auth.signUp).toHaveBeenCalledOnce();
   expect(auth.signInWithPassword).not.toHaveBeenCalled();
   expect(auth.bridge).not.toHaveBeenCalled();
-  expect(element.textContent).toContain("Verifique seu e-mail");
+  expect(document.body.textContent).toContain("Verifique seu e-mail");
 });
 
 it("confirms the identity for the selected annual plan without opening the Studio", async () => {
@@ -145,7 +145,7 @@ it("confirms the identity for the selected annual plan without opening the Studi
     password: "local-test-password",
     options: { emailRedirectTo: "https://postspark.com.br/auth/google-callback?cycle=annual&plan=SOLO" },
   });
-  expect(element.textContent).toContain("Confirme seu e-mail para continuar com a assinatura.");
+  expect(document.body.textContent).toContain("Confirme seu e-mail para continuar com a assinatura.");
   expect(auth.bridge).not.toHaveBeenCalled();
 });
 
@@ -156,9 +156,9 @@ it("does not enter the Studio until the backend grants access and synchronizes t
   await render();
   await submit();
   expect(window.location.pathname).toBe("/");
-  expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+  expect(document.body.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
   await act(async () => { reject(new Error("postspark_access_required")); });
   expect(window.location.pathname).toBe("/");
-  expect(element.querySelector('[role="alert"]')!.textContent).toContain("Sua conta ainda não tem acesso ao Studio.");
-  expect(element.querySelector('[role="alert"] a')?.getAttribute("href")).toBe("/pricing");
+  expect(document.body.querySelector('[role="alert"]')!.textContent).toContain("Sua conta ainda não tem acesso ao Studio.");
+  expect(document.body.querySelector('[role="alert"] a')?.getAttribute("href")).toBe("/pricing");
 });

@@ -33,6 +33,15 @@ export const GROQ_SCOUT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 export const GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
 const MODEL_COSTS: Record<string, ModelCostConfig> = {
+  // OpenRouter catalog, 2026-11-24. Provider receipts override estimates.
+  "z-ai/glm-5.3": { inputCostPerMillion: 0.0699, outputCostPerMillion: 1.4, platformFeePercent: ENV.openRouterPlatformFeePercent },
+  "qwen/qwen4-max": { inputCostPerMillion: 1.425, outputCostPerMillion: 4.275, platformFeePercent: ENV.openRouterPlatformFeePercent },
+  "moonshotai/kimi-k3.1-pro": { inputCostPerMillion: 0.2403, outputCostPerMillion: 8.4023, platformFeePercent: ENV.openRouterPlatformFeePercent },
+  "openai/gpt-6.2-sol": {
+    inputCostPerMillion: 2,
+    outputCostPerMillion: 10,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
   "openai/gpt-6.1-sol": {
     inputCostPerMillion: 2,
     outputCostPerMillion: 10,
@@ -65,6 +74,11 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
     outputCostPerMillion: 3.75,
     platformFeePercent: ENV.openRouterPlatformFeePercent,
   },
+  "google/gemini-4-neon": {
+    inputCostPerMillion: 3,
+    outputCostPerMillion: 15,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
   "z-ai/glm-5.3-flash": {
     inputCostPerMillion: 0.075,
     outputCostPerMillion: 0.25,
@@ -87,10 +101,12 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
 function normalizeModelForCost(model: string): string {
   if (/^anthropic\/claude-haiku-5\.5(?:$|[-:])/.test(model)) return "anthropic/claude-haiku-5.5";
   if (/^deepseek\/deepseek-v4\.1-flash(?:$|[-:])/.test(model)) return "deepseek/deepseek-v4.1-flash";
+  if (model.startsWith("openai/gpt-6.2-sol")) return "openai/gpt-6.2-sol";
   if (model.startsWith("openai/gpt-6.1-sol")) return "openai/gpt-6.1-sol";
   if (model.startsWith("openai/gpt-5-mini")) return "openai/gpt-5-mini";
   if (model.startsWith("openai/gpt-5.4-mini")) return "openai/gpt-5.4-mini";
   if (model.startsWith("google/gemini-3.8-flash")) return "google/gemini-3.8-flash";
+  if (model.startsWith("google/gemini-4-neon")) return "google/gemini-4-neon";
   if (model.startsWith("z-ai/glm-5.3-flash")) return "z-ai/glm-5.3-flash";
   if (model.startsWith("gemini-2.5-flash")) return "gemini-2.5-flash";
   return model;

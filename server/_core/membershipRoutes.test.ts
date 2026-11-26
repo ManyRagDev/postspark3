@@ -17,6 +17,7 @@ vi.mock("../membership", async importOriginal => ({
 }));
 
 import { registerMembershipRoutes } from "./membershipRoutes";
+import { issueSessionPlan, PLAN_COOKIE, sessionPlanScope } from "./planImpersonation";
 
 const verifiedId = "00000000-0000-4000-8000-000000000001";
 const verifiedUser = { id: verifiedId, email: "check@example.invalid", email_confirmed_at: "2026-11-18" };
@@ -30,15 +31,17 @@ beforeEach(() => {
   mocks.checkout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_example" });
 });
 
-async function checkout(body: object, token?: string) {
-  const req = { body, get: (key: string) => key === "authorization" && token ? `Bearer ${token}` : undefined };
+async function checkout(body: object, token?: string, headers: Record<string,string> = {}, path = "/api/membership/checkout") {
+  const req = { body, headers, get: (key: string) => key === "authorization" && token ? `Bearer ${token}` : undefined };
   const reply = { status: 200, headers: new Map<string, string>(), body: undefined as unknown };
   const res = {
     set: (key: string, value: string) => reply.headers.set(key.toLowerCase(), value),
     status: (status: number) => { reply.status = status; return res; },
     json: (value: unknown) => { reply.body = value; },
   };
-  await posts.get("/api/membership/checkout")!(req as Request, res as unknown as Response);
+  await new Promise<void>((resolve, reject) => sessionPlanScope(req as Request, res as unknown as Response, () => {
+    posts.get(path)!(req as Request, res as unknown as Response).then(resolve, reject);
+  }));
   return reply;
 }
 
@@ -57,4 +60,16 @@ it("derives the owner from Supabase and requires the advertised cycle", async ()
   expect(response.headers.get("cache-control")).toBe("no-store");
   expect(mocks.getUser).toHaveBeenCalledWith("credential");
   expect(mocks.checkout).toHaveBeenCalledWith(verifiedId, "annual", "https://postspark.com.br");
+});
+
+it("prevents a simulated session from changing billing or exercising owner-only features on a personal tier", async () => {
+  const payload = Buffer.from(JSON.stringify({ session_id: "00000000-0000-4000-8000-000000000099" })).toString("base64url");
+  const token = ["header", payload, "signature"].join(".");
+  mocks.getUser.mockResolvedValue({ data: { user: { ...verifiedUser, app_metadata: { role: "admin" } } } });
+  const headers = { cookie: PLAN_COOKIE + "=" + issueSessionPlan("test", verifiedId, token, "SOLO") };
+
+  expect((await checkout({cycle: "monthly"}, token, headers)).status).toBe(403);
+  expect((await checkout({name: "Equipe"}, token, headers, "/api/agency/workspace")).status).toBe(403);
+  expect(mocks.checkout).not.toHaveBeenCalled();
+  expect((await checkout({cycle: "monthly"}, token)).status).toBe(200);
 });

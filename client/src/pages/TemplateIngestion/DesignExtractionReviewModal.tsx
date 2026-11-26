@@ -5,6 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ExtractionProjectSelect } from "./ExtractionProjectSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +15,11 @@ import {
   type CanvasPostStageRef,
 } from "@/pages/CanvasLab/components/CanvasPostStage";
 import { intentToCanvasModel } from "./intentToCanvasModel";
-import type { DesignExtraction, PostIntent, PostIntentKind } from "@shared/designExtraction";
+import { artworkTextFont, artworkToCanvasModel } from "./artworkToCanvasModel";
+import { prepareCanvasFont } from "@/lib/fonts";
+import { designExtractionModelLabels, type DesignExtractionModel, type DesignExtractionResult } from "@shared/designExtraction";
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
+import type { CanvasSaveInputMeta } from "@/pages/CanvasLab/lib/saveAdapter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -38,32 +42,42 @@ import {
 interface DesignExtractionReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  extraction: DesignExtraction;
+  onTryAnotherModel: () => void;
+  extraction: DesignExtractionResult;
   previewDataUrl: string;
   sourceUrl: string | null;
-  projectId: string;
-  onExtractionSaved?: (projectId: string) => void;
+  project: { id: string; name: string };
+  projects: Array<{ id: string; name: string }>;
+  onChangeProject: (id: string) => void;
+  model: DesignExtractionModel;
+  onExtractionSaved: (project: { id: string; name: string }, postIds: number[]) => void;
+  onOpenEditor?: (post: CanvasPostModel, input: CanvasSaveInputMeta) => void;
 }
 
 export function DesignExtractionReviewModal({
   isOpen,
   onClose,
+  onTryAnotherModel,
   extraction,
   previewDataUrl,
   sourceUrl,
-  projectId,
+  project,
+  projects,
+  onChangeProject,
+  model,
   onExtractionSaved,
+  onOpenEditor,
 }: DesignExtractionReviewModalProps) {
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  const [selectedIntentKind, setSelectedIntentKind] = useState<PostIntentKind>(
-    extraction.intents[0]?.kind || "value-pillars"
-  );
+  const proposals = "proposals" in extraction ? extraction.proposals : extraction.intents;
+  const [selectedProposal, setSelectedProposal] = useState(0);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatioType>("4:5");
-  const [approvedKinds, setApprovedKinds] = useState<Set<PostIntentKind>>(
-    () => new Set(extraction.intents.map(i => i.kind))
+  const [approvedProposals, setApprovedProposals] = useState(
+    () => new Set(proposals.map((_, index) => index))
   );
 
   // Destino da extração (somente visível / configurável por Admin)
@@ -86,17 +100,43 @@ export function DesignExtractionReviewModal({
     return () => observer.disconnect();
   }, [isOpen]);
 
-  // Encontra a intenção ativa selecionada
-  const activeIntent = useMemo(() => {
-    return extraction.intents.find(i => i.kind === selectedIntentKind) || extraction.intents[0];
-  }, [extraction.intents, selectedIntentKind]);
+  const activeProposal = proposals[selectedProposal];
+  const [fontReady, setFontReady] = useState(
+    () => "intents" in extraction && !extraction.dna.composition
+  );
+  useEffect(() => {
+    const { dna } = extraction;
+    const fonts = "proposals" in extraction
+      ? extraction.proposals.flatMap(proposal => proposal.texts.map(text => artworkTextFont(dna, text)))
+      : extraction.dna.composition
+        ? [
+            { fontFamily: dna.typography.headingFont, fontWeight: dna.typography.headingWeight, fontStyle: extraction.dna.composition.headingStyle },
+            { fontFamily: dna.typography.bodyFont, fontWeight: 400, fontStyle: "normal" },
+            { fontFamily: dna.typography.labelFont, fontWeight: 700, fontStyle: "normal" },
+          ]
+        : [];
+    if (!fonts.length) return;
+    const uniqueFonts = new Map(fonts.map(font => [JSON.stringify(font), font]));
+    let active = true;
+    const ready = () => { if (active) setFontReady(true); };
+    const timeout = setTimeout(ready, 3000);
+    void Promise.allSettled(Array.from(uniqueFonts.values(), ({ fontFamily, fontWeight, fontStyle }) =>
+      prepareCanvasFont(fontFamily, fontWeight, fontStyle === "italic")
+    )).then(() => { clearTimeout(timeout); ready(); });
+    return () => { active = false; clearTimeout(timeout); };
+  }, [extraction]);
 
-  // Gera o CanvasPostModel para a intenção ativa atual
-  const activeCanvasModel = useMemo<CanvasPostModel>(() => {
-    return intentToCanvasModel(extraction.dna, activeIntent, {
+  // Preview, editor and save use the same materialized document for the selected format.
+  const models = useMemo(() => {
+    if (!fontReady) return [];
+    if ("proposals" in extraction) {
+      return extraction.proposals.map(proposal => artworkToCanvasModel(extraction.dna, proposal, selectedAspectRatio));
+    }
+    return extraction.intents.map(intent => intentToCanvasModel(extraction.dna, intent, {
       aspectRatio: selectedAspectRatio,
-    });
-  }, [extraction.dna, activeIntent, selectedAspectRatio]);
+    }));
+  }, [extraction, fontReady, selectedAspectRatio]);
+  const activeCanvasModel = models[selectedProposal];
 
   // Escala dinâmica Konva para caber com perfeição no container
   const baseStageWidth = 360;
@@ -110,21 +150,22 @@ export function DesignExtractionReviewModal({
     return Math.min(1.15, availW / baseStageWidth, availH / baseStageHeight);
   }, [konvaViewport.width, konvaViewport.height, baseStageWidth, baseStageHeight]);
 
-  const saveToProjectMutation = trpc.templateIngestion?.saveExtractionToProject?.useMutation
-    ? trpc.templateIngestion.saveExtractionToProject.useMutation()
-    : { mutateAsync: async (_args: any) => ({ projectId, postIds: [] }), isPending: false };
-
-  const previewFamilyDraftMutation = trpc.templateIngestion?.previewOriginalFamilyDraft?.useMutation
-    ? trpc.templateIngestion.previewOriginalFamilyDraft.useMutation()
-    : { mutateAsync: async (_args: any) => ({ sanitized: {} as any }), isPending: false };
+  const saveToProjectMutation = trpc.templateIngestion.saveExtractionToProject.useMutation();
+  const previewFamilyDraftMutation = trpc.templateIngestion.previewOriginalFamilyDraft.useMutation();
 
   // Abrir a intenção atual diretamente no CanvasLab
   const handleOpenInCanvasLab = () => {
+    if (!activeCanvasModel) return;
     try {
-      sessionStorage.setItem("canvaslab_imported_model", JSON.stringify(activeCanvasModel));
-      toast.success(`Abrindo post "${activeIntent.name}" no CanvasLab...`);
+      const input: CanvasSaveInputMeta = sourceUrl
+        ? { inputType: "url", inputContent: sourceUrl }
+        : { inputType: "image", inputContent: activeProposal.name };
+      if (onOpenEditor) onOpenEditor(activeCanvasModel, input);
+      else {
+        sessionStorage.setItem("postspark.open_canvas_post", JSON.stringify({ ...input, model: activeCanvasModel }));
+        setLocation("/thevoid");
+      }
       onClose();
-      setLocation("/canvaslab?imported=true");
     } catch (e) {
       toast.error("Não foi possível preparar o post para o CanvasLab.");
     }
@@ -133,57 +174,22 @@ export function DesignExtractionReviewModal({
   // Salvar no projeto ou submeter rascunho de família original
   const [isSaving, setIsSaving] = useState(false);
   const handleSave = async () => {
+    if (!activeCanvasModel) return;
     setIsSaving(true);
     try {
-      if (isAdmin && adminDestination === "original-family") {
-        // Pré-visualização sanitizada e rascunho
-        const res = await previewFamilyDraftMutation.mutateAsync({ extraction });
-        toast.success(
-          "Rascunho de família original verificado e pronto para o acervo geral (pendente de aprovação)."
-        );
-        // Também salvamos no projeto do admin
-        await saveToProjectMutation.mutateAsync({
-          projectId,
-          extraction,
-          posts: [
-            {
-              title: `${extraction.dna.styleName} - ${activeIntent.name}`,
-              canvasModel: activeCanvasModel,
-              previewDataUrl: previewDataUrl,
-            },
-          ],
-        });
-        onExtractionSaved?.(projectId);
-        onClose();
-        return;
-      }
-
-      // Fluxo Padrão (Todo usuário + Admin em modo projeto):
-      // Gera as composições aprovadas e salva exclusivamente no projeto do usuário
-      const postsToSave = extraction.intents
-        .filter(i => approvedKinds.has(i.kind))
-        .map(intent => {
-          const model = intentToCanvasModel(extraction.dna, intent, {
-            aspectRatio: selectedAspectRatio,
-          });
-          return {
-            title: `${extraction.dna.styleName} - ${intent.name}`,
-            canvasModel: model,
-            previewDataUrl: undefined,
-          };
-        });
-
-      await saveToProjectMutation.mutateAsync({
-        projectId,
-        extraction,
-        posts: postsToSave,
-      });
-
-      toast.success(
-        `${postsToSave.length} posts salvos no projeto e DNA de design calibrado com sucesso!`
-      );
-      onExtractionSaved?.(projectId);
-      onClose();
+      const familyDraft = isAdmin && adminDestination === "original-family";
+      if (familyDraft) await previewFamilyDraftMutation.mutateAsync({ extraction });
+      const posts = proposals.flatMap((proposal, index) => (familyDraft ? index === selectedProposal : approvedProposals.has(index))
+        ? [{ title: `${extraction.dna.styleName} - ${proposal.name}`, canvasModel: models[index], ...(familyDraft && { previewDataUrl }) }]
+        : []);
+      const saved = await saveToProjectMutation.mutateAsync({ projectId: project.id, extraction, posts });
+      if (saved.projectId !== project.id || saved.postIds.length !== posts.length)
+        throw new Error("O projeto não confirmou todos os modelos selecionados.");
+      void utils.brandProjects.list.invalidate().catch(() => {});
+      toast.success(familyDraft
+        ? `Rascunho de família verificado. Modelo salvo em ${project.name}.`
+        : `${posts.length === 1 ? "Modelo salvo" : `${posts.length} modelos salvos`} em ${project.name}.`);
+      onExtractionSaved(project, saved.postIds);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao salvar extração.");
     } finally {
@@ -191,41 +197,41 @@ export function DesignExtractionReviewModal({
     }
   };
 
-  const toggleApproveKind = (kind: PostIntentKind) => {
-    setApprovedKinds(prev => {
+  const toggleApproveProposal = (index: number) => {
+    setApprovedProposals(prev => {
       const next = new Set(prev);
-      if (next.has(kind)) {
+      if (next.has(index)) {
         if (next.size <= 1) {
-          toast.warning("Mantenha ao menos 1 post aprovado.");
+          toast.warning("Selecione pelo menos um modelo.");
           return prev;
         }
-        next.delete(kind);
+        next.delete(index);
       } else {
-        next.add(kind);
+        next.add(index);
       }
       return next;
     });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && !isSaving && onClose()}>
       <DialogContent
         showCloseButton={false}
         className="!max-w-[96vw] sm:!max-w-[96vw] w-[1420px] h-[92vh] !flex flex-col p-0 gap-0 bg-[#0b0d13] border-white/10 text-white overflow-hidden shadow-2xl rounded-2xl"
       >
-        <DialogTitle className="sr-only">Extração Criativa de DNA e Intenções de Design</DialogTitle>
+        <DialogTitle className="sr-only">Modelos do Replicar Design</DialogTitle>
         <DialogDescription className="sr-only">
-          Revise a identidade visual extraída e as variações de post geradas antes de salvar no seu projeto.
+          Escolha os modelos que deseja reutilizar nos briefings deste projeto.
         </DialogDescription>
 
         {/* ─── 1. TOP BAR ─── */}
-        <header className="h-16 px-6 border-b border-white/10 bg-[#10141f] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#10141f] p-3 lg:min-h-16 lg:px-6">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 lg:gap-3">
             <div className="size-9 rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-inner">
               <Sparkles className="size-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-semibold text-white tracking-tight">
                   {extraction.dna.styleName}
                 </h2>
@@ -238,13 +244,14 @@ export function DesignExtractionReviewModal({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-white/50 truncate max-w-xl">
+              <p className="hidden max-w-xl truncate text-[11px] text-white/50 lg:block">
                 {extraction.dna.summary}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 lg:gap-3">
+            <ExtractionProjectSelect projects={projects} value={project.id} disabled={isSaving} onChange={onChangeProject} />
             {/* SELETOR DE DESTINO PARA ADMIN (EXCLUSIVO) */}
             {isAdmin && (
               <div className="flex items-center bg-black/40 border border-orange-500/30 rounded-lg p-0.5">
@@ -280,6 +287,7 @@ export function DesignExtractionReviewModal({
               variant="outline"
               size="sm"
               onClick={handleOpenInCanvasLab}
+              disabled={!activeCanvasModel || isSaving}
               className="h-9 px-3.5 text-xs border-white/20 hover:bg-white/10 text-white gap-1.5"
             >
               <ExternalLink className="size-3.5" />
@@ -289,7 +297,7 @@ export function DesignExtractionReviewModal({
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || !activeCanvasModel}
               className="h-9 px-4 text-xs font-medium bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 gap-1.5"
             >
               {isSaving ? (
@@ -300,13 +308,15 @@ export function DesignExtractionReviewModal({
               ) : (
                 <>
                   <Save className="size-3.5" />
-                  {adminDestination === "original-family" ? "Submeter Rascunho Global" : `Salvar ${approvedKinds.size} Posts no Projeto`}
+                  {adminDestination === "original-family" ? "Submeter Rascunho Global" : `Salvar em ${project.name}`}
                 </>
               )}
             </Button>
 
             <button
               onClick={onClose}
+              disabled={isSaving}
+              aria-label="Fechar modelos"
               className="size-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition ml-1"
             >
               <X className="size-4" />
@@ -315,9 +325,9 @@ export function DesignExtractionReviewModal({
         </header>
 
         {/* ─── 2. CORPO TRIPARTIDO (3 COLUNAS) ─── */}
-        <div className="flex-1 min-h-0 grid grid-cols-12 divide-x divide-white/10 bg-[#0b0d13]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#0b0d13] lg:grid lg:grid-cols-12 lg:divide-x lg:divide-white/10 lg:overflow-hidden">
           {/* COLUNA ESQUERDA (3 colunas): Referência Original + DNA Extraído */}
-          <div className="col-span-3 flex flex-col min-h-0 bg-[#0e111a]">
+          <div className="order-3 flex shrink-0 flex-col bg-[#0e111a] lg:order-none lg:col-span-3 lg:min-h-0">
             <div className="p-3.5 border-b border-white/10 flex items-center justify-between text-xs font-medium text-white/70">
               <span className="flex items-center gap-1.5">
                 <Palette className="size-3.5 text-orange-400" />
@@ -337,6 +347,19 @@ export function DesignExtractionReviewModal({
                     alt="Referência original"
                     className="w-full h-full object-contain"
                   />
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
+                  <span className="text-white/70">{designExtractionModelLabels[model]}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isSaving}
+                    onClick={onTryAnotherModel}
+                    className="h-auto px-2 py-1.5 text-xs text-orange-400 hover:bg-orange-500/10 hover:text-orange-300"
+                  >
+                    Testar outro modelo
+                  </Button>
                 </div>
               </div>
 
@@ -416,10 +439,10 @@ export function DesignExtractionReviewModal({
           </div>
 
           {/* COLUNA CENTRAL (5 colunas): Render Konva 2D Interativo */}
-          <div className="col-span-5 flex flex-col min-h-0 bg-[#090b10]">
+          <div className="order-1 flex h-[52dvh] min-h-64 shrink-0 flex-col bg-[#090b10] lg:order-none lg:col-span-5 lg:h-auto lg:min-h-0">
             <div className="p-3 border-b border-white/10 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-white/80">{activeIntent.name}</span>
+                <span className="font-medium text-white/80">{activeProposal.name}</span>
                 <Badge variant="outline" className="text-[10px] border-white/20 text-white/60 bg-white/5">
                   {selectedAspectRatio}
                 </Badge>
@@ -454,23 +477,21 @@ export function DesignExtractionReviewModal({
                   transformOrigin: "center center",
                   transition: "transform 0.15s ease-out",
                 }}
-                className="shadow-2xl rounded-lg overflow-hidden border border-white/15"
+                className="shrink-0 overflow-hidden rounded-lg border border-white/15 shadow-2xl"
               >
-                <CanvasPostStage
-                  ref={stageRef}
-                  post={activeCanvasModel}
-                  zoom={1}
-                />
+                {activeCanvasModel ? <CanvasPostStage ref={stageRef} post={activeCanvasModel} zoom={1} /> : (
+                  <p role="status" className="px-4 py-3 text-xs text-white/60">Preparando a tipografia da referência…</p>
+                )}
               </div>
             </div>
 
-            {/* Rodapé da Coluna Central: Rationale do Post */}
             <div className="p-3 border-t border-white/10 bg-[#0d1017] text-[11px] text-white/60 flex items-center justify-between">
-              <span className="truncate max-w-sm">
-                💡 <strong className="text-white/80">Estratégia:</strong> {activeIntent.rationale}
+              <span className="line-clamp-2" title={activeProposal.rationale}>
+                {activeProposal.rationale}
               </span>
               <button
                 onClick={handleOpenInCanvasLab}
+                disabled={!activeCanvasModel || isSaving}
                 className="text-orange-400 hover:text-orange-300 font-medium flex items-center gap-1 shrink-0 ml-2"
               >
                 Abrir na Prancheta <ArrowRight className="size-3" />
@@ -478,80 +499,62 @@ export function DesignExtractionReviewModal({
             </div>
           </div>
 
-          {/* COLUNA DIREITA (4 colunas): Seletor de Intenções + Aprovação em Lote */}
-          <div className="col-span-4 flex flex-col min-h-0 bg-[#0e111a]">
+          {/* Propostas e seleção para salvar */}
+          <div className="order-2 flex shrink-0 flex-col bg-[#0e111a] lg:order-none lg:col-span-4 lg:min-h-0">
             <div className="p-3.5 border-b border-white/10 flex items-center justify-between text-xs font-medium text-white/70">
               <span className="flex items-center gap-1.5">
                 <Layers className="size-3.5 text-orange-400" />
-                Variações por Intencionalidade ({extraction.intents.length})
+                Modelos ({proposals.length})
               </span>
               <span className="text-[10px] text-white/40">
-                {approvedKinds.size} selecionadas para salvar
+                {approvedProposals.size} de {proposals.length}
               </span>
             </div>
 
-            <ScrollArea className="flex-1 p-4 space-y-3">
-              <div className="text-[11px] text-white/50 leading-relaxed pb-1">
-                A IA analisou sua referência e desdobrou a proposta em ângulos editoriais complementares para redes sociais:
-              </div>
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-2">
+                {proposals.map((proposal, index) => {
+                  const isSelected = selectedProposal === index;
+                  const isApproved = approvedProposals.has(index);
+                  const headline = "texts" in proposal
+                    ? proposal.texts.find(text => text.role === "headline")?.text
+                    : proposal.headline;
 
-              {extraction.intents.map((intent, idx) => {
-                const isSelected = selectedIntentKind === intent.kind;
-                const isApproved = approvedKinds.has(intent.kind);
-
-                return (
-                  <div
-                    key={intent.kind}
-                    onClick={() => setSelectedIntentKind(intent.kind)}
-                    className={`p-3.5 rounded-xl border transition cursor-pointer relative ${
-                      isSelected
-                        ? "border-orange-500/60 bg-orange-500/[0.08] shadow-md shadow-orange-500/5"
-                        : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-white/[0.02]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="size-5 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[10px] font-mono text-white/70">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <h4 className="text-xs font-semibold text-white/90">
-                            {intent.name}
-                          </h4>
-                          <span className="text-[10px] font-mono uppercase text-orange-400/80">
-                            {intent.kind}
-                          </span>
-                        </div>
-                      </div>
-
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-start justify-between gap-2 rounded-xl border transition ${
+                        isSelected
+                          ? "border-orange-500/60 bg-orange-500/[0.08]"
+                          : "border-white/10 bg-black/30 hover:border-white/20"
+                      }`}
+                    >
                       <button
                         type="button"
-                        onClick={e => {
-                          e.stopPropagation();
-                          toggleApproveKind(intent.kind);
-                        }}
-                        className={`size-6 rounded-md flex items-center justify-center transition ${
+                        onClick={() => setSelectedProposal(index)}
+                        aria-pressed={isSelected}
+                        className="min-w-0 flex-1 rounded-xl p-3.5 text-left focus-visible:outline-2 focus-visible:outline-orange-400"
+                      >
+                        <span className="block text-xs font-semibold text-white/90">{proposal.name}</span>
+                        <span className="mt-1 line-clamp-2 text-[11px] text-white/60">{headline}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleApproveProposal(index)}
+                        aria-pressed={isApproved}
+                        aria-label={`Incluir ${proposal.name} nos modelos do projeto`}
+                        className={`mr-3 mt-3 flex size-7 shrink-0 items-center justify-center rounded-md border transition ${
                           isApproved
-                            ? "bg-green-500/20 text-green-400 border border-green-500/40"
-                            : "bg-white/5 text-white/30 border border-white/10 hover:text-white"
+                            ? "border-green-500/40 bg-green-500/20 text-green-400"
+                            : "border-white/10 bg-white/5 text-white/40 hover:text-white"
                         }`}
-                        title={isApproved ? "Incluído para salvar" : "Ignorar este post"}
                       >
                         <CheckCircle2 className="size-3.5" />
                       </button>
                     </div>
-
-                    <p className="text-[11px] text-white/60 mt-2 line-clamp-2">
-                      {intent.headline}
-                    </p>
-
-                    <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-white/40">
-                      <span>CTA: &quot;{intent.ctaLabel}&quot;</span>
-                      <span className="text-white/30">{intent.items.length} itens de apoio</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </ScrollArea>
 
             {/* Aviso de Isolamento / Segurança */}
@@ -560,7 +563,7 @@ export function DesignExtractionReviewModal({
               <span>
                 {isAdmin && adminDestination === "original-family"
                   ? "Modo Admin: Este design será sanitizado (sem marcas ou textos originais) e submetido como rascunho de Família Original para moderação."
-                  : "Isolamento estrito: Este DNA e seus posts são salvos exclusivamente no seu projeto privado e nunca impactam outros usuários."}
+                  : "Os modelos ficam no projeto. Use qualquer um deles em um novo briefing."}
               </span>
             </div>
           </div>

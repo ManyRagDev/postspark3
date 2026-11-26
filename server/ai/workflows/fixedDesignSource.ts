@@ -1,3 +1,5 @@
+import { extractedPalette } from "@shared/projectPalette";
+import { applyProjectArtColors } from "./projectArtColors";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { visualIdentitySchema, type VisualIdentity } from "@shared/visualIdentity";
@@ -104,7 +106,17 @@ export async function pinFixedDesign(
         message: "Salve uma composição editável neste kit antes de gerar.",
       });
     let rows: Array<{ id: number; canvas_model: unknown }>;
-    if (metadata.postIds) {
+    if (selected.postId !== undefined) {
+      const artwork = metadata.postIds?.includes(selected.postId)
+        ? await getPostById(selected.postId, owner)
+        : undefined;
+      if (!artwork)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "A arte escolhida não está mais disponível neste projeto.",
+        });
+      rows = [artwork];
+    } else if (metadata.postIds) {
       rows = (
         await Promise.all(metadata.postIds.map(id => getPostById(id, owner)))
       ).flatMap(row => (row ? [row] : []));
@@ -133,7 +145,7 @@ export async function pinFixedDesign(
           )
       );
     }
-    // Choose the most spacious compatible saved piece. This keeps selection inside the kit.
+    // For a kit without an explicit selection, choose its most spacious compatible piece.
     const matching = rows
       .flatMap(row => {
         const model = row.canvas_model as CanvasPostModel | null;
@@ -150,6 +162,10 @@ export async function pinFixedDesign(
       message:
         "O design escolhido não está disponível nesse formato. Escolha a proporção e o número de páginas da peça salva.",
     });
+  const identity = input.projectSnapshot?.version === 3 ? input.projectSnapshot.visualIdentity : undefined;
+  const rules = extractedPalette(input.projectSnapshot);
+  const ownKit = identity?.extractedFrom?.postIds.some(id => sourceId === `project:${input.projectId}:${id}`);
+  if (rules && !ownKit) canvas = applyProjectArtColors(canvas, rules);
   await authorizeArsenalSaveModel(canvas, owner);
   return { sourceId, revision: arsenalHash(canvas), canvas };
 }
@@ -161,7 +177,7 @@ function compatible(
   return (
     canvas.aspectRatio === input.aspectRatio &&
     canvas.slides?.length ===
-      (input.postMode === "static" ? 1 : input.slideCount)
+      (input.artworkCarousel || input.postMode === "static" ? 1 : input.slideCount)
   );
 }
 

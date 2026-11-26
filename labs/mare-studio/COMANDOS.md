@@ -1,6 +1,8 @@
 # Comandos do assistente nativo do Maré
 
-Em Animação ou Montagem, abra **Assistente do projeto**, descreva a mudança, confira a proposta e aplique. O próprio Maré resolve pedidos conhecidos localmente. O modo de comandos estruturados permite selecionar operações e fornecer os parâmetros do catálogo. O Qwen opcional propõe uma operação por pedido e pede revisão. A aplicação pode preparar um lote com várias operações.
+As **Ações rápidas** da Animação partem da seleção e geram movimentos com keyframes locais. Depois de abrir um quadrado em faixa, o painel pode sincronizar um título com a abertura. A galeria de imagens conserva a seleção do layout para organizar as entradas e permite ajustar o intervalo. Na Montagem, o inspetor oferece a transição com quadros dos próprios clipes e o prolongamento de uma composição final. As legendas permitem escolher o início e o fim de um novo trecho sem alterar o vídeo original.
+
+**Pedir à IA** abre o Assistente do projeto. Pedidos livres seguem para o processador privado e usam uma chamada de edição pelo OpenRouter. O modelo recebe o catálogo e o estado de edição, devolve comandos ou uma pergunta e o editor valida a proposta antes de aplicar. Os comandos estruturados continuam disponíveis diretamente. O Qwen local está desativado. A criação de um primeiro corte completo continua usando o fluxo de roteiro e direção.
 
 ## Contrato do editor
 
@@ -8,7 +10,7 @@ A sessão é exportada como `projectEditor` em [app.js](dist/app.js). Interface 
 
 1. `catalog()` descreve os comandos de edição, as ferramentas de sessão e os trabalhos disponíveis no ambiente. `options()` lista canais, curvas, tipos, transições, modelos de animação e vozes. `controls(compositionId)` descreve os campos do modelo escolhido.
 2. `inspect()` devolve a revisão, a seleção, as composições, a montagem, as pistas e referências de mídia. `inspect({compositionId, layerId, time})` inclui propriedades, keyframes, visibilidade temporal e pose avaliada no tempo local da composição. As entradas dos keyframes usam tempo relativo à camada. Na montagem, o início do clipe e o recorte na fonte são campos distintos.
-3. `plan(pedido)` produz os comandos e a proposta dos pedidos reconhecidos. Para comandos estruturados, `prepare(revision, commands)` ou `prepareWithAssets(revision, commands)` prepara a edição. A segunda forma carrega as imagens de um modelo quando necessário.
+3. A interface encaminha pedidos livres para a etapa de edição do processador. A sessão mantém `plan(pedido)` para compatibilidade com integrações locais existentes. `prepareRecipe(revision, comando)` expande as ações compostas de substituição de texto e sequenciamento de cards. Para comandos estruturados, `prepare(revision, commands)` ou `prepareWithAssets(revision, commands)` prepara a edição. A segunda forma carrega as imagens de um modelo quando necessário.
 4. Use `proposal.inspect(consulta)` e `await proposal.preview(escopo, tempo)` para conferir o candidato. `proposal.apply()` confirma o lote uma vez. Uma operação inválida ou uma edição manual concorrente impede a confirmação. O histórico segue o ambiente atual. Uma edição local da animação pode ser desfeita no rascunho. Ao aplicar e voltar, a montagem ganha a sua própria entrada.
 5. `invoke(id, args, revision)` executa uma ferramenta de sessão ou inicia um trabalho. Para um trabalho, consulte `job(id)` para obter estado, progresso, erro ou resultado e use `release(id)` quando terminar. Transcrição, síntese de voz e render privado aparecem de acordo com a configuração do laboratório. Gerar uma tomada e inseri-la no projeto são operações distintas.
 

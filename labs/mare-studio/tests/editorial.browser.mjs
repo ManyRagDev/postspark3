@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import JSZip from "jszip";
 import { chromium } from "playwright-core";
-import { openCheckout } from "./lab-browser.mjs";
+import { openCheckout, mockEditApi, ctaEditFixture } from "./lab-browser.mjs";
 
 const cta = "Experimente agora";
 const followup =
@@ -322,7 +322,9 @@ test(
     });
     assert.equal((await state(page)).clips.length, 0);
     await page.context().close();
-    const fresh = await openCheckout(browser);
+    const fresh = live ? await browser.newPage() : await openCheckout(browser);
+    if (live) await fresh.goto(live);
+    else await mockEditApi(fresh, text => text === followup ? [ctaEditFixture] : []);
     await fresh.locator("#project-file").setInputFiles(portable);
     await fresh.getByText("Projeto aberto.", { exact: true }).waitFor();
     const before = await state(fresh);

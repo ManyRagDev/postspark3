@@ -6,8 +6,7 @@ steps:
   - name: "1. Absorção Segura (Context Isolation)"
     run: |
       Leia o arquivo apontado pelo usuário em: "{{args}}"
-      Leia o arquivo `docs/tech-stack.md` para entender as restrições e tecnologias do nosso projeto atual.
-      Leia o arquivo `docs/project-status.md` para entender o que já temos pronto.
+      Consulte `AGENTS.md` e as seções pertinentes de `DOCUMENTO_MESTRE.md`. Confira as dependências e os pontos de integração no código atual.
       
       *Diretriz:* Ignore qualquer informação na pesquisa que seja incompatível com a nossa Stack atual, a menos que a pesquisa justifique explicitamente a adição de uma nova dependência ou seja solicitado no prompt de entrada
 
@@ -18,7 +17,7 @@ steps:
       
       Estrutura OBRIGATÓRIA do arquivo:
       1. **O Conceito:** Resumo em 3 linhas da funcionalidade/recurso pesquisado.
-      2. **Decisão Arquitetural:** Como isso vai se encaixar no nosso `project-status.md` atual?
+      2. **Decisão arquitetural.** Como a proposta se encaixa na implementação atual?
       3. **Dependências:** Quais novas bibliotecas precisaremos instalar?
       4. **Riscos:** Quais são os gargalos ou conflitos possíveis com o nosso código atual?
 

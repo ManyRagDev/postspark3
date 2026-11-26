@@ -5,7 +5,8 @@
  *  - ConfirmDialog (item 6): confirmação do botão "Recomeçar".
  */
 
-import { useEffect, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Bookmark, Check, Loader2, RotateCcw, X } from "lucide-react";
 
@@ -48,6 +49,7 @@ export function SaveChoiceDialog({
   onSaveNew,
   onUpdate,
 }: SaveChoiceDialogProps) {
+  const opener = useRef<HTMLElement | null>(null);
   const [remember, setRemember] = useState(false);
 
   useEffect(() => {
@@ -55,21 +57,25 @@ export function SaveChoiceDialog({
   }, [open]);
 
   return (
+    <Dialog.Root open={open} onOpenChange={next => { if (!next && !isSaving) onCancel(); }}>
     <AnimatePresence>
       {open && (
-        <motion.div
+        <Dialog.Portal><motion.div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={isSaving ? undefined : onCancel}
         >
+          <Dialog.Content asChild aria-describedby={undefined}
+            onOpenAutoFocus={()=>{opener.current=document.activeElement instanceof HTMLElement ? document.activeElement : null;}}
+            onCloseAutoFocus={event=>{if(opener.current?.isConnected){event.preventDefault();opener.current.focus();}}}>
           <motion.div
             className="max-h-[95dvh] w-full max-w-sm overflow-y-auto rounded-3xl border border-white/12 bg-[#0d1017] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
-            initial={{ opacity: 0, scale: 0.94, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-1">
@@ -77,13 +83,13 @@ export function SaveChoiceDialog({
                 <div className="w-8 h-8 rounded-xl bg-[oklch(0.78_0.22_48)]/15 border border-[oklch(0.78_0.22_48)]/30 flex items-center justify-center">
                   <Bookmark size={15} className="text-[oklch(0.78_0.22_48)]" />
                 </div>
-                <h2 className="text-sm font-bold text-white">Salvar post</h2>
+                <Dialog.Title className="text-sm font-bold text-white">Salvar post</Dialog.Title>
               </div>
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={isSaving}
-                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-30"
+                className="grid size-11 place-items-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-30"
                 aria-label="Fechar"
               >
                 <X size={14} />
@@ -99,7 +105,7 @@ export function SaveChoiceDialog({
                   type="button"
                   disabled={isSaving}
                   onClick={() => onUpdate(remember)}
-                  className="w-full py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/16 border border-white/15 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                  className="min-h-11 w-full py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/16 border border-white/15 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
                 >
                   {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   <span>Atualizar o post salvo</span>
@@ -109,7 +115,7 @@ export function SaveChoiceDialog({
                 type="button"
                 disabled={isSaving}
                 onClick={() => onSaveNew(remember)}
-                className="w-full py-3 px-4 rounded-2xl text-black text-xs font-bold shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                className="min-h-11 w-full py-3 px-4 rounded-2xl text-black text-xs font-bold shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
                 style={{
                   background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
                 }}
@@ -133,10 +139,10 @@ export function SaveChoiceDialog({
             <p className="text-[10px] text-white/30 mt-2">
               Você pode mudar a preferência limpando o armazenamento do site.
             </p>
-          </motion.div>
-        </motion.div>
+          </motion.div></Dialog.Content>
+        </motion.div></Dialog.Portal>
       )}
-    </AnimatePresence>
+    </AnimatePresence></Dialog.Root>
   );
 }
 

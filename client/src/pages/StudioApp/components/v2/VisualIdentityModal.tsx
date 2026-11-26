@@ -2,6 +2,8 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import type { BrandProjectRecord } from "@shared/brandProjects";
 import { toast } from "sonner";
+import { capturedProjectPalette } from "@shared/projectIdentityExtraction";
+import { ExtractProjectIdentity } from "./ExtractProjectIdentity";
 import {
   Dialog,
   DialogContent,
@@ -32,11 +34,15 @@ export default function VisualIdentityModal({
   const [savedId, setSavedId] = useState(project?.id);
   const [creationId] = useState(() => crypto.randomUUID());
   const [saved, setSaved] = useState(false);
+  const [edited, setEdited] = useState(false);
+  const [identity, setIdentity] = useState(project?.visualIdentity);
+  const kit = capturedProjectPalette(project?.visualPreferences);
   const save = trpc.brandProjects.saveIdentity.useMutation();
   const upload = trpc.post.saveMediaAsset.useMutation();
   const utils = trpc.useUtils();
   const busy = save.isPending || upload.isPending;
   const changed = () => {
+    setEdited(true);
     setSaved(false);
     setError("");
     setWarnings([]);
@@ -54,6 +60,8 @@ export default function VisualIdentityModal({
       });
       setSavedId(result.id);
       setWarnings(result.visualIdentity.warnings);
+      setIdentity(result.visualIdentity);
+      setEdited(false);
       setSaved(true);
       await utils.brandProjects.list.invalidate().catch(() => undefined);
       onSaved(result.id);
@@ -97,6 +105,20 @@ export default function VisualIdentityModal({
               Fechar
             </button>
           </div>
+          {kit && project?.id && <div className="mt-4">
+            <ExtractProjectIdentity projectId={project.id} postIds={kit.postIds} disabled={busy || edited}
+              onExtracted={result => {
+                setIdentity(result);
+                setDescription(result.description);
+                setWarnings(result.warnings);
+                setSaved(true);
+              }} />
+          </div>}
+          {identity?.rules.colors.length ? <ul aria-label="Cores da identidade visual" className="mt-3 flex flex-wrap gap-2">
+            {Array.from(new Set(identity.rules.colors)).map(color => <li key={color} className="flex items-center gap-1 text-xs text-white/70">
+              <span aria-hidden className="size-4 rounded border border-white/25" style={{ backgroundColor: color }} />{color}
+            </li>)}
+          </ul> : null}
           <label className="mt-5 block text-sm">
             Nome do projeto
             <input

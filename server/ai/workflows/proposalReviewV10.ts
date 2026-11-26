@@ -51,6 +51,7 @@ import {
 import { normalizeReviewV10, decodeReviewV10 } from "./proposalReviewPolicyV10";
 import { materialGenerationIntent } from "@shared/generationPlan";
 import { rendersChromaticPortal } from "@shared/generationVisualRequirements";
+import { editorialDesignReviewContext } from "./compactProposalCopy";
 
 export async function reviewProposalV10(
   input: ProposalExecutionInput,
@@ -208,6 +209,7 @@ export async function reviewProposalV10(
     const evidenceInventory = buildSourceEvidenceV10(context);
     const reviewData = {
       context: reviewContextV10(context, evidenceInventory),
+      ...editorialDesignReviewContext(input),
       generationIntent: automaticV2 ? compactAutomaticReviewIntent(input.generationIntent) : input.generationIntent,
       ...(portal ? { visualRequirements: [{
         requestQuote: portal.quote,

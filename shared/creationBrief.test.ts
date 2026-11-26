@@ -31,6 +31,11 @@ describe("creationBrief - Etapa 4", () => {
   });
 
   describe("interpretRawBriefing", () => {
+    it("respeita a quantidade por extenso ao revisar um carrossel", () => {
+      expect(interpretRawBriefing("Crie um carrossel de quatro slides com 3 ideias para desenhar.")).toMatchObject({
+        format: "carousel", slideCount: 4,
+      });
+    });
     it("interpreta briefing de carrossel com detecção de slides e URLs", () => {
       const raw = "Quero um carrossel de 5 slides sobre produtividade remota com base no artigo https://meublog.com/produtividade. CTA: Salve este post.";
       const brief = interpretRawBriefing(raw);
@@ -89,7 +94,8 @@ describe("creationBrief - Etapa 4", () => {
       expect(exec.format).toBe("carousel");
       expect(exec.platform).toBe("instagram");
       expect(exec.contentSourceType).toBe("carousel_topics");
-      expect(exec.brandInput?.websiteUrl).toBe("https://site.com/artigo");
+      expect(exec).not.toHaveProperty("brandInput");
+      expect(brief.sourceUrls).toEqual(["https://site.com/artigo"]);
     });
 
     it("preserva público e essência da marca vindos do Brand Kit ou edição", () => {

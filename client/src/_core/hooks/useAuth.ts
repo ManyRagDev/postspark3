@@ -1,3 +1,4 @@
+import { PLAN_CHANGE_STORAGE_KEY } from "@/lib/sessionPlanEvents";
 import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import {
@@ -23,6 +24,14 @@ function useAuthState() {
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    const refreshPlan = (event: StorageEvent) => {
+      if (event.key === PLAN_CHANGE_STORAGE_KEY) void utils.auth.me.invalidate();
+    };
+    window.addEventListener("storage", refreshPlan);
+    return () => window.removeEventListener("storage", refreshPlan);
+  }, [utils]);
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<unknown>(null);
@@ -122,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const previousOwner = useRef<string | undefined>(undefined);
   useLayoutEffect(() => {
     if (value.loading) return;
-    const next = value.user?.id ?? "";
+    const next = value.user?.impersonatedPlan ? `${value.user.id}:${value.user.impersonatedPlan}` : value.user?.id ?? "";
     if (previousOwner.current !== undefined && previousOwner.current !== next) {
       const predicate = (query: { queryKey: readonly unknown[] }) =>
         String(query.queryKey[0]) !== "auth,me";
@@ -137,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("postspark.catalog-owner", next);
       }
     } catch {}
-  }, [value.user?.id, value.loading, queryClient]);
+  }, [value.user?.id, value.user?.impersonatedPlan, value.loading, queryClient]);
 
   return createElement(AuthContext.Provider, { value }, children);
 }

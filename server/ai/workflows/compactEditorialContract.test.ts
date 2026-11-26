@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { arsenalHash } from "@shared/arsenalContent";
 import { buildCompactEditorialContract, compactEditorialEvidenceKind, positiveEditorialInstructions } from "./compactEditorialContract";
-import { compactCopyPrompt, compactCopySystemPrompt, compactCopySystemPromptFor, targetedCopyRepairPrompt, targetedRepairSystemPromptFor, targetedRepairSystemPromptV2 } from "./compactProposalCopy";
+import { compactCopyPrompt, compactCopySystemPrompt, compactCopySystemPromptFor, editorialDesignReviewContext, targetedCopyRepairPrompt, targetedRepairSystemPromptFor, targetedRepairSystemPromptV2 } from "./compactProposalCopy";
 import { editorialContextV9 } from "./editorialContextV9";
 import { buildSourceEvidenceV10 } from "./reviewEvidenceV10";
 import type { ProposalExecutionInput } from "./proposalGraph";
@@ -58,6 +58,65 @@ describe("positive shared editorial contract",()=>{
     for(const field of ["bindings","assetIds","instances","editorialPlan","socialPlaybook"]) expect(prompt).not.toContain(`"${field}"`);
     expect(JSON.parse(prompt).targets).toHaveLength(1);
     expect(prompt).not.toContain("maxCharacters");
+  });
+});
+
+describe("experimental layout-led writing", () => {
+  const [cover, detail, replacement] = completeDesignTestDefinitions();
+  const approach = "Abra com a experiência e detalhe a visita na segunda lâmina.";
+  const readerPriority = "Entender por que visitar antes de conferir o horário.";
+  const coverPurpose = "Apresente o nome da cafeteria como título de abertura.";
+  const detailPurpose = "Use o apoio para a condição de gratuidade aos sábados.";
+  const experiment: ProposalExecutionInput = {
+    ...input,
+    postMode: "carousel",
+    editorialApproach: approach,
+    narrativePlan: {
+      slot: 0, status: "viable", candidateId: cover.id, reason: "A estrutura facilita o convite.",
+      editorialApproach: approach, editorialDesign: { readerPriority }, captionContentIds: [],
+      pages: [
+        { slideIndex: 0, componentId: cover.id, purpose: "Convidar", rhythm: "opening",
+          assignments: [{ fieldId: "field-0", contentIds: [], itemCount: null, instruction: coverPurpose }] },
+        { slideIndex: 1, componentId: detail.id, purpose: "Detalhar condições", rhythm: "reading",
+          assignments: [{ fieldId: "field-1", contentIds: [], itemCount: null, instruction: detailPurpose }] },
+      ],
+    },
+  };
+
+  it("adds layout-specific roles to writing and repair while keeping the original editorial contract", () => {
+    const slides = [cover, detail];
+    for (const value of [experiment, { ...experiment, reviewExecutionConfig: undefined }]) {
+      const payload = JSON.parse(compactCopyPrompt(value, slides));
+      expect(payload.designReading).toMatchObject({ approach, readerPriority });
+      expect(payload.slides[0].fields[0]).toMatchObject({ writingPurpose: coverPurpose, boxes: expect.any(Array) });
+      expect(payload.slides[1].fields[0]).not.toHaveProperty("writingPurpose");
+      expect(payload.slides[1].fields[1]).toMatchObject({ writingPurpose: detailPurpose });
+      expect(payload.approach).toBeUndefined();
+      const repairTargets = [{ slideIndex: 1, fieldId: "field-1", itemIndex: null, current: "Apenas aos sábados", reason: ["overflow"] }];
+      const repair = JSON.parse(targetedCopyRepairPrompt(value, slides, repairTargets, 2));
+      expect(repair.designReading).toMatchObject({ readerPriority });
+      expect(repair.targets).toMatchObject([{ slideIndex: 1, fieldId: "field-1", writingPurpose: detailPurpose }]);
+    }
+    const payload = JSON.parse(compactCopyPrompt(experiment, slides));
+    expect(payload.editorial).toEqual(buildCompactEditorialContract(experiment));
+    expect(editorialDesignReviewContext(experiment)).toMatchObject({ designReading: { approach, readerPriority, advisory: true } });
+  });
+
+  it("ignores a stale field when recovery swaps the component and protects literal writing", () => {
+    const rewrite = JSON.parse(compactCopyPrompt({ ...experiment, rewriteForRecovery: true }, [cover, replacement]));
+    expect(rewrite).toHaveProperty("recovery.instruction");
+    expect(rewrite.designReading.readerPriority).toBe(readerPriority);
+    expect(rewrite.slides[1].fields[1]).not.toHaveProperty("writingPurpose");
+
+    const literal: ProposalExecutionInput = {
+      ...experiment,
+      generationIntent: { ...experiment.generationIntent!, adaptation: "literal" },
+    };
+    const payload = compactCopyPrompt(literal, [cover, detail]);
+    expect(payload).not.toContain('"designReading"');
+    expect(payload).not.toContain('"writingPurpose"');
+    expect(payload).not.toContain(approach);
+    expect(editorialDesignReviewContext(literal)).toEqual({});
   });
 });
 

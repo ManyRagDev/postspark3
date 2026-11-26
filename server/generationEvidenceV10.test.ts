@@ -1,6 +1,7 @@
 /** Offline contract tests. Model judgments, pixels, font metrics and provider IDs
  * are explicitly controlled; they do not establish semantic quality. */
 import { describe, expect, it, vi } from "vitest";
+import { structuralIntentFixture } from "./ai/workflows/generationIntent.fixture";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -235,7 +236,7 @@ async function scenario(
               })),
             }
           : params.traceLabel.includes("intent")
-            ? options.automatic ? {objective:intent.objective,tone:intent.tone.description,semanticQuery:"Planejamento cuidadoso diante de riscos, tipografia clara",ideas:intent.content.map(({meaning,sourceIds})=>({meaning,sourceIds}))} : options.slideCount ? {
+            ? options.automatic ? structuralIntentFixture({objective:intent.objective,tone:intent.tone.description,semanticQuery:"Planejamento cuidadoso diante de riscos, tipografia clara",ideas:intent.content.map(({meaning,sourceIds})=>({meaning,sourceIds}))}) : options.slideCount ? {
                 ...intent,
                 requirements: [{
                   id: "pages",

@@ -25,6 +25,11 @@ const request = {
   letterSpacing: 0,
 };
 describe("verified server font measurement", () => {
+  it("reserves the fallback emoji width when the catalogue font lacks the link glyph", async () => {
+    const measure = await createComponentTextMeasurer([asset]);
+    const emoji = measure({ ...request, text: "🔗" });
+    expect(emoji.lines[0].width).toBeGreaterThanOrEqual(request.fontSize * 1.25);
+  });
   it("returns finite positioned ink for verified accented and multiline glyphs", async () => {
     const measure = await createComponentTextMeasurer([asset]);
     const layout = measure({ ...request, text: "Água e ação\nCafé", width: 900 });

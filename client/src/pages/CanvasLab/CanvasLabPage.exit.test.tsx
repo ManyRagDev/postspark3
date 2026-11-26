@@ -267,11 +267,13 @@ describe("CanvasLabPage Exit and Draft Flushing (OS-008 & C01)", () => {
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);
     const warned = event.defaultPrevented;
+    const maySwitchPlan = window.dispatchEvent(new Event("postspark:before-plan-change", { cancelable: true }));
     await act(async () => {
       release(true);
       await pending;
     });
     expect(warned).toBe(true);
+    expect(maySwitchPlan).toBe(false);
   });
 
   it("C04-R1 BUG-016: restart failure must not reset session", async () => {

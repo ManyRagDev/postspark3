@@ -134,4 +134,77 @@ describe("Studio debugger", () => {
     expect(result.coverage.liveSelectionCaptured).toBe(false);
     expect(JSON.stringify(result)).not.toMatch(/PRIVATE|briefing privado/);
   });
+
+  it("charges failed final repairs to operational cost per recovered proposal, preserving unknown cost", () => {
+    const proposals = [
+      { proposalId: "p0", status: "ready", diagnostics: [{ code: "final_text_fit_passed", target: "p0-fb1" }] },
+      { proposalId: "p1", status: "failed" },
+    ];
+    const operations = proposals.map(({ proposalId }, i) => ({ operation_key: proposalId + ":copy_final_fit", state: "completed",
+      result: { usage: { cost: i ? 0.003 : 0.001 }, finalFit: { attemptId: proposalId + "-fb1", durationMs: 602, targetCount: 4 } } }));
+    const report = () => buildStudioDebugger({ request: { ...request, proposals }, operations });
+    expect(report().timeline.find(step => step.id === "final-fit-summary")?.detail).toMatchObject({
+      attempts: 2, delivered: 1, costUsdPerRecoveredProposal: 0.004,
+    });
+    Reflect.deleteProperty(operations[1].result.usage, "cost");
+    expect(report().timeline.find(step => step.id === "final-fit-summary")?.detail).toMatchObject({
+      delivered: 1, knownCostUsd: 0.001, unknownCosts: 1, costUsdPerRecoveredProposal: null,
+    });
+  });
+
+  it("surfaces provider rejections and copy validation details as debugger issues", () => {
+    const result = buildStudioDebugger({
+      request: {
+        ...request,
+        proposals: [
+          {
+            proposalId: "p-1",
+            slot: 0,
+            status: "failed",
+            diagnostics: [
+              {
+                code: "copy_response_invalid_detail",
+                target: "proposal",
+                evidence: '[{"path":"slides.0","message":"native_field_set_mismatch"}]',
+              },
+            ],
+          },
+        ],
+      },
+      operations: [
+        {
+          operation_key: "p-1:copy_recovery",
+          state: "completed",
+          started_at: "2026-11-19T01:00:01Z",
+          updated_at: "2026-11-19T01:00:02Z",
+          result: {
+            __providerRejection: {
+              provider: "openrouter",
+              model: "anthropic/claude-haiku-5.5",
+              httpStatus: 400,
+              reason: "invalid_request_error",
+            },
+          },
+        },
+      ],
+      events: [],
+    });
+    expect(result.timeline.find(s => s.id === "p-1:copy_recovery:result")?.status).toBe("provider_rejected");
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "provider_request_rejected", target: "p-1:copy_recovery" }),
+        expect.objectContaining({ code: "copy_response_invalid_detail", target: "p-1" }),
+      ])
+    );
+  });
+  it("retains validation details after another design delivers the slot", () => {
+    const issue = {path:"slides.0.values", code:"too_big", message:"too many fields"};
+    const result = buildStudioDebugger({ request, operations: [], events: [{
+      at:request.created_at, stage:"proposal_copy_validation_failed", detail:"copy_response_invalid", status:"failed",
+      data:{proposalId:"p-1", attemptId:"p-1-fb1", issues:[issue]},
+    }] });
+    expect(result.issues).toContainEqual({code:"copy_response_invalid_detail", target:"p-1-fb1", detail:JSON.stringify([issue])});
+    expect(result.timeline.find(s=>s.title==="proposal_copy_validation_failed")?.detail).toMatchObject({issues:[issue]});
+  });
+
 });

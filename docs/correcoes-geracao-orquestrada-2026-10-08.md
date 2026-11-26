@@ -1,5 +1,7 @@
 # Correções da geração orquestrada — 2026-10-08
 
+> Registro histórico. O ambiente relatado era o Supabase Cloud aposentado. As operações atuais seguem o [contrato da VPS](./contrato-integracao-supabase-vps.md).
+
 Plano executado a partir dos achados R01–R08 de `conferencia-implementacao-geracao-orquestrada-2026-10-08.md` e do blueprint. O registro da conferência anterior descreve o estado anterior às correções, não deve ser usado como fotografia do código atual.
 
 ## Escopo e implantação
@@ -8,7 +10,7 @@ O código agora contém um piloto V5 integrado ao Studio e um executor Node recu
 
 Não foi escolhido preço novo, nem implementada liquidação comercial parcial. O banco fixa `billing_mode=dev_pilot`, e a API recusa planos pagos nesse caminho. Billing V4 e geração manual de imagens conservam seus contratos. Essa restrição é deliberada: não se pode declarar encerrado o gate comercial da fase 2 do blueprint enquanto tarifa, reserva/liquidação por proposta e hospedagem produtiva não forem definidos e validados. DEV não consome Sparks, mas chamadas reais de modelo continuam tendo custo externo.
 
-A migration `drizzle/0034_orchestrated_generation.sql` e a corretiva `drizzle/0035_generation_lease_conflict.sql` foram aplicadas ao Supabase `spbuwcwmxlycchuwhfir` em 2026-10-08, após testes PostgreSQL locais. O histórico, RLS, permissões e oito RPCs foram conferidos remotamente; evidências em `artifacts/verification/v5-migrations-2026-10-08/`. O processo recuperável é `pnpm generation:worker`; não é iniciado por handlers HTTP nem por promessa após a resposta serverless. No desenvolvimento local, `pnpm dev` inicia esse executor como filho separado após o bind quando o modo V5 está dev; produção continua exigindo hospedagem própria do processo.
+A migration `drizzle/0034_orchestrated_generation.sql` e a corretiva `drizzle/0035_generation_lease_conflict.sql` foram aplicadas ao Supabase Cloud aposentado em 2026-10-08, após testes PostgreSQL locais. O histórico, RLS, permissões e oito RPCs foram conferidos remotamente; evidências em `artifacts/verification/v5-migrations-2026-10-08/`. O processo recuperável é `pnpm generation:worker`; não é iniciado por handlers HTTP nem por promessa após a resposta serverless. No desenvolvimento local, `pnpm dev` inicia esse executor como filho separado após o bind quando o modo V5 está dev; produção continua exigindo hospedagem própria do processo.
 
 ## Correções por achado
 

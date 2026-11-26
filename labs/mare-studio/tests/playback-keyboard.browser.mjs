@@ -57,7 +57,10 @@ test("Espaço e setas controlam a prévia ao editar e preservam digitação e na
     return page;
   }
   const montage = await open();
-  await montage.locator("#start-demo").click();
+  await montage.locator("#start-blank").click();
+  await montage.locator("#project-menu").click();
+  await montage.locator("#reset").click();
+  await montage.locator("#confirm-reset").click();
   assert.equal(await montage.locator("#project-menu").evaluate(b => b === document.activeElement), true);
   await checkPlayback(montage);
   assert.equal(await montage.locator("#project-pop").isHidden(), true);

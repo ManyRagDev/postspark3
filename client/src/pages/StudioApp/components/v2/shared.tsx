@@ -1,3 +1,4 @@
+import { mareEntryHref, MareEntryLink, type MareEntry } from "./MareEntryLink";
 import { type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { VisualFamilyId } from "@/pages/CanvasLab/components/types";
@@ -82,16 +83,19 @@ export function FormatPictogram({ mode, active }: { mode: "static" | "carousel" 
 }
 
 export function FormatSelector({
+  mareEntry,
   value,
   onChange,
   proposalAspectRatio,
   onProposalAspectRatioChange,
 }: {
+  mareEntry?: MareEntry;
   value: "static" | "carousel";
   onChange: (mode: "static" | "carousel") => void;
   proposalAspectRatio?: "1:1" | "4:5" | "9:16";
   onProposalAspectRatioChange?: (ratio: "1:1" | "4:5" | "9:16") => void;
 }) {
+  const href = mareEntryHref(mareEntry);
   const options: Array<{
     id: "static" | "carousel" | "video";
     label: string;
@@ -125,6 +129,12 @@ export function FormatSelector({
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-2">
         {options.map((option) => {
+          if (option.id === "video" && href) return (
+            <MareEntryLink key="video" href={href}
+              className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-white/15 text-sm text-white/75 hover:bg-white/5">
+              <FormatPictogram mode="video" active={false} />
+            </MareEntryLink>
+          );
           const active = option.id === value;
           const isDisabled = Boolean(option.disabled);
           return (

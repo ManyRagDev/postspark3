@@ -1,5 +1,7 @@
 # Geração por composições completas — V4
 
+> Decisões da V4, registradas em outubro. Para geração e operação atuais, consulte o [mapa do motor](./motor-integracao.md).
+
 Decisão de 2026-10-07: o catálogo define as composições possíveis. A IA decide quais delas atendem ao briefing e escreve dentro de seus campos. A estética nasce da autoria e curadoria do catálogo.
 
 A evolução planejada está no [blueprint da geração orquestrada](./blueprint-geracao-orquestrada.md): grafos por proposta, mídia nas sugestões, contratos, revisão técnica excepcional e entrega independente. Ele descreve o destino proposto; esta página registra o comportamento V4 atual.

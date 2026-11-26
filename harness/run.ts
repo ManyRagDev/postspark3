@@ -1,5 +1,5 @@
 /**
- * Orquestrador do harness. É o ORÁCULO das etapas E2 a E5.
+ * Orquestrador dos perfis históricos de medição de texto e layout.
  *
  *   pnpm harness                 → perfil `baseline` (mede o estado atual)
  *   pnpm harness --profile e2    → portão da prova de encaixe
@@ -7,8 +7,7 @@
  *   pnpm harness --profile e5    → cor garantida
  *   pnpm harness --family editorial-poster --json relatorio.json
  *
- * Sai com código 0 (aprovado) ou 1 (reprovado). Um agente executor NUNCA deve
- * declarar uma etapa concluída sem este comando verde no perfil da etapa.
+ * Sai com código 0 (aprovado) ou 1 (reprovado) no perfil escolhido.
  *
  * NUNCA degrada silenciosamente: fonte faltando aborta com a lista do que falta.
  */

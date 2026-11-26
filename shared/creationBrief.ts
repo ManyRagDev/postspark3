@@ -1,5 +1,5 @@
 import { detectFormatIntent } from "./formatIntent";
-import type { ExecutionBrandInput, ExecutionSlideInput } from "./postspark";
+import type { ExecutionSlideInput } from "./postspark";
 import {
   CREATION_BRIEF_VERSION,
   type CreationBrief,
@@ -47,6 +47,11 @@ export function extractUrlsFromText(text: string): string[] {
  * Tenta extrair a quantidade intencionada de slides quando for carrossel.
  */
 function extractSlideCount(text: string): number | undefined {
+  const writtenCount = text.match(/\b(dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez)\s+(?:slides?|p[áa]ginas?|l[âa]minas?|telas?|cards?)\b/i)?.[1];
+  if (writtenCount) {
+    const counts: Record<string, number> = { dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10 };
+    return counts[writtenCount.toLowerCase().replace("ê", "e")];
+  }
   const match = text.match(/(\d+)\s*(?:slides?|passos?|telas?|cards?|dicas?|etapas?|pontos?)/i);
   if (match && match[1]) {
     const num = parseInt(match[1], 10);
@@ -63,16 +68,14 @@ function extractSlideCount(text: string): number | undefined {
 }
 
 /**
- * Extrai sugestões explícitas de CTA a partir do texto.
+ * Extrai declarações explícitas e estruturadas de CTA (ex: "CTA: ...").
+ * Nunca sintetiza texto de CTA a partir de verbos livres no briefing.
  */
 function extractCallToAction(text: string): string | undefined {
-  const match = text.match(/(?:cta|chamada|call to action)\s*[:=-]\s*([^\n.;]+)/i);
+  const match = text.match(/(?:^|\n|[.;]\s*)(?:cta|chamada|call to action)\s*[:=-]\s*([^\n.;]+)/i);
   if (match && match[1]) {
     return match[1].trim();
   }
-  if (/link na bio/i.test(text)) return "Link na bio";
-  if (/comente /i.test(text)) return "Comente abaixo";
-  if (/compartilhe/i.test(text)) return "Compartilhe com um amigo";
   return undefined;
 }
 
@@ -148,13 +151,6 @@ export function creationBriefToExecutionBrief(
     slides?: ExecutionSlideInput[];
   }
 ) {
-  const brandInput: ExecutionBrandInput | undefined =
-    brief.sourceUrls && brief.sourceUrls.length > 0
-      ? {
-          websiteUrl: brief.sourceUrls[0],
-          adaptationMode: "adaptive",
-        }
-      : undefined;
   const slides: ExecutionSlideInput[] = overrides?.slides ?? [];
 
   return {
@@ -172,6 +168,5 @@ export function creationBriefToExecutionBrief(
     notes: brief.visualBrief,
     mustInclude: brief.requiredTerms ?? [],
     forbiddenTerms: brief.forbiddenTerms ?? [],
-    brandInput,
   };
 }

@@ -14,6 +14,7 @@ import { GENERATION_FAILURE_REASONS } from "./postspark";
  */
 
 const RETRYABLE_REASONS: ReadonlySet<GenerationFailureReason> = new Set<GenerationFailureReason>([
+  "generation_unavailable",
   "provider_route_unavailable",
   "provider_unavailable",
   "provider_timeout",
@@ -21,12 +22,14 @@ const RETRYABLE_REASONS: ReadonlySet<GenerationFailureReason> = new Set<Generati
   "quality_rejected",
   "variations_not_distinct",
   "persistence_failed",
+  "concurrent_limit_reached",
   "unknown",
 ]);
 
 /** Mensagem direta, sem stack trace, sem payload sensível. */
 const USER_MESSAGES: Record<GenerationFailureReason, string> = {
   generation_paused: "Novas gerações estão pausadas neste ambiente. Nenhum Spark foi reservado.",
+  generation_unavailable: "A geração com IA está temporariamente indisponível. Tente novamente.",
   insufficient_sparks:
     "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
   authentication: "Sua sessão expirou. Entre novamente para continuar.",
@@ -48,6 +51,10 @@ const USER_MESSAGES: Record<GenerationFailureReason, string> = {
     "Não foi possível salvar o resultado da geração. Tente novamente.",
   billing_commit_failed:
     "Não foi possível confirmar a cobrança desta geração. Entre em contato com o suporte.",
+  concurrent_limit_reached:
+    "Aguarde seus pedidos em andamento antes de iniciar outro.",
+  catalog_precondition_failed:
+    "Não foi possível confirmar composições compatíveis com este pedido. Nenhum Spark foi reservado.",
   unknown: "Não foi possível concluir a geração. Tente novamente.",
 };
 
@@ -76,6 +83,12 @@ export function classifyGenerationError(error: unknown): GenerationFailureReason
 
   if (code === "PROVIDER_ROUTE_UNAVAILABLE" || message === "provider_route_unavailable") return "provider_route_unavailable";
   if (message === "generation_paused") return "generation_paused";
+  if (code === "TOO_MANY_REQUESTS" || /active generation limit|aguarde seus pedidos em andamento/.test(message)) {
+    return "concurrent_limit_reached";
+  }
+  if (code === "PRECONDITION_FAILED" || /complete_design_catalog_empty|composições completas compatíveis/.test(message)) {
+    return "catalog_precondition_failed";
+  }
   if (code === "PAYMENT_REQUIRED" || /insufficient (sparks|balance|credits)/.test(message)) {
     return "insufficient_sparks";
   }
@@ -132,12 +145,14 @@ function extractErrorMessage(error: unknown): string {
 
 function extractErrorCode(error: unknown): string {
   if (error && typeof error === "object") {
-    const candidate = error as { code?: unknown };
+    const candidate = error as { code?: unknown; data?: { code?: unknown }; shape?: { data?: { code?: unknown } } };
     if (typeof candidate.code === "string") return candidate.code.toUpperCase();
     if (candidate.code && typeof candidate.code === "object") {
       const inner = candidate.code as { code?: unknown };
       if (typeof inner.code === "string") return inner.code.toUpperCase();
     }
+    if (typeof candidate.data?.code === "string") return candidate.data.code.toUpperCase();
+    if (typeof candidate.shape?.data?.code === "string") return candidate.shape.data.code.toUpperCase();
   }
   return "";
 }
@@ -190,6 +205,8 @@ export const generationFailureSchema = z.object({
     "source_conflict",
     "source_limitation",
     "artwork_unusable",
+    "proposal_visual_duplicate",
+    "llm_request_invalid",
     "review_render_failed",
   ]),
   stage: z.enum(["catalog", "selection", "copy", "media", "review", "delivery", "execution"]), retryable: z.boolean(),
@@ -220,6 +237,8 @@ export function failureFromError(error: unknown, stage: GenerationFailure["stage
   if (error instanceof GenerationFailureError) return error.failure;
   if((error as {name?:string})?.name==="SourceContextLimitError")return {code:"source_limitation",stage,retryable:false};
   const e=error as {name?:string;code?:string;cause?:{name?:string;code?:string}};
+  if (e?.name === "LlmLocalRequestError" || e?.cause?.name === "LlmLocalRequestError")
+    return {code:"llm_request_invalid",stage,retryable:false};
   if ((e?.name === "KnownProviderRejectionError" && e.code === "provider_route_unavailable") ||
       (e?.cause?.name === "KnownProviderRejectionError" && e.cause.code === "provider_route_unavailable"))
     return {code:"provider_route_unavailable",stage,retryable:true};

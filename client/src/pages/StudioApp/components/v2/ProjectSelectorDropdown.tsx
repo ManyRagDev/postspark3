@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Building2, ChevronDown, Plus, Check, Edit2, Trash2, Palette } from "lucide-react";
+import { Building2, ChevronDown, Plus, Check, Edit2, Trash2, Palette, Images, Globe } from "lucide-react";
 import VisualIdentityModal from "./VisualIdentityModal";
+import { getProjectArtworkIds, ProjectArtworkDialog, type SavedProjectArtwork } from "./ProjectArtworkDialog";
+import type { ProjectArtworkSelection } from "../../lib/briefDraftStorage";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -13,7 +15,10 @@ interface ProjectSelectorDropdownProps {
   selectedProjectId: string | null;
   onSelectProject: (projectId: string | null) => void;
   onOpenNewProjectModal: () => void;
+  onImportBrand?: () => void;
   onEditProjectModal: (project: any) => void;
+  onOpenSavedArtwork?: (post: SavedProjectArtwork) => void;
+  onUseSavedArtwork?: (artwork: ProjectArtworkSelection) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -22,12 +27,16 @@ export default function ProjectSelectorDropdown({
   selectedProjectId,
   onSelectProject,
   onOpenNewProjectModal,
+  onImportBrand,
   onEditProjectModal,
+  onOpenSavedArtwork,
+  onUseSavedArtwork,
   disabled = false,
   className = "",
 }: ProjectSelectorDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [identityProject, setIdentityProject] = useState<any>(undefined);
+  const [isArtworkOpen, setIsArtworkOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
@@ -61,6 +70,8 @@ export default function ProjectSelectorDropdown({
   }, [remoteProjects, localProjects]);
 
   const activeProject = projects.find((p) => p.id === selectedProjectId) || null;
+  const artworkIds = getProjectArtworkIds(activeProject?.visualPreferences?.composition);
+  const showArtwork = artworkIds.length > 0 && (onUseSavedArtwork || onOpenSavedArtwork);
 
   // Fecha dropdown ao clicar fora
   useEffect(() => {
@@ -95,6 +106,21 @@ export default function ProjectSelectorDropdown({
   return (
     <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
       {identityProject !== undefined && <VisualIdentityModal project={identityProject} onClose={() => setIdentityProject(undefined)} onSaved={id => onSelectProject(id)} />}
+      {isArtworkOpen && activeProject && showArtwork && (
+        <ProjectArtworkDialog
+          project={activeProject}
+          postIds={artworkIds}
+          onClose={() => setIsArtworkOpen(false)}
+          onUseArtwork={onUseSavedArtwork && (artwork => {
+            setIsArtworkOpen(false);
+            onUseSavedArtwork(artwork);
+          })}
+          onOpenArtwork={onOpenSavedArtwork && (post => {
+            setIsArtworkOpen(false);
+            onOpenSavedArtwork(post);
+          })}
+        />
+      )}
       <button
         type="button"
         disabled={disabled}
@@ -114,6 +140,22 @@ export default function ProjectSelectorDropdown({
         </span>
         <ChevronDown size={12} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
+
+      {showArtwork && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            setIsOpen(false);
+            setIsArtworkOpen(true);
+          }}
+          aria-label={`Modelos do projeto ${activeProject.name} (${artworkIds.length})`}
+          className="ml-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 disabled:opacity-40 max-md:min-h-11"
+        >
+          <Images size={13} aria-hidden="true" />
+          Modelos ({artworkIds.length})
+        </button>
+      )}
 
       {isOpen && (
         <div className="absolute left-0 z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] origin-top-left divide-y divide-white/5 overflow-hidden rounded-sm border border-white/10 bg-[#181818] text-xs text-white shadow-2xl animate-in fade-in zoom-in-95 duration-100 md:rounded-xl md:bg-[#18181F]">
@@ -214,6 +256,15 @@ export default function ProjectSelectorDropdown({
 
           {/* Botão Novo Projeto */}
           <div className="p-1.5 bg-black/20">
+            {onImportBrand && (
+              <button
+                type="button"
+                onClick={() => { setIsOpen(false); onImportBrand(); }}
+                className="mb-1 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-white/90 hover:bg-white/10"
+              >
+                <Globe size={14} aria-hidden="true" /> Importar marca do site
+              </button>
+            )}
             <button type="button" onClick={() => { setIsOpen(false); setIdentityProject(null); }} className="mb-1 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-violet-500/15 px-3 py-2 text-violet-200"><Palette size={14} />Novo projeto com identidade</button>
             <button
               type="button"

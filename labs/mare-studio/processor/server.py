@@ -224,9 +224,14 @@ class Handler(SimpleHTTPRequestHandler):
             return self.message(429, "Outra narração está sendo gerada. Aguarde um instante.")
         try:
             self.connection.settimeout(30)
-            audio = synthesize(json.loads(self.rfile.read(size)))
+            receipt = {}
+            audio = synthesize(json.loads(self.rfile.read(size)), receipt)
             self.send_response(200)
             self.send_header("Content-Type", "audio/mpeg")
+            if re.fullmatch(r"[a-zA-Z0-9_-]{1,200}", receipt.get("generationId", "")):
+                self.send_header("X-Generation-Id", receipt["generationId"])
+            if receipt.get("cost") is not None:
+                self.send_header("X-Mare-Provider-Cost", str(receipt["cost"]))
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
@@ -330,5 +335,6 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     threading.Thread(target=expire_results, daemon=True).start()
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

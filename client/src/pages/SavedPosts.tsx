@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Bookmark, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { getSelectedProjectId, setSelectedProjectId } from "./StudioApp/lib/projectStorage";
+import { THEVOID_LAB_PATH } from "@/lib/studioRoutes";
 import { useLocation } from "wouter";
 import { createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import type { PostVariation, PostVisualSnapshot, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
@@ -168,7 +170,7 @@ function LibraryPagination({ page, total, disabled, onChange, label }: { page: n
   </nav>;
 }
 
-export default function SavedPosts() {
+export default function SavedPosts({ lab = false }: { lab?: boolean } = {}) {
   const [, setLocation] = useLocation();
   const utils=trpc.useUtils();
   const [initialView] = useState(readLibraryView);
@@ -218,7 +220,7 @@ export default function SavedPosts() {
     try{
     const post=await utils.post.get.fetch({id:summary.id});
     if(!post)throw new Error("Post indisponível");
-    // Item 7: reabre o post no editor oficial CanvasLab (rota /thevoid).
+    // Item 7: reabre o post no editor CanvasLab do Studio.
     // O modelo completo (canvas_model ou reconstrução heurística) viaja pelo
     // sessionStorage e é lido pelo StudioAppV2BPage no mount.
     const model = savedPostToCanvasModel(post);
@@ -234,7 +236,7 @@ export default function SavedPosts() {
       })
     );
 
-    setLocation("/thevoid");
+    setLocation(lab ? THEVOID_LAB_PATH : "/thevoid");
     }catch{toast.error("Não foi possível abrir o post. Tente novamente.");}finally{setOpening(null);}
   };
 
@@ -242,7 +244,7 @@ export default function SavedPosts() {
     <div className="min-h-screen bg-soul-deep px-4 pb-8 pt-3 text-foreground md:py-8">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
         <header className="flex items-center justify-between gap-3">
-          <button onClick={() => setLocation("/")} className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <button onClick={() => setLocation(lab ? THEVOID_LAB_PATH : "/")} className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />Voltar
           </button>
           <UserTopMenu variant="inline" compactMobile />
@@ -333,7 +335,7 @@ export default function SavedPosts() {
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
                     <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
                       <Sparkles className="h-3.5 w-3.5 text-thermal-orange" />
-                      {post.postMode === "carousel" ? "Carrossel" : "Post único"}
+                      {post.postMode === "carousel" ? "Carrossel" : "Post único"}{post.has_temporal_media ? " · com vídeo" : ""}
                     </div>
                     <button
                       disabled={opening!==null} onClick={() => void openSavedPost(post)}
@@ -372,6 +374,13 @@ export default function SavedPosts() {
       {isIngestOpen && (
         <TemplateIngestionModal
           isOpen={isIngestOpen}
+          projectId={getSelectedProjectId()}
+          onProjectCreatedOrUpdated={setSelectedProjectId}
+          onOpenSavedArtwork={post => void openSavedPost(post)}
+          onUseSavedArtwork={artwork => {
+            rememberView();
+            setLocation(lab ? THEVOID_LAB_PATH : "/thevoid", { state: { briefingArtwork: artwork } });
+          }}
           onClose={() => {
             setIsIngestOpen(false);
             void refetch();

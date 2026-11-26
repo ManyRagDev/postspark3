@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { compactComponentCard, createComponentDefinition } from "@shared/componentAssembly";
 import { resolveDesignFamilyRepertoires } from "@shared/designRepertoire";
-import { sealGenerationPlanningReceipt, type ViableGenerationPlan } from "@shared/generationPlan";
-import { executeProposalWorkflow, type ProposalExecutionInput, type ProposalGraphDeps } from "./proposalGraph";
+import { sealGenerationPlanningReceipt, type GenerationIntent, type ViableGenerationPlan } from "@shared/generationPlan";
+import { executeProposalWorkflow, fitExistingProposalCopy, type ProposalExecutionInput, type ProposalGraphDeps } from "./proposalGraph";
 import { editorialContextV9 } from "./editorialContextV9";
 import { resolveReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
 import { healthyReviewV10Fixture } from "./proposalReviewV10.fixture";
@@ -26,7 +26,7 @@ const copy = (title: string, dirty = false) => ({
   ], mediaPrompts: [] }],
 });
 
-function scenario(options: { physical?: boolean; priorKeys?: string[]; failCorrection?: boolean } = {}) {
+function scenario(options: { physical?: boolean; priorKeys?: string[]; failCorrection?: boolean; brokenCorrection?: boolean } = {}) {
   const generationConfig = resolveGenerationModelConfig({ generationModel: "gpt", postMode: "static" });
   const input: ProposalExecutionInput = {
     requestId: runId, runId, proposalId: "recovery-v10", slot: 0, selectedDefinition: definition,
@@ -50,7 +50,7 @@ function scenario(options: { physical?: boolean; priorKeys?: string[]; failCorre
     if (params.traceLabel?.endsWith("_copy_recovery")) return response(copy("Gratuito para sempre", true));
     if (params.traceLabel?.endsWith("_editorial_recovery")) {
       if (options.failCorrection) throw new Error("simulated_provider_timeout");
-      return response(copy("Conheça o serviço", true));
+      return response(copy(options.brokenCorrection ? "LONG Conheça o serviço" : "Conheça o serviço", true));
     }
     return response(copy(options.physical ? "LONG gratuito para sempre" : "Gratuito para sempre"));
   });
@@ -73,6 +73,206 @@ function scenario(options: { physical?: boolean; priorKeys?: string[]; failCorre
 }
 
 describe("V10 bounded physical and editorial recovery", () => {
+  const artIntent = (objective: string, designRequirements: Partial<NonNullable<GenerationIntent["designRequirements"]>>): GenerationIntent => ({
+    version: 1, objective, adaptation: "controlled",
+    tone: { description: "Direto", origin: "inferred", rationale: "Briefing" },
+    requirements: [], content: [],
+    designRequirements: { version: 1, requiresComparison: false, requiresTextCta: false, textCta: null,
+      forbidsPhotography: false, requiredFacts: [], estimatedArtCharacters: 0, ...designRequirements },
+  });
+  const enableArtworkBrief = (input: ProposalExecutionInput) => {
+    input.generationConfig = resolveGenerationModelConfig({ generationModel: "auto", postMode: input.postMode ?? "static" }, true, true, true);
+    input.reviewExecutionConfig = resolveReviewExecutionConfigV10(input.generationConfig.model, input.generationConfig.taskRouting!.copy,
+      { artworkBriefPolicyVersion: 1 });
+    input.editorialContext = editorialContextV9(input);
+    input.editorialContextHash = input.editorialContext.hash;
+    const plan: ViableGenerationPlan = {
+      slot: 0, status: "viable", candidateId: definition.id, reason: "Direção compatível", editorialApproach: input.prompt,
+      captionContentIds: [], pages: (input.selectedDefinitions ?? [definition]).map((d, slideIndex) =>
+        ({ slideIndex, componentId: d.id, purpose: input.prompt, rhythm: "reading", assignments: [] })),
+    };
+    input.narrativePlan = plan;
+    return plan;
+  };
+  const reviewed = (slides: number) => response({ status: "reviewed", reviewedSlides: Array.from({ length: slides }, (_, index) => index), limitation: null, findings: [] });
+
+  it("separates alternatives in the delivered native body, including a provider paragraph", async () => {
+    const s = scenario();
+    s.input.generationIntent = artIntent("Compare os planos", { requiresComparison: true,
+      requiredFacts: [
+        { contentId: "essential", text: "Essencial", comparisonGroup: 1, slideIndex: null, role: "label" },
+        { contentId: "complete", text: "Completo", comparisonGroup: 2, slideIndex: null, role: "label" },
+      ] });
+    const plan = enableArtworkBrief(s.input);
+    plan.pages[0].assignments = [{ contentIds: ["essential", "complete"], fieldId: "field-1",
+      instruction: "Mantenha cada preço junto do plano.", itemCount: null }];
+    s.generateText.mockImplementation(async params => {
+      if (params.taskRoute === "post_evaluation") return reviewed(1);
+      expect(params.messages[0].content).toContain("Separe as alternativas com \\n");
+      expect(params.messages[1].content).toContain('"comparisonAlternatives":["Essencial","Completo"]');
+      const draft = copy("Compare os planos");
+      draft.slides[0].values[1].value = "Essencial: R$ 39/mês e 1 oficina. Completo: R$ 69/mês e 2 oficinas.";
+      return response(draft);
+    });
+    const result = await s.run();
+    expect(result.status, result.errorReason).toBe("ready");
+    expect(result.bundle?.slides[0].composition.elements.find(e => e.id === "support")?.text)
+      .toBe("Essencial: R$ 39/mês e 1 oficina.\nCompleto: R$ 69/mês e 2 oficinas.");
+  });
+
+  it.each([true, false])("checks the final artwork field independently of the caption (local CTA %s)", async localCta => {
+    const s = scenario();
+    const ctaDesign = createComponentDefinition({ ...definition, fragment: { ...definition.fragment,
+      bindings: [definition.fragment.bindings[0], { ...definition.fragment.bindings[1], source: "block:callToAction:0:text" }],
+    } });
+    s.input.selectedDefinitions = [ctaDesign, ctaDesign];
+    s.input.postMode = "carousel";
+    const action = localCta ? "feche convidando a salvar o guia." : "feche convidando a salvar o guia e compartilhar.";
+    s.input.generationIntent = artIntent("Ensine cerâmica em casa", { requiresTextCta: true });
+    s.input.generationIntent.requirements.push({ id: "required-cta", requestQuote: action, description: action,
+      kind: "content", origin: "explicit", surface: "art", itemCount: null });
+    const plan = enableArtworkBrief(s.input);
+    plan.pages[1].assignments = [{ contentIds: ["required-cta"], fieldId: "field-1", instruction: action, itemCount: null }];
+    const draft = copy("Cerâmica em casa");
+    draft.caption = "Salve o guia e compartilhe.";
+    draft.slides[0].values[1].value = "Salve o guia e compartilhe";
+    draft.slides.push(copy("A peça deve secar").slides[0]);
+    draft.slides[1].values[1].value = "Arraste para o próximo passo";
+    s.generateText.mockImplementation(async params => {
+      if (params.taskRoute === "post_evaluation") return reviewed(2);
+      expect(params.messages[1].content).toContain('"requiredOnArt":');
+      return response(draft);
+    });
+    const result = await s.run();
+    if (localCta) {
+      expect(result.status, result.errorReason).toBe("ready");
+      expect(result.bundle?.slides[1].composition.elements.find(e => e.id === "support")?.text).toBe("Salve o guia");
+    } else {
+      expect(result.failure?.code).toBe("content_requirement_unmet");
+      expect(s.generateText.mock.calls.some(([params]) => params.taskRoute === "post_evaluation")).toBe(false);
+    }
+  });
+
+  it("keeps a comparison reserve's fact groups from being mixed with unmapped text", async () => {
+    const source = structuredClone(definition);
+    const template = source.fragment.instances[1];
+    source.fragment.instances.push({ ...template, id: "extra-price-label", y: template.y + template.height });
+    source.fragment.bindings.push({
+      ...source.fragment.bindings[1], id: "extra-price", source: "block:label:0:text",
+      targetIds: ["extra-price-label"], required: false,
+    });
+    const original = copy("Compare os planos");
+    original.slides[0].values.push({ fieldId: "field-2", value: "R$ 69" });
+    const { input, deps } = scenario();
+    const args = { copy: original, source: [createComponentDefinition(source)], target: [definition], input, deps, lastChance: true };
+    const ordinary = await fitExistingProposalCopy(args);
+    expect(ordinary?.slides[0].values[1].value).toContain("R$ 69");
+    input.generationIntent = {
+      version: 1, objective: "Comparar os planos", adaptation: "controlled",
+      tone: { description: "Direto", origin: "inferred", rationale: "Comparação" },
+      requirements: [], content: [],
+      designRequirements: { version: 1, requiresComparison: true, requiresTextCta: false, textCta: null,
+        forbidsPhotography: false, requiredFacts: [], estimatedArtCharacters: 0 },
+    };
+    expect(await fitExistingProposalCopy(args)).toBeUndefined();
+  });
+  it("keeps a fitted field and journals only the residual input for the second pass", async () => {
+    const s = scenario({ priorKeys: ["previous_attempt:copy_recovery"] });
+    const recoveryCopy = copy("LONG título");
+    recoveryCopy.slides[0].values[1].value = "LONG apoio";
+    Object.assign(s.input, {
+      generationConfig: resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" }, true, true, true),
+      recoveryCopy, finalFit: true, deliveryRecoveryEnabled: true,
+    });
+    s.deps.finalFitOperation = s.deps.executeOperation;
+    s.generateText.mockImplementation(async params => {
+      if (params.taskRoute === "post_evaluation") return response(healthyReviewV10Fixture(params));
+      const { targets } = JSON.parse(String(params.messages[1].content));
+      expect(targets[0].fit.boxes[0]).toHaveProperty("maxLines");
+      if (params.traceLabel?.endsWith("_copy_final_fit_residual")) {
+        expect(targets.map((target: {fieldId:string}) => target.fieldId)).toEqual(["field-1"]);
+        expect(targets[0].current).toBe("LONG apoio");
+        return response({ patches: [{ slideIndex: 0, fieldId: "field-1", itemIndex: null, value: "Sete dias" }] });
+      }
+      expect(targets.map((target: {fieldId:string}) => target.fieldId)).toEqual(["field-0", "field-1"]);
+      return response({ patches: [
+        { slideIndex: 0, fieldId: "field-0", itemIndex: null, value: "Conheça o serviço" },
+        { slideIndex: 0, fieldId: "field-1", itemIndex: null, value: "LONG proposta de apoio" },
+      ] });
+    });
+    for (let replay = 0; replay < 2; replay++) {
+      const result = await s.run();
+      expect(result.status, result.errorReason).toBe("ready");
+      expect(JSON.stringify(result.bundle?.slides[0].composition.content)).toContain("Conheça o serviço");
+      expect(JSON.stringify(result.bundle?.slides[0].composition.content)).toContain("Sete dias");
+    }
+    const fit = s.generateText.mock.calls.filter(([params]) => params.traceLabel?.includes("_copy_final_fit"));
+    expect(fit).toHaveLength(2);
+    expect(s.completed.has("copy_final_fit_residual")).toBe(true);
+  });
+
+  it.each(["fits", "still_long", "healthy", "uncertain", "historical", "literal", "not_terminal", "ordinary_fits"] as const)(
+    "handles a terminal overflow with a bounded journaled repair (%s)", async mode => {
+      const s = scenario({ priorKeys: mode === "ordinary_fits" ? [] : ["previous_attempt:copy_recovery"] });
+      const config = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" }, true, mode !== "historical");
+      Object.assign(s.input, { generationConfig: config, finalFit: mode !== "not_terminal", deliveryRecoveryEnabled: true,
+        recoveryCopy: copy(mode === "healthy" ? "Conheça o serviço" : "LONG apresentação do serviço") });
+      if (mode === "literal") s.input.generationIntent = { version: 1, objective: s.input.prompt, adaptation: "literal",
+        tone: { description: "Direto", origin: "explicit", rationale: "Pedido" }, requirements: [], content: [] };
+      s.deps.finalFitOperation = s.deps.executeOperation;
+      s.deps.hasUncertainEffect = async () => mode === "uncertain";
+      s.generateText.mockImplementation(async params => {
+        if (params.taskRoute === "post_evaluation") return response(healthyReviewV10Fixture(params));
+        const { targets } = JSON.parse(String(params.messages[1].content));
+        expect(targets).toHaveLength(1);
+        expect(targets[0]).toMatchObject({ slideIndex: 0, fieldId: "field-0" });
+        return response({ patches: [{ slideIndex: 0, fieldId: "field-0", itemIndex: null,
+          value: mode === "still_long" ? "LONG de novo" : "Conheça o serviço" }] });
+      });
+      const expectedReady = ["fits", "healthy", "ordinary_fits"].includes(mode);
+      for (let replay = 0; replay < 2; replay++) {
+        const result = await s.run();
+        expect(result.status, result.errorReason).toBe(expectedReady ? "ready" : "failed");
+        if (expectedReady) {
+          expect(result.bundle?.caption).toBe("Legenda preservada");
+          expect(JSON.stringify(result.bundle?.slides[0].composition.content)).toContain("Apoio saudável");
+        }
+      }
+      const labels = s.generateText.mock.calls.map(([params]) => params.traceLabel ?? "");
+      expect(labels.filter(label => label.endsWith("_copy_final_fit"))).toHaveLength(["fits", "still_long"].includes(mode) ? 1 : 0);
+      expect(labels.filter(label => label.endsWith("_copy_recovery"))).toHaveLength(mode === "ordinary_fits" ? 1 : 0);
+    }
+  );
+  it("rescues an exhausted slot on its last actual design, using the same copy and a single durable effect", async () => {
+    const s = scenario();
+    const generationConfig = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" });
+    const offer = resolveDesignFamilyRepertoires([compactComponentCard(definition)], { slideCount: 1, contentMode: "compose" })[0].defaultOffer;
+    const plan: ViableGenerationPlan = { slot: 0, status: "viable", candidateId: offer.offerId, reason: "Direção compatível",
+      editorialApproach: "Apresente o serviço", captionContentIds: [], pages: [{ slideIndex: 0, componentId: definition.id, purpose: "Apresentar", rhythm: "highlight", assignments: [] }] };
+    const planning = sealGenerationPlanningReceipt({ version: 1, intent: { version: 1, objective: "Apresentar o serviço",
+      tone: { description: "Direto", origin: "inferred", rationale: "Briefing" }, adaptation: "controlled", requirements: [], content: [] },
+      slots: [plan, ...[1, 2].map(slot => ({ slot, status: "insufficient_fit" as const, reason: "Sem opção", unmetRequirementIds: [] }))],
+      offers: [offer, null, null], candidates: [], selectorIds: [], ranking: [], catalogReceiptHash: null, recoveryRepertoires: [[], [], []], deliveryReserves: [[], [], []] });
+    s.generateText.mockImplementation(async params => {
+      if (params.taskRoute === "post_evaluation") return response(healthyReviewV10Fixture(params));
+      if (params.traceLabel?.endsWith("_copy_final_fit")) return response({ patches: [{ slideIndex: 0, fieldId: "field-0", itemIndex: null, value: "Conheça o serviço" }] });
+      return response(copy("LONG apresentação"));
+    });
+    const deliver = vi.fn(async () => {});
+    const recoverDelivery = vi.fn(async () => null);
+    const start = () => new GenerationCoordinator({ ...s.input, generationConfig, actor, planning,
+      selectedDefinitions: [[definition], [], []] }, {
+      ...s.deps, deliver, recoverDelivery, recoveryOperationKeys: async () => ["previous_attempt:copy_recovery"],
+      operationForProposal: attemptId => ({operationKey}, work) => s.deps.executeOperation!({operationKey: attemptId + ":" + operationKey, stage: "test"}, work),
+    }).start();
+    for (let run = 0; run < 2; run++) expect((await start()).proposals[0].status).toBe("ready");
+    expect(recoverDelivery).toHaveBeenCalledTimes(2);
+    expect(deliver).toHaveBeenCalledTimes(2);
+    expect(s.generateText.mock.calls.filter(([p]) => p.traceLabel?.endsWith("_copy_final_fit"))).toHaveLength(1);
+    expect(s.generateText.mock.calls.filter(([p]) => p.traceLabel?.endsWith("_copy"))).toHaveLength(1);
+    expect(s.completed.has(`p-${runId}-0:copy_final_fit`)).toBe(true);
+  });
+
   it.each(["transfer", "rewrite", "invalid-copy"] as const)("recovers a first delivery through %s", async mode => {
     const fits = mode === "transfer";
     const s = scenario();
@@ -253,6 +453,23 @@ describe("V10 bounded physical and editorial recovery", () => {
     expect(replay.status, replay.errorReason).toBe("ready");
     expect(s.generateText).toHaveBeenCalledTimes(5);
     expect(Array.from(s.completed.keys()).filter(k => k === "copy_recovery" || k.startsWith("review_correction:"))).toHaveLength(2);
+  });
+
+  it("rolls back a technically invalid correction and retains the original visual review", async () => {
+    const s = scenario({ brokenCorrection: true });
+    s.input.reviewLenientDelivery = true;
+    const result = await s.run();
+    expect(result.status, result.errorReason).toBe("ready");
+    expect(result.findings).toEqual([]);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "review_correction_rolled_back" }),
+      expect.objectContaining({ code: "review_lenient_delivery", evidence: "correction_required" }),
+    ]));
+    expect(result.bundle?.slides[0].composition.content.blocks[0]).toMatchObject({ text: "Gratuito para sempre" });
+    expect(s.generateText.mock.calls.filter(([params]) => params.taskRoute === "post_evaluation")).toHaveLength(1);
+    const calls = s.generateText.mock.calls.length;
+    expect((await s.run()).status).toBe("ready");
+    expect(s.generateText).toHaveBeenCalledTimes(calls);
   });
 
   it.each([true, false])("preserves the first delivery after an initial repair and truncated recheck, priority=%s", async priority => {

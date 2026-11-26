@@ -1,5 +1,7 @@
 # Auditoria de briefing e prompting — PostSpark
 
+> A auditoria registra o comportamento de setembro de 2026. O [mapa do motor](./docs/motor-integracao.md) descreve o fluxo atual.
+
 **Escopo:** investigação estática do repositório em 21/09/2026. Nenhuma API de IA foi chamada e nenhum código de produto foi alterado.
 
 **Convenção de evidência:** **FATO** é observado no código atual; **INFERÊNCIA** é uma conclusão operacional derivada dele; **NÃO DETERMINADO** depende de configuração, dados do ambiente ou comportamento probabilístico do modelo.

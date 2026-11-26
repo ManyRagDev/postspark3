@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import type { EditorLayer, EditorTarget } from "../lib/editorController";
+import { GripVertical } from "lucide-react";
+import { useLayerDrag } from "./useLayerDrag";
+import { COMPOSITION_LOGO_ID, type LayerDrop } from "../lib/editorElementState";
 import type { SelectionModifiers } from "../lib/editorSelection";
 
 const button =
@@ -18,6 +21,7 @@ export interface CanvasEditorLayersProps {
   selectedIds?: readonly string[];
   selectionActions?: React.ReactNode;
   onSelect: (target: EditorTarget, modifiers?: SelectionModifiers) => void;
+  onDropLayer?: (target: EditorTarget, drop: LayerDrop) => void;
   onAdjust?: (target: EditorTarget) => void;
   onAction: (
     target: EditorTarget,
@@ -33,9 +37,11 @@ export function CanvasEditorLayers({
   selectedIds,
   selectionActions,
   onSelect,
+  onDropLayer,
   onAdjust,
   onAction,
 }: CanvasEditorLayersProps) {
+  const drag = useLayerDrag(onDropLayer);
   const [multiple, setMultiple] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     const groups = (items: EditorLayer[]): string[] =>
@@ -49,11 +55,10 @@ export function CanvasEditorLayers({
     () => new Set()
   );
   const isDecoration = (layer: EditorLayer) => layer.role === "decoration";
+  const visibleSiblings = (items: EditorLayer[], parent: string) =>
+    [...items].reverse().filter(layer => !isDecoration(layer) || decorExpanded.has(parent));
   const visibleOrder = (items: EditorLayer[], parent: string): string[] => {
-    const reversed = [...items].reverse();
-    const visible = [...reversed.filter(l => !isDecoration(l)),
-      ...(decorExpanded.has(parent) ? reversed.filter(isDecoration) : [])];
-    return visible.flatMap(layer => [layer.id,
+    return visibleSiblings(items, parent).flatMap(layer => [layer.id,
       ...(expanded.has(layer.id) ? visibleOrder(layer.children, `group:${layer.id}`) : [])]);
   };
   useEffect(() => {
@@ -101,11 +106,9 @@ export function CanvasEditorLayers({
     depth: number,
     parent: string
   ): React.ReactNode => {
-    const content = [...items].reverse().filter(layer => !isDecoration(layer));
-    const decoration = [...items].reverse().filter(isDecoration);
+    const decoration = items.filter(isDecoration);
     return (
       <>
-        {content.map(layer => renderLayer(layer, depth))}
         {decoration.length > 0 && (
           <li className="space-y-1" key={`decoration-${parent}`}>
             <button
@@ -118,13 +121,9 @@ export function CanvasEditorLayers({
               {decorExpanded.has(parent) ? "▾" : "▸"} Decoração (
               {decoration.length})
             </button>
-            {decorExpanded.has(parent) && (
-              <ul className="space-y-1">
-                {decoration.map(layer => renderLayer(layer, depth + 1))}
-              </ul>
-            )}
           </li>
         )}
+        {visibleSiblings(items, parent).map(layer => renderLayer(layer, depth))}
       </>
     );
   };
@@ -178,9 +177,20 @@ export function CanvasEditorLayers({
     return (
       <li key={layer.id} className="space-y-1">
         <div
-          className="flex items-center gap-1"
+          data-layer-row={layer.id}
+          data-layer-parent={layer.parentId ?? ""}
+          data-fixed-edge={layer.kind === "background" || layer.id === COMPOSITION_LOGO_ID}
+          className={`relative flex items-center gap-1 rounded-lg ${drag.activeId === layer.id ? "opacity-50" : ""}`}
           style={{ paddingLeft: depth * 12 }}
         >
+          {drag.marker?.anchorId === layer.id && (
+            <span aria-hidden="true" className={`pointer-events-none absolute inset-x-0 h-0.5 bg-orange-400 ${drag.marker.side === "above" ? "top-0" : "bottom-0"}`} />
+          )}
+          {onDropLayer && layer.capabilities.reorder && !multiple && (selectedIds?.length ?? 0) <= 1 && (
+            <span aria-hidden="true" title="Arrastar camada" className="flex h-11 w-8 shrink-0 touch-none select-none items-center justify-center text-white/50 cursor-grab active:cursor-grabbing" {...drag.gripProps(layer)}>
+              <GripVertical size={16} />
+            </span>
+          )}
           {layer.children.length > 0 && (
             <button
               type="button"
@@ -278,9 +288,9 @@ export function CanvasEditorLayers({
       <button type="button" aria-pressed={multiple} onClick={() => setMultiple(value => !value)}
         className={button + " mb-2 w-full aria-pressed:bg-white/15"}>Selecionar vários</button>
       <p className="mb-2 text-xs text-white/50">
-        Camadas da frente aparecem primeiro em cada grupo. Ctrl/Cmd alterna objetos; Shift seleciona um intervalo.
+        As camadas da frente aparecem no topo. Arraste pela alça para reordenar dentro do grupo.
       </p>
-      <ul aria-label="Camadas da arte" className="space-y-1">
+      <ul data-layer-stack aria-label="Camadas da arte" className="space-y-1">
         {renderLayers(layers, 0, "root:")}
       </ul>
     </div>

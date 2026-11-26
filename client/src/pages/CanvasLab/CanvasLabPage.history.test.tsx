@@ -116,6 +116,26 @@ function createMultiSlidePost(): CanvasPostModel {
 }
 
 describe("CanvasLabPage History and Navigation (OS-002)", () => {
+  it("undoes and redoes a completed layer drop in one step", async () => {
+    const post: CanvasPostModel = {
+      ...INITIAL_POST,
+      slides: [{ id: "native", step: "1", headline: "Título", subtext: "Texto" }],
+      currentSlideIndex: 0,
+    };
+    await act(async () => root.render(<CanvasLabPage initialPost={post} />));
+    await act(async () => c.chrome.contents.layers.props.onDropLayer(
+      { slideId: "native", elementId: "headline" }, { anchorId: "subtext", side: "above" }
+    ));
+    const order = c.stage.post.slides[0].elementOrder as string[];
+    expect(order.indexOf("headline")).toBe(order.indexOf("subtext") + 1);
+    expect(c.stage.selectedElementId).toBe("headline");
+    await act(async () => c.bar.onUndo());
+    expect(c.stage.post.slides[0].elementOrder).toBeUndefined();
+    expect(c.bar.canUndo).toBe(false);
+    await act(async () => c.bar.onRedo());
+    expect(c.stage.post.slides[0].elementOrder).toEqual(order);
+  });
+
   it("AC-03 / P06: Edit -> Undo -> Navigate -> Open Tool -> Redo preserves redo and does not create spurious autosave", async () => {
     const post = createMultiSlidePost();
     const handleSave = vi.fn().mockReturnValue(true);

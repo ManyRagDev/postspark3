@@ -63,11 +63,7 @@ node api/index.js
 
 Deploy coloca a aplicacao no ar.
 
-No PostSpark, `vercel.json` informa para a Vercel como servir:
-
-- a funcao Node em `api/index.js`;
-- os arquivos estaticos do frontend;
-- os rewrites para `/api/(.*)` e para a SPA.
+O [Compose da VPS](../../ops/hostinger/compose.yml) declara a web e o worker. O Caddy encaminha as requisições públicas, e a web serve os arquivos do frontend e a API. O [contrato da VPS](../contrato-integracao-supabase-vps.md) descreve as dependências de cada processo.
 
 ## SPA
 
@@ -75,7 +71,7 @@ SPA significa Single Page Application.
 
 Nesse modelo, o servidor entrega uma pagina base e o React controla a navegacao no navegador.
 
-Por isso o `vercel.json` redireciona rotas comuns para `/index.html`.
+Na VPS, o servidor web entrega essa página base para rotas da interface, como `/studio`.
 
 ## Regra mental
 

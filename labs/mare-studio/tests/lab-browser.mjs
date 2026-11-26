@@ -59,3 +59,19 @@ export async function openCheckout(
   });
   return page;
 }
+
+// Offline browser journeys exercise actual proposals using explicit provider fixtures.
+export async function mockEditApi(page, answer) {
+  await page.evaluate(() => {
+    if (document.querySelector('meta[name="mare-director"]')) return;
+    const flag = document.createElement("meta");
+    flag.name = "mare-director";
+    document.head.append(flag);
+  });
+  await page.route("**/api/director", async route => {
+    const payload = route.request().postDataJSON();
+    if (payload.stage !== "edit") return route.fallback();
+    await route.fulfill({json:{output:{commands:answer(payload.context.request)}}});
+  });
+}
+export const ctaEditFixture = {id:"text.replaceAndHold",before:"Experimente agora",after:"Crie seu primeiro post",extraSeconds:1};

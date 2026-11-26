@@ -26,7 +26,7 @@ beforeAll(async () => {
     create table postspark.generation_v5_requests(id uuid primary key,owner_id uuid not null,input jsonb, proposals jsonb default '[]',
       status text default 'queued', created_at timestamptz default now());
   `);
-  for(const migration of ["0068_app_access","0074_paid_memberships","0075_studio_offers","0076_start_pilot","0077_spark_refills","0078_annual_labs","0079_agency_collaboration","0080_studio_annual_checkout"]){
+  for(const migration of ["0014_spark_reservations","0068_app_access","0074_paid_memberships","0075_studio_offers","0076_start_pilot","0077_spark_refills","0078_annual_labs","0079_agency_collaboration","0080_studio_annual_checkout"]){
     await pg.exec(readFileSync(`drizzle/${migration}.sql`,"utf8"));
   }
   for(const [offset,id] of [starter,solo,second,agency,collaborator,reviewer,pro].entries())
@@ -168,8 +168,22 @@ it("isolates a workspace, funds editors with the owner wallet and protects revie
 });
 
 
-it("allows only one provider dispatch for the same Sparks reservation", async () => {
-  const claim = () => value("select postspark.claim_studio_image_dispatch($1) as value",[firstRun]);
-  expect(await claim()).toBe(true);
-  expect(await claim()).toBe(false);
+it("dispatches each image reservation once and charges only the delivered image", async () => {
+  const actor="10000000-0000-4000-8000-000000000022";
+  await pg.query("insert into postspark.profiles (id,email,plan,sparks) values($1,'image@example.invalid','PRO',100)",[actor]);
+  expect(await value("select postspark.refill_pro_sparks($1) as value",[actor])).toBe(0);
+  const reserve=(key:string)=>value<string>("select postspark.reserve_sparks($1,25,$2,'Geração de imagem IA') as value",[actor,key]);
+  const delivered=await reserve("image-ok");
+  expect(await reserve("image-ok")).toBe(delivered);
+  const claim=(id:string)=>value("select postspark.claim_studio_image_dispatch($1) as value",[id]);
+  expect(await claim(delivered!)).toBe(true);
+  expect(await claim(delivered!)).toBe(false);
+  expect(await balance(actor)).toBe(100);
+  expect(await value("select postspark.commit_spark_reservation($1,'image:image-ok') as value",[delivered])).toBe(true);
+  expect(await balance(actor)).toBe(75);
+  const failed=await reserve("image-failed");
+  expect(await claim(failed!)).toBe(true);
+  expect(await value("select postspark.refund_spark_reservation($1,'provider unavailable') as value",[failed])).toBe(true);
+  expect(await balance(actor)).toBe(75);
+  expect((await pg.query("select status from postspark.spark_reservations where user_uuid=$1 order by status",[actor])).rows).toEqual([{status:"committed"},{status:"refunded"}]);
 });

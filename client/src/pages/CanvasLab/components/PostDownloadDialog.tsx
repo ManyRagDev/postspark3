@@ -1,3 +1,4 @@
+import { activeTemporalSlots } from "../lib/activeTemporalSlots";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { aspectRatioHeight, exportLongestSide, type ExportQuality } from "@shared/aspectRatios";
@@ -7,11 +8,13 @@ import type { CanvasPostModel } from "./types";
 /** The same renderer exports from the gallery without entering the editor. */
 export default function PostDownloadDialog({
   post,
+  workspaceId,
   onClose,
   exportQuality = "4k",
   onExport,
 }: {
   post: CanvasPostModel;
+  workspaceId?: string;
   onClose: () => void;
   exportQuality?: ExportQuality;
   onExport?: (post: CanvasPostModel, kind: "export_png" | "export_zip") => void;
@@ -35,7 +38,8 @@ export default function PostDownloadDialog({
     window.addEventListener("resize", fitPreview);
     return () => window.removeEventListener("resize", fitPreview);
   }, [post.aspectRatio]);
-  const download = async (zip: boolean) => {
+  const temporal = activeTemporalSlots(post,index).length>0;
+  const download = async (zip: boolean, stillFrame=false) => {
     if (!stage.current || busy) return;
     setBusy(true);
     setError("");
@@ -48,11 +52,11 @@ export default function PostDownloadDialog({
       const maxDimension = exportLongestSide(post.aspectRatio, quality);
       const href = zip
         ? (objectUrl = URL.createObjectURL(await stage.current.exportZip4K(undefined, maxDimension)))
-        : stage.current.exportPng4K(maxDimension);
+        : temporal && !stillFrame && stage.current.exportVideo ? (objectUrl=URL.createObjectURL(await stage.current.exportVideo())) : stage.current.exportPng4K(maxDimension);
       if (!href) throw new Error("Não foi possível preparar o download.");
       const link = document.createElement("a");
       link.href = href;
-      link.download = `postspark-${post.aspectRatio.replace(":", "x")}${zip ? ".zip" : `-slide-${index + 1}.png`}`;
+      link.download = `postspark-${post.aspectRatio.replace(":", "x")}${zip ? ".zip" : `-slide-${index + 1}.${temporal && !stillFrame ? "mp4" : "png"}`}`;
       link.click();
       try { onExport?.(post, zip ? "export_zip" : "export_png"); } catch { /* Analysis must never fail a download. */ }
     } catch (err) {
@@ -85,6 +89,8 @@ export default function PostDownloadDialog({
           <div className="my-4 flex justify-center">
             <CanvasPostStage
               ref={stage}
+              showPlaybackControls
+              workspaceId={workspaceId}
               post={{ ...post, currentSlideIndex: index }}
               zoom={previewZoom}
               isReadOnly
@@ -131,8 +137,11 @@ export default function PostDownloadDialog({
               onClick={() => void download(false)}
               className="rounded-xl bg-orange-300 px-4 py-3 text-sm font-semibold text-black disabled:opacity-50"
             >
-              {busy ? "Preparando…" : "Baixar imagem"}
+              {busy ? "Preparando…" : temporal ? "Baixar vídeo" : "Baixar imagem"}
             </button>
+            {temporal && <button disabled={busy} onClick={()=>void download(false,true)} className="rounded-xl border border-white/20 px-4 py-3 text-sm">
+              Baixar quadro em PNG
+            </button>}
             {post.slides.length > 1 && (
               <button
                 disabled={busy}

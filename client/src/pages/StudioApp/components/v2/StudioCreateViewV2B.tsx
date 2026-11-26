@@ -1,7 +1,11 @@
+import { BEFORE_PLAN_CHANGE_EVENT } from "@/lib/sessionPlanEvents";
+import { mareEntryHref, MareEntryLink, type MareEntry } from "./MareEntryLink";
 import { isStandaloneHttpUrl } from "@shared/generationSources";
 import { extractUrlsFromText } from "@shared/creationBrief";
-import BrandCaptureModal from "./BrandCaptureModal";
+import { detectFormatIntent } from "@shared/formatIntent";
+import { BrandImportDialog } from "./BrandCaptureModal";
 import { TemplateIngestionModal } from "@/pages/TemplateIngestion/TemplateIngestionModal";
+import type { CanvasSaveInputMeta } from "@/pages/CanvasLab/lib/saveAdapter";
 import StudioShowcaseModal from "./StudioShowcaseModal";
 import type { ShowcaseItem } from "./showcaseData";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
@@ -12,16 +16,18 @@ import { detectScriptStructure, type ParsedScriptSlide } from "../../lib/scriptD
 import ScriptSlidesModal from "./ScriptSlidesModal";
 import VisualBriefControl from "./VisualBriefControl";
 import "./studioCreationTone.css";
-export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: "4:5";fixedDesign?: OrchestratedGenerationInput["fixedDesign"];slideCount?: number;scriptMode?: "preserve"|"rewrite";parsedSlides?: ParsedScriptSlide[];visualBrief?:string};
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: OrchestratedGenerationInput["aspectRatio"];fixedDesign?: OrchestratedGenerationInput["fixedDesign"];artworkCarousel?: OrchestratedGenerationInput["artworkCarousel"];slideCount?: number;scriptMode?: "preserve"|"rewrite";parsedSlides?: ParsedScriptSlide[];visualBrief?:string};
 import { trpc } from "@/lib/trpc";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/useMobile";
 import StudioMobileCreationForm, { MOBILE_PROMPT_COMPACT_HEIGHT } from "./StudioMobileCreationForm";
-import { ArrowRight, Loader2, PanelsTopLeft, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, PanelsTopLeft, Sparkles, Trash2, X } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
 import ProjectSelectorDropdown from "./ProjectSelectorDropdown";
+import type { SavedProjectArtwork } from "./ProjectArtworkDialog";
+import type { ProjectArtworkSelection } from "../../lib/briefDraftStorage";
 import ProjectCalibrationModal from "./ProjectCalibrationModal";
 import UserTopMenu from "@/components/UserTopMenu";
 import { Link } from "wouter";
@@ -42,8 +48,10 @@ import {
  */
 
 interface StudioCreateViewV2BProps {
+  mareEntry?: MareEntry;
   startPilot?: boolean;
   allowProfessionalTools?: boolean;
+  savedPostsPath?: string;
   onSubmit: (prompt: string, mode: "static" | "carousel",options?:CreationInputOptions) => void;
   isLoading: boolean;
   declaredFamilyId: string | null;
@@ -63,12 +71,18 @@ interface StudioCreateViewV2BProps {
   onSelectProjectId?: (id: string | null) => void;
   proposalAspectRatio?: "1:1" | "4:5" | "9:16";
   onProposalAspectRatioChange?: (ratio: "1:1" | "4:5" | "9:16") => void;
-  onOpenEditorWithPost?: (post: CanvasPostModel) => void;
+  onOpenEditorWithPost?: (post: CanvasPostModel, input?: CanvasSaveInputMeta) => void;
+  onOpenSavedArtwork?: (post: SavedProjectArtwork) => void;
+  projectArtwork?: ProjectArtworkSelection;
+  onUseSavedArtwork?: (artwork: ProjectArtworkSelection) => void;
+  onRemoveProjectArtwork?: () => void;
 }
 
 export default function StudioCreateViewV2B({
+  mareEntry = false,
   startPilot = false,
   allowProfessionalTools = !startPilot,
+  savedPostsPath = "/saved-posts",
   onSubmit,
   isLoading,
   declaredFamilyId,
@@ -86,9 +100,12 @@ export default function StudioCreateViewV2B({
   proposalAspectRatio,
   onProposalAspectRatioChange,
   onOpenEditorWithPost,
+  onOpenSavedArtwork,
+  projectArtwork,
+  onUseSavedArtwork,
+  onRemoveProjectArtwork,
 }: StudioCreateViewV2BProps) {
-  const [captureUrl,setCaptureUrl]=useState<string>();
-  const [urlAsContent,setUrlAsContent]=useState(false);
+  const [brandImportOpen, setBrandImportOpen] = useState(false);
   const [isTemplateIngestOpen, setIsTemplateIngestOpen] = useState(false);
   const [isShowcaseOpen, setIsShowcaseOpen] = useState(false);
   const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel,allowAiImages:false});
@@ -115,6 +132,18 @@ export default function StudioCreateViewV2B({
       setPostMode(initialMode);
     }
   }, [initialMode]);
+
+  useEffect(() => {
+    const hasDraft = prompt !== initialPrompt || visualBrief !== initialVisualBrief ||
+      options.image !== initialImage || manualSlides !== (initialScriptSlides ?? null);
+    if (!hasDraft) return;
+    const protectDraft = (event: Event) => {
+      if (!window.confirm("O briefing tem alterações pendentes. Descartar essas alterações e trocar de perfil?"))
+        event.preventDefault();
+    };
+    window.addEventListener(BEFORE_PLAN_CHANGE_EVENT, protectDraft);
+    return () => window.removeEventListener(BEFORE_PLAN_CHANGE_EVENT, protectDraft);
+  }, [prompt, initialPrompt, visualBrief, initialVisualBrief, options.image, initialImage, manualSlides, initialScriptSlides]);
 
   const isMobile = useIsMobile();
   const [promptExpanded, setPromptExpanded] = useState(false);
@@ -256,7 +285,10 @@ export default function StudioCreateViewV2B({
   const creationTone = isScriptMode ? "script" : isUrl ? "url" : "text";
   const scriptOverflow = isScriptMode && scriptDetection.slides.length > 10;
   const scriptTextOverflow = isScriptMode && (prompt.length > 24000 || scriptDetection.slides.some(slide => slide.rawText.length > 8000));
-  const canSubmit = !isEmpty && !isLoading && !scriptOverflow && !scriptTextOverflow && !blockedWebsite;
+  const expandArtwork = projectArtwork?.slideCount === 1 &&
+    (detectFormatIntent(prompt).detectedFormat === "carousel" || scriptDetection.slideCount >= 2);
+  const scriptArtworkMismatch = projectArtwork && !expandArtwork && isScriptMode && scriptDetection.slideCount !== projectArtwork.slideCount;
+  const canSubmit = !isEmpty && !isLoading && !scriptOverflow && !scriptTextOverflow && !scriptArtworkMismatch && !blockedWebsite;
   const declaredSpecimen = allSpecimens.find((s) => s.id === declaredFamilyId) ?? null;
 
   const handleSubmit = () => {
@@ -265,7 +297,7 @@ export default function StudioCreateViewV2B({
       toast.info("Escreva o briefing da sua peça para continuar no START.");
       return;
     }
-    if(isUrl&&!urlAsContent){setCaptureUrl(prompt.trim());return;}
+    const artworkMode = projectArtwork && (projectArtwork.slideCount > 1 || expandArtwork ? "carousel" : "static");
     const finalOptions: CreationInputOptions = {
       ...options,
       visualBrief: visualBrief || undefined,
@@ -274,13 +306,40 @@ export default function StudioCreateViewV2B({
         scriptMode: "preserve" as const,
         parsedSlides: scriptDetection.slides,
       } : {}),
+      ...(projectArtwork ? {
+        fixedDesign: { kind: "project" as const, id: projectArtwork.projectId, postId: projectArtwork.postId },
+        aspectRatio: projectArtwork.aspectRatio,
+        slideCount: expandArtwork ? (isScriptMode ? scriptDetection.slideCount : undefined)
+          : artworkMode === "carousel" ? projectArtwork.slideCount : undefined,
+        allowAiImages: false,
+      } : {}),
     };
-    onSubmit(prompt.trim(), postMode, finalOptions);
+    onSubmit(prompt.trim(), artworkMode ?? postMode, finalOptions);
   };
+  const videoHref = mareEntryHref(mareEntry);
+  const artworkControl = projectArtwork && (
+    <div className="grid w-full gap-1">
+      <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-orange-500/35 bg-orange-500/10 px-3 py-1.5 text-sm">
+        <div className="min-w-0">
+          <p className="text-xs text-orange-200">Design do briefing</p>
+          <p className="font-medium text-white">{projectArtwork.name}</p>
+          <p className="text-xs text-white/65">
+            {expandArtwork ? "Capa do carrossel" : projectArtwork.slideCount > 1 ? `Carrossel de ${projectArtwork.slideCount} slides` : "Post único"} · {projectArtwork.aspectRatio}
+          </p>
+        </div>
+        <button type="button" disabled={isLoading} onClick={onRemoveProjectArtwork} aria-label="Remover design do briefing"
+          className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white disabled:opacity-40">
+          <X size={17} aria-hidden="true" />
+        </button>
+      </div>
+      {videoHref && <MareEntryLink href={videoHref} className="flex min-h-11 items-center justify-center rounded-lg border border-white/15 text-sm text-white/75" />}
+    </div>
+  );
   const contentTools = <div className="space-y-2 px-4 py-3">
     {blockedWebsite && <p role="status" className="text-xs text-amber-200">A extração de URL está disponível a partir do PRO. Cole o texto da página no briefing para continuar.</p>}
     {scriptTextOverflow && <p role="alert" className="text-xs text-amber-200">O roteiro excede o limite de 24 mil caracteres no total ou 8 mil em um slide. Ajuste o conteúdo para continuar; nenhum trecho será descartado automaticamente.</p>}
     {scriptOverflow && <p role="alert" className="text-xs text-amber-200">Seu roteiro tem {scriptDetection.slides.length} slides. O limite atual é 10. Organize os slides ou escolha reescrever com IA.</p>}
+    {scriptArtworkMismatch && <p role="alert" className="text-xs text-amber-200">A arte escolhida tem {projectArtwork.slideCount} {projectArtwork.slideCount === 1 ? "página" : "páginas"}. Ajuste o roteiro ou selecione Reescrever com IA.</p>}
     <div className="flex flex-wrap gap-2">
       <button type="button" disabled={isLoading} data-creation-highlight="true" aria-haspopup="dialog" onClick={() => setScriptEditorOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-violet-300/25 bg-violet-300/10 px-3 py-2 text-xs text-violet-200 transition-colors hover:bg-violet-300/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300 disabled:opacity-45 md:min-h-9">
         <PanelsTopLeft size={14} aria-hidden="true" className="shrink-0" />
@@ -288,7 +347,7 @@ export default function StudioCreateViewV2B({
       </button>
       <VisualBriefControl value={visualBrief} onChange={setVisualBrief} disabled={isLoading} tone={creationTone} />
     </div>
-    {currentProject?.visualIdentity && <button type="button" disabled={isLoading} onClick={() => onDeclareFamily(`project-identity-${selectedProjectId}`)} aria-pressed={!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}`} className="min-h-11 text-left text-xs text-violet-200">{!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}` ? "✓ Identidade visual do projeto ativa" : "Usar identidade visual do projeto"}</button>}
+    {currentProject?.visualIdentity?.extractedFrom ? <p className="text-xs text-violet-200">✓ Identidade visual extraída · ativa neste projeto</p> : !projectArtwork && currentProject?.visualIdentity && <button type="button" disabled={isLoading} onClick={() => onDeclareFamily(`project-identity-${selectedProjectId}`)} aria-pressed={!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}`} className="min-h-11 text-left text-xs text-violet-200">{!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}` ? "✓ Identidade visual do projeto ativa" : "Usar identidade visual do projeto"}</button>}
   </div>;
 
   const handleDiscardDraft = () => {
@@ -330,7 +389,7 @@ export default function StudioCreateViewV2B({
         <UserTopMenu />
       </div>
       {!startPilot && <div className="fixed left-4 top-4 z-40 hidden md:flex items-center gap-2">
-        <Link href="/saved-posts" className="flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
+        <Link href={savedPostsPath} className="flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
           Meus posts
         </Link>
         {allowProfessionalTools && <button
@@ -338,7 +397,7 @@ export default function StudioCreateViewV2B({
           onClick={() => setIsTemplateIngestOpen(true)}
           disabled={isLoading}
           className="flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white/85 hover:bg-white/10 hover:text-white transition-colors cursor-pointer disabled:opacity-45"
-          title="Replicar arte ou print e transformar em template editável"
+          title="Criar modelos editáveis a partir de um site ou imagem"
         >
           <Sparkles size={14} className="text-[#FF5C00]" />
           <span>Replicar Design</span>
@@ -349,7 +408,7 @@ export default function StudioCreateViewV2B({
       <header className="shrink-0 z-40 flex items-center justify-between gap-2 px-4 pt-2 pb-0 md:hidden">
         {!startPilot && <div className="flex items-center gap-1.5 min-w-0">
           <Link
-            href="/saved-posts"
+            href={savedPostsPath}
             className="flex min-h-10 items-center rounded-full border border-white/15 bg-[#0a0d16]/90 px-3 text-xs font-medium text-white hover:bg-white/10 whitespace-nowrap"
           >
             Meus posts
@@ -359,7 +418,7 @@ export default function StudioCreateViewV2B({
             onClick={() => setIsTemplateIngestOpen(true)}
             disabled={isLoading}
             className="flex min-h-10 items-center gap-1 rounded-full border border-white/15 bg-[#0a0d16]/90 px-2.5 text-xs font-medium text-white/85 hover:bg-white/10 hover:text-white transition-colors cursor-pointer disabled:opacity-45 whitespace-nowrap"
-            title="Replicar arte ou print e transformar em template editável"
+            title="Criar modelos editáveis a partir de um site ou imagem"
           >
             <Sparkles size={12} className="studio-mobile-accent-icon text-[#FF5C00] shrink-0" />
             <span>Replicar</span>
@@ -372,7 +431,17 @@ export default function StudioCreateViewV2B({
       {scriptEditorOpen && <ScriptSlidesModal initial={scriptDetection.slides.map(slide => slide.rawText)} initialText={prompt} onClose={() => setScriptEditorOpen(false)} onApply={slides => {
         setManualSlides(slides); setPrompt(slides.map((text, index) => `Slide ${index + 1}:\n${text}`).join("\n\n")); setPostMode("carousel"); setScriptModeOverride("preserve"); setScriptEditorOpen(false);
       }} />}
-      {allowProfessionalTools && captureUrl && <BrandCaptureModal url={captureUrl} projectId={selectedProjectId} onClose={()=>setCaptureUrl(undefined)} onSaved={id=>{onSelectProjectId?.(id);setCaptureUrl(undefined);setPrompt("");setUrlAsContent(false);toast.success("Projeto salvo. Agora informe o pedido do post.");}}/>}
+      {allowProfessionalTools && brandImportOpen && (
+        <BrandImportDialog
+          projectId={currentProject?.id}
+          onClose={() => setBrandImportOpen(false)}
+          onSaved={id => {
+            onSelectProjectId?.(id);
+            setBrandImportOpen(false);
+            toast.success("Marca importada para o projeto.");
+          }}
+        />
+      )}
       {/* MODAL DE CALIBRAGEM DE PROJETO */}
       {isProjectModalOpen && (
         <ProjectCalibrationModal
@@ -394,6 +463,9 @@ export default function StudioCreateViewV2B({
           isOpen={isTemplateIngestOpen}
           onClose={() => setIsTemplateIngestOpen(false)}
           projectId={selectedProjectId}
+          onOpenEditor={onOpenEditorWithPost}
+          onUseSavedArtwork={onUseSavedArtwork}
+          onOpenSavedArtwork={onOpenSavedArtwork}
           onProjectCreatedOrUpdated={(newId) => {
             onSelectProjectId?.(newId);
           }}
@@ -402,7 +474,7 @@ export default function StudioCreateViewV2B({
 
       {/* ÁREA PRINCIPAL CENTRALIZADA VERTICALMENTE */}
       {isMobile ? (
-        <StudioMobileCreationForm
+        <StudioMobileCreationForm mareEntry={mareEntry}
           prompt={prompt} onPromptChange={value => { setPrompt(value); setManualSlides(null); }} textareaRef={textareaRef}
           expanded={promptExpanded} canExpand={canExpandPrompt} onExpandedChange={setPromptExpanded}
           onFocusChange={setIsFocused}
@@ -412,11 +484,11 @@ export default function StudioCreateViewV2B({
             }
           }}
           isLoading={isLoading} canSubmit={canSubmit} isUrl={isUrl}
-          urlAsContent={urlAsContent} onUrlAsContentChange={setUrlAsContent}
           scriptSlideCount={scriptDetection.isScript ? scriptDetection.slideCount : null}
           preserveScript={isScriptMode} onScriptModeChange={setScriptModeOverride}
           options={options} onOptionsChange={setOptions} postMode={postMode} onPostModeChange={setPostMode}
-          aspectRatio={proposalAspectRatio} onAspectRatioChange={onProposalAspectRatioChange}
+          aspectRatio={projectArtwork ? undefined : proposalAspectRatio} onAspectRatioChange={onProposalAspectRatioChange}
+          artworkControl={artworkControl}
           hasSavedDraft={hasSavedDraft} onDiscardDraft={onDiscardDraft ? handleDiscardDraft : undefined}
           onSubmit={handleSubmit} startPilot={startPilot} onOpenShowcase={startPilot ? undefined : () => setIsShowcaseOpen(true)}
           contentTools={contentTools}
@@ -425,8 +497,11 @@ export default function StudioCreateViewV2B({
             onSelectProject={id => onSelectProjectId?.(id)} disabled={isLoading}
             onOpenNewProjectModal={() => { setEditingProject(null); setIsProjectModalOpen(true); }}
             onEditProjectModal={project => { setEditingProject(project); setIsProjectModalOpen(true); }}
+            onOpenSavedArtwork={onOpenSavedArtwork}
+            onUseSavedArtwork={onUseSavedArtwork}
+            onImportBrand={allowProfessionalTools ? () => setBrandImportOpen(true) : undefined}
           />}
-          projectStyleControl={projectDesignSpecimen ? <button type="button" className="mobile-project-style"
+          projectStyleControl={projectDesignSpecimen && !projectArtwork ? <button type="button" className="mobile-project-style"
             disabled={isLoading} aria-pressed={declaredFamilyId === projectDesignSpecimen.id}
             onClick={() => onDeclareFamily(declaredFamilyId === projectDesignSpecimen.id ? null : projectDesignSpecimen.id)}>
             <Sparkles size={16} aria-hidden="true" /><span>Estilo do projeto · {currentProject?.visualPreferences?.personality?.[0] || "Estilo do Projeto"}</span>
@@ -624,9 +699,7 @@ export default function StudioCreateViewV2B({
                 {isScriptMode
                   ? `Roteiro Pro — ${scriptDetection.slideCount} slides preservados`
                   : isUrl
-                  ? declaredSpecimen
-                    ? urlAsContent?"Fonte — página de conteúdo":"Marca — revisão antes de salvar"
-                    : urlAsContent?"Fonte — página de conteúdo":"Marca — análise gratuita e revisão"
+                  ? "Fonte de conteúdo do post"
                   : "Fonte — Texto livre"}
               </span>
               <span
@@ -643,19 +716,6 @@ export default function StudioCreateViewV2B({
               </span>
             </div>
           </section>
-
-                            {isUrl && (
-                    <label className="flex min-h-11 items-center gap-3 text-sm text-white/80 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={urlAsContent}
-                        onChange={(e) => setUrlAsContent(e.target.checked)}
-                        className="size-5 shrink-0 rounded border-white/20 bg-black/40 text-orange-500 focus:ring-0"
-                      />
-                      <span>Usar página como conteúdo do post</span>
-                    </label>
-                  )}
-
 
           {/* 3. CONTROLES: FORMATO (LINHA 1) & PROJETO (LINHA 2) */}
           <section className="flex shrink-0 flex-col gap-5 md:gap-3">
@@ -680,12 +740,12 @@ export default function StudioCreateViewV2B({
 
             {/* Linha 1: Formato da Peça & Proporção (Próximo à caixa de texto) */}
             <div className="w-full">
-              <FormatSelector
+              {artworkControl || <FormatSelector mareEntry={mareEntry}
                 value={postMode}
                 onChange={setPostMode}
                 proposalAspectRatio={proposalAspectRatio}
                 onProposalAspectRatioChange={onProposalAspectRatioChange}
-              />
+              />}
             </div>
 
             {/* Linha 2: Contexto do Projeto & Identidade Visual Extraída */}
@@ -705,10 +765,13 @@ export default function StudioCreateViewV2B({
                   setIsProjectModalOpen(true);
                 }}
                 disabled={isLoading}
+                onOpenSavedArtwork={onOpenSavedArtwork}
+                onUseSavedArtwork={onUseSavedArtwork}
+                onImportBrand={allowProfessionalTools ? () => setBrandImportOpen(true) : undefined}
               />
 
               {/* Pílula de Estilo Visual do Projeto Ativo (Opcional & Clicável) */}
-              {projectDesignSpecimen && (
+              {projectDesignSpecimen && !projectArtwork && (
                 <button type="button" aria-pressed={declaredFamilyId === projectDesignSpecimen.id}
                   data-creation-highlight={declaredFamilyId === projectDesignSpecimen.id ? "true" : undefined}
                   className={`inline-flex min-h-11 max-w-full items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition cursor-pointer select-none ${
@@ -781,7 +844,7 @@ export default function StudioCreateViewV2B({
                   </label>
 
                   {/* Toggle Gerar Imagens com IA */}
-                  <button
+                  {!projectArtwork && <button
                     type="button"
                     role="switch"
                     aria-checked={Boolean(options.allowAiImages)}
@@ -802,16 +865,14 @@ export default function StudioCreateViewV2B({
                       }`}
                     />
                     <span>Gerar imagens com IA</span>
-                  </button>
+                  </button>}
 
             </div>
           </details>}
 
           <button type="button" onClick={handleSubmit} disabled={!canSubmit}
                   aria-label={
-                    isUrl && !urlAsContent
-                      ? "Capturar marca gratuitamente"
-                      : isScriptMode
+                    projectArtwork ? "Revisar briefing" : isScriptMode
                       ? `Diagramar ${scriptDetection.slideCount} slides com fidelidade`
                       : declaredSpecimen
                       ? "Criar com este gosto"
@@ -820,7 +881,7 @@ export default function StudioCreateViewV2B({
             className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF5C00] px-4 py-3 text-base font-semibold text-white transition disabled:opacity-40"
             style={{ background: "var(--creation-action)" }}>
             {isLoading ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
-            {isLoading ? "Preparando…" : isUrl && !urlAsContent ? "Capturar marca gratuitamente" : isScriptMode ? `Diagramar ${scriptDetection.slideCount} slides` : declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
+            {isLoading ? "Preparando…" : projectArtwork ? "Revisar briefing" : isScriptMode ? `Diagramar ${scriptDetection.slideCount} slides` : declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
           </button>
 
           {/* 4. BOTÃO DE INSPIRAÇÃO / SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}

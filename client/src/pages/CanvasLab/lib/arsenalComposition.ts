@@ -1,3 +1,4 @@
+import { moveLayerInStack, type LayerMove } from "./editorElementState";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import type { CanvasCustomText, CanvasCustomImage } from "../components/types";
 import { buildArsenalFallback } from "./arsenalFallback";
@@ -143,10 +144,10 @@ export function editArsenalElementText(
       const source = readContentSource(c.content, binding.source);
       if (typeof source !== "string") return c;
       const fragment = element.contentFragment;
-      const original = fragmentContentText(source, fragment);
+      const original = fragmentContentText(source, fragment, c.measuredSplits?.[binding.id]);
       let start = 0;
       for (let index = 0; index < fragment.index; index++)
-        start += fragmentContentText(source, { ...fragment, index }).length;
+        start += fragmentContentText(source, { ...fragment, index }, c.measuredSplits?.[binding.id]).length;
       const before = source.slice(0, start), after = source.slice(start + original.length);
       const replacement = text === element.text ? original :
         (original.match(/^\s*/)?.[0] ?? "") + text.trim() + (original.match(/\s*$/)?.[0] ?? "");
@@ -329,6 +330,8 @@ export function putArsenalComposition(
     i === post.currentSlideIndex
       ? {
           ...s,
+          ...(s.temporalMedia ? {temporalMedia:Object.fromEntries(Object.entries(s.temporalMedia).filter(([slot])=>
+            slot === "__background__" || c.elements.some(el=>el.id===slot && el.kind==="media")))} : {}),
           composition: c,
           headline: projectContentHeadline(c.content),
           subtext: projectContentBody(c.content),
@@ -545,22 +548,16 @@ export function duplicateArsenalAuthorialLayer(
 export function reorderArsenalLayer(
   source: ArsenalComposition,
   id: string,
-  direction: "front" | "back" | "forward" | "backward"
+  move: LayerMove
 ): ArsenalComposition {
+  const current = [...source.elements, ...source.groups].find(e => e.id === id);
+  if (!current) return source;
+  const siblings = orderedArsenalNodes(source, current.parentId).map(node => node.id);
+  const order = moveLayerInStack(siblings, id, move);
+  if (order === siblings) return source;
   const c = upgradeCompositionToV3(source);
-  const current = [...c.elements, ...c.groups].find(e => e.id === id);
-  if (!current) return c;
-  // Konva orders siblings, not a flattened list of children from unrelated groups.
-  const siblings = orderedArsenalNodes(c, current.parentId);
-  const index = siblings.findIndex(e => e.id === id);
-  const destination = direction === "front" ? siblings.length - 1
-    : direction === "back" ? 0
-    : Math.max(0, Math.min(siblings.length - 1, index + (direction === "forward" ? 1 : -1)));
-  if (index === destination) return c;
-  siblings.splice(index, 1);
-  siblings.splice(destination, 0, current);
   const overrides = structuredClone(c.overrides);
-  siblings.forEach((node, i) => { overrides[node.id] = { ...overrides[node.id], zIndex: i }; });
+  order.forEach((key, i) => { overrides[key] = { ...overrides[key], zIndex: i }; });
   return resolveArsenalComposition({ ...c, overrides });
 }
 

@@ -2,10 +2,7 @@
  * Métricas que NÃO precisam de medidor de texto — puras sobre a saída de
  * `composeVariation`. Rodam sem fonte, sem browser, sem dependência.
  *
- * Contraste usa `shared/creative/color.ts` deliberadamente: a decisão 3 de
- * `docs/decisoes-pendentes.md` elege essa como a implementação única, entre as
- * quatro que existem hoje. O harness já obedece à decisão para não virar a
- * quinta cópia.
+ * O harness reutiliza as métricas de contraste de shared/creative/color.ts.
  */
 
 import { contrastRatio, effectiveBackgroundColor } from "@shared/creative/color";

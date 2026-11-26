@@ -56,6 +56,9 @@ export default function Billing() {
   const annual = trpc.billing.annualFeatures.useQuery(undefined, { enabled: paidPlan, retry: false });
   const lab = trpc.billing.setIrisExperiment.useMutation();
   const [savingExperiment, setSavingExperiment] = useState(false);
+  const billingQueries = trpc.useUtils().billing;
+  const [previousPages, setPreviousPages] = useState<string[]>([]);
+  const statement = trpc.billing.statement.useQuery({ before: previousPages.at(-1) }, { retry: false });
   const topupMutation = trpc.billing.createTopupCheckout.useMutation();
 
   const handleTopup = async (packageId: string) => {
@@ -78,14 +81,14 @@ export default function Billing() {
     <div className="min-h-screen flex flex-col items-center py-12 px-4 bg-soul-deep pb-24">
       <button
         onClick={() => setLocation("/")}
-        className="self-start mb-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="self-start mb-8 flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar
       </button>
 
       <div className="w-full max-w-5xl flex flex-col items-center gap-10">
-        <button disabled={profileRefreshing} onClick={()=>void refreshProfile()} className="text-sm text-muted-foreground">{profileRefreshing?'Atualizando saldo…':'Atualizar saldo'}</button>
+        <button disabled={profileRefreshing} onClick={()=>{ void refreshProfile(); setPreviousPages([]); void billingQueries.statement.invalidate(); }} className="min-h-11 px-2 text-sm text-muted-foreground">{profileRefreshing?'Atualizando saldo…':'Atualizar saldo'}</button>
         {annual.data?.annual && (
           <section className="w-full rounded-2xl border border-white/10 p-5">
             <h2 className="font-semibold">Benefícios do anual</h2>
@@ -172,6 +175,23 @@ export default function Billing() {
             )}
           </div>
         </motion.div>
+
+        <section aria-labelledby="spark-statement" className="w-full max-w-lg rounded-2xl border border-border px-4 py-5 sm:px-6">
+          <h2 id="spark-statement" className="text-lg font-semibold">Extrato de Sparks</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Créditos e débitos registrados desde a ativação do extrato.</p>
+          {statement.isLoading ? <p role="status" className="mt-4">Carregando movimentações…</p>
+            : statement.isError ? <button className="min-h-11 underline" onClick={() => void statement.refetch()}>Extrato indisponível. Tentar novamente</button>
+            : statement.data?.entries.length ? <ul className="mt-3 divide-y divide-border">
+              {statement.data.entries.map(entry => <li key={entry.cursor} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                <div><strong>{entry.delta > 0 ? "Crédito" : "Débito"}</strong><br /><time className="text-muted-foreground" dateTime={entry.occurred_at}>{new Date(entry.occurred_at).toLocaleString("pt-BR")}</time></div>
+                <div className="text-right"><strong>{entry.delta.toLocaleString("pt-BR", { signDisplay: "always" })} ✦</strong><br /><span className="text-muted-foreground">Saldo {entry.balance.toLocaleString("pt-BR")} ✦</span></div>
+              </li>)}
+            </ul> : <p className="mt-4">Nenhuma movimentação registrada.</p>}
+          <div className="flex flex-wrap justify-between gap-2">
+            {previousPages.length > 0 && <button className="min-h-11 underline" onClick={() => setPreviousPages(pages => pages.slice(0, -1))}>Mais recentes</button>}
+            {statement.data?.next && <button className="min-h-11 underline" onClick={() => setPreviousPages(pages => [...pages, statement.data.next!])}>Mais antigas</button>}
+          </div>
+        </section>
 
         <a href="/pricing" className="rounded-xl border border-white/15 px-4 py-3 text-sm">
           Ver planos e gerenciar assinatura

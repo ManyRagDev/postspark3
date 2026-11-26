@@ -54,8 +54,30 @@ const press: Cutout[] = [
   },
 ];
 
-export async function restoreReferenceCutouts(code: 'REF-15' | 'REF-18', definition: ComponentDefinitionV1, original: Buffer): Promise<AssetFile[]> {
+export async function restoreReferenceCutouts(code: 'REF-05' | 'REF-15' | 'REF-18', definition: ComponentDefinitionV1, original: Buffer): Promise<AssetFile[]> {
   const image = await loadImage(original);
+  if (code === 'REF-05') {
+    if (image.width !== 736 || image.height !== 1104) throw Error('REF-05: unexpected source portrait');
+    // Exclude the printed credits and the original caption. The replaceable
+    // image and the two editable text layers are independent in CanvasLab.
+    const canvas = createCanvas(736, 750);
+    canvas.getContext('2d').drawImage(image, 0, 48, 736, 750, 0, 0, 736, 750);
+    const bytes = canvas.toBuffer('image/png');
+    const {manifest} = await verifyArsenalAsset(bytes, {license:'curator-provided'});
+    const layer = definition.fragment.instances.find(i=>i.id==='foto-retrato')!;
+    const slot = definition.fragment.mediaSlots!.find(s=>s.id===layer.id)!;
+    layer.height = 1115;
+    const piece = arsenalPieceSchema.parse({...definition.pieces[layer.pieceHash],imageAssetId:manifest.id,
+      points:[0,0,layer.width,0,layer.width,layer.height,0,layer.height],imageReplacement:{label:slot.label,scrimOpacity:0}});
+    slot.deferred = false;
+    layer.pieceHash = arsenalHash(piece);
+    definition.pieces[layer.pieceHash] = piece;
+    definition.assets.push(manifest);
+    definition.fragment.assetIds.push(manifest.id);
+    return [{bytes,manifest,relativePath:'assets/'+manifest.sha256,
+      sourceHash:createHash('sha256').update(original).digest('hex'),sourceFamily:'',sourceWeight:400,
+      resolvedWeight:400,sourceUrl:null,adjustment:'Retrato da referência, recortado entre os créditos e a legenda impressa.'}];
+  }
   const isPress = code === 'REF-18';
   if (image.width !== (isPress?735:736) || image.height !== (isPress?919:920)) throw Error(`${code}: unexpected source artboard`);
   const scaleX = definition.fragment.artboard.width / image.width;

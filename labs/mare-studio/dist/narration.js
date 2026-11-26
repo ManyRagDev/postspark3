@@ -1,3 +1,4 @@
+import { integrated, processorResult } from "./postspark-session.js";
 import catalog from "./assets/narration.json" with {type: "json"};
 import { FPS, TRACK_LIMIT, trackCount } from "./montage-model.js";
 
@@ -22,7 +23,7 @@ export function narrationPlacement(project, start, duration, originalTrack, orig
 }
 
 export async function synthesizeNarration({text, model, voice}, signal) {
-  const response = await fetch("/api/narration", {method: "POST", signal,
+  const response = integrated ? await processorResult("narration",{text,model,voice},signal) : await fetch("/api/narration", {method: "POST", signal,
     headers: {"Content-Type": "application/json"}, body: JSON.stringify({text, model, voice})});
   if (!response.ok) throw Error((await response.json()).message || "Falha ao gerar a narração.");
   return new File([await response.blob()], "Narração.mp3", {type: "audio/mpeg"});

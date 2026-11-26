@@ -39,6 +39,9 @@ export const visualIdentitySchema = z
     version: z.literal(1),
     revision: z.string().regex(/^[a-f\d]{64}$/),
     description: z.string().max(24000),
+    extractedFrom: z.object({
+      postIds: z.array(z.number().int().positive()).min(1).max(5),
+    }).strict().optional(),
     logoUrl: z.string().max(2048).optional(),
     rules: visualIdentityRulesSchema,
     fonts: z

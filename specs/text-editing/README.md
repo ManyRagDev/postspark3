@@ -1,5 +1,7 @@
 # 📝 Edição de Texto — Specs e Testes
 
+> Especificações históricas de edição. O [CanvasLab atual](../../docs/DESIGN_SYSTEM.md) é a referência para alterações na interface.
+
 **Status:** Em planejamento
 **Metodologia:** Spec-Driven Development
 
@@ -141,7 +143,7 @@ Módulo de edição de texto do PostSpark — especificações técnicas, casos 
 
 ## 📝 Notas
 
-- Todas as specs seguem o template em `../../template.md`
+- Todas as specs seguem o template em `../template.md`
 - Casos de teste escritos antes da implementação (TDD approach)
 - Seletores de teste usam `data-layout-id` (atributo real do DOM via DraggableBlock)
 - Critérios de aceite mensuráveis e testáveis
@@ -150,6 +152,6 @@ Módulo de edição de texto do PostSpark — especificações técnicas, casos 
 
 ## 🔗 Relacionados
 
-- [Auditoria completa](../../AUDITORIA_EDICAO_TEXTO.md) — Versão raiz da auditoria
-- [Template de specs](../../template.md) — Formato padrão
+- [Auditoria completa](./00-audit.md) — Registro da auditoria original
+- [Template de specs](../template.md) — Formato padrão
 - [Specs raiz](../README.md) — Metodologia spec-driven

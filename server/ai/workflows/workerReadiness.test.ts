@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { ENV } from "../../_core/env";
-import { isDemandWorkerReady } from "./workerReadiness";
+import { isDemandWorkerReady, readDemandWorkerReadiness } from "./workerReadiness";
 const original = ENV.generationWorkerReadinessUrl;
 afterEach(() => { ENV.generationWorkerReadinessUrl = original; });
 it("fails closed without a configured local readiness endpoint", async () => {
@@ -18,4 +18,14 @@ it.each([
   ENV.generationWorkerReadinessUrl = "http://127.0.0.1:9465/readyz";
   const fetcher = vi.fn(async () => new Response(JSON.stringify(body), { status }));
   expect(await isDemandWorkerReady(fetcher)).toBe(expected);
+});
+
+it.each([
+  [undefined, false], [1, true], ["1", false],
+])("only accepts the advertised text recovery version %s", async (version, expected) => {
+  ENV.generationWorkerReadinessUrl = "http://127.0.0.1:9465/readyz";
+  const fetcher = vi.fn(async () => Response.json({
+    ready: true, transport: "postgres-notify", contractVersion: 1, textRecoveryVersion: version,
+  }));
+  expect(await readDemandWorkerReadiness(fetcher)).toEqual({ supportsTextRecovery: expected, supportsFinalFitRepair: false });
 });

@@ -1,14 +1,22 @@
-import { canInfer } from "./local-inference.js";
-import { hasCachedModel } from "./model-cache.js";
-import { inferProjectCommand } from "./project-inference.js";
+import {integrated,cloudFirstCut,cloudReview,editorialHistory,readEditorial} from "./postspark-session.js";
+import { editState, requestEdit } from "./edit-api.js";
 
 // Native project-level entry point. The draft belongs to the editor, including when a
 // composition is open from the montage. A declined proposal never touches that draft.
-export function openProjectAssistant({ session, showDialog, dialog, esc, initialRequest = "" }) {
+export function openProjectAssistant({ session, showDialog, dialog, esc, initialRequest = "", history = [], useLayerScope = false }) {
+  const recipes = [
+    {id:"text.replaceAndHold",manual:"Substituir texto literal e opcionalmente prolongar sua leitura e o encerramento",params:{before:"texto original exato",after:"texto novo exato","extraSeconds?":"segundos adicionais de leitura"}},
+    {id:"cards.centerLast",manual:"Sequenciar as entradas de três cards com o central por último",params:{}}
+  ];
   const catalog = session.catalog();
+  const selected = session.inspect().context;
+  const layerScope = useLayerScope && selected.layerId &&
+    session.inspect({compositionId:selected.compositionId,layerId:selected.layerId}).layers[0];
   showDialog(
     "Assistente do projeto",
-    '<label class="field">O que deseja editar?<textarea id="project-request" class="text-input" rows="3" placeholder="Descreva a mudança no vídeo"></textarea></label>' +
+    (layerScope ? '<label class="field">Editar<select id="assistant-scope"><option value="layer">' + esc(layerScope.name) +
+      '</option><option value="project">Projeto inteiro</option></select></label>' : '') +
+    '<label class="field">O que deseja editar?<textarea maxlength="4000" id="project-request" class="text-input" rows="3" placeholder="Descreva a mudança no vídeo"></textarea></label>' +
       (document.querySelector('meta[name="mare-director"]')
         ? '<details><summary>Criar vídeo a partir do briefing</summary><label class="field">Materiais <input id="director-files" type="file" multiple accept="image/*,video/*,audio/*"></label>' +
           '<label>Duração em segundos <input id="director-seconds" type="number" min="1" max="60" value="26"></label>' +
@@ -18,7 +26,8 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
         : "") +
       '<details><summary>Comandos e estado do projeto</summary><select id="assistant-operation" aria-label="Comando"></select>' +
       '<pre id="assistant-options"></pre><label id="assistant-file-label" hidden>Arquivo <input type="file" id="assistant-file"></label><button class="btn" id="assistant-inspect">Consultar projeto</button><pre id="assistant-state"></pre></details>' +
-      '<button class="btn" id="assistant-qwen" hidden>Interpretar com Qwen local</button>' +
+
+      '<details id="assistant-history"><summary>Histórico de pedidos</summary><div></div></details>' +
       '<div role="status" aria-live="polite" id="assistant-report"></div><img id="assistant-frame" hidden alt="Quadro da edição proposta">' +
       '<div id="assistant-detail"></div>',
     '<button class="btn" id="assistant-plan">Preparar edição</button><button class="btn primary" id="assistant-apply" disabled>Aplicar edição</button>'
@@ -37,14 +46,27 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
     generation = 0,
     objectURL,
     activeJob;
-  const model = get("assistant-qwen");
-  if (canInfer())
-    hasCachedModel().then(cached => {
-      model.textContent = cached ? "Interpretar com Qwen local" : "Baixar Qwen (398 MB) e interpretar";
-      model.hidden = false;
-    });
+  const historyBox = get("assistant-history");
+  function showHistory() {
+    historyBox.hidden = !history.length;
+    const container = historyBox.querySelector("div");
+    container.replaceChildren();
+    for (const entry of history.slice(-10).reverse()) {
+      const p = document.createElement("p");
+      p.textContent = entry.request + " — " + entry.result;
+      container.append(p);
+    }
+  }
+  function record(request,result) {
+    history.push({request,result});
+    if (history.length > 30) history.shift();
+    showHistory();
+  }
+  showHistory();
+  let editController;
   function clear() {
     generation++;
+    editController?.abort();
     editorialController?.abort();
     editorialController = null;
     for (const url of downloads.splice(0)) URL.revokeObjectURL(url);
@@ -97,6 +119,7 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
     clear();
     report.textContent = "";
   };
+  if (get("assistant-scope")) get("assistant-scope").onchange = prompt.oninput;
   async function structured(commands, state) {
     const specs = commands.map(c => catalog.find(x => x.id === c.id));
     if (specs.some(x => !x)) throw Error("Comando desconhecido. Consulte o catálogo.");
@@ -122,7 +145,7 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
       kind: specs[0].kind,
     };
   }
-  async function prepare(useModel) {
+  async function prepare() {
     clear();
     const run = generation;
     try {
@@ -133,21 +156,30 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
       if (text.startsWith("[") || text.startsWith("{")) {
         const data = JSON.parse(text);
         next = await structured(Array.isArray(data) ? data : [data], state);
-      } else if (useModel) {
-        const command = await inferProjectCommand(session, text, {
-          signal: controller.signal,
-          onProgress: msg => {
-            if (generation === run) report.textContent = msg;
-          },
-        });
-        next = await structured([command], state);
       } else {
-        next = await session.plan(text);
-        if (!next)
-          throw Error(
-            "O modo rápido não reconheceu o pedido. Consulte os comandos disponíveis." +
-              (model.hidden ? "" : " O Qwen local também pode interpretar a instrução.")
-          );
+        editController = new AbortController();
+        report.textContent = "Preparando edição com IA…";
+        const onlyLayer = get("assistant-scope")?.value === "layer";
+        const allowed = onlyLayer
+          ? catalog.filter(c => c.kind === "edit" && Object.hasOwn(c.params,"layerId") && c.id !== "layer.add")
+          : [...recipes, ...catalog.filter(c => !Object.hasOwn(c.params,"file") &&
+              !["speech.edit","speech.apply","composition.apply"].includes(c.id))];
+        const context = editState(session,state);
+        if (onlyLayer) context.scope = {compositionId:selected.compositionId,layerId:selected.layerId};
+        const answer = await requestEdit(text, context, allowed, session.options(), editController.signal);
+        if (generation !== run) return;
+        if (onlyLayer && answer.commands.some(c => c.layerId !== selected.layerId || c.compositionId !== selected.compositionId))
+          throw Error("A proposta alteraria outra camada. Escolha Projeto inteiro para editar várias camadas.");
+        if (answer.commands.some(c => recipes.some(r => r.id === c.id))) {
+          if (answer.commands.length !== 1) throw Error("A ação composta precisa ser preparada sozinha.");
+          next = session.prepareRecipe(state.revision,answer.commands[0]);
+        } else next = await structured(answer.commands, state);
+        next.summary = answer.summary || next.summary;
+        const target = answer.commands.find(c => c.compositionId)?.compositionId;
+        if (target && !next.kind && !next.preview) {
+          const source = next.proposal.inspect({compositionId:target});
+          next.preview = {compositionId:target, time:Math.min(state.context.time || 0, Math.max(0,source.duration - 1/30))};
+        }
       }
       if (generation !== run || controller.signal.aborted) return;
       report.textContent = next.summary;
@@ -175,13 +207,64 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
       details.append(summary, data);
       detail.append(details);
       plan = next;
+      if (!text.startsWith("[") && !text.startsWith("{")) record(text, "Proposta · " + next.summary);
       apply.disabled = false;
       apply.focus();
     } catch (error) {
-      if (run === generation && !controller.signal.aborted) report.textContent = error.message;
+      if (run === generation && !controller.signal.aborted) {
+        report.textContent = error.message;
+        if (prompt.value.trim()) record(prompt.value.trim(),error.message);
+      }
     }
   }
   if (get("director-create")) {
+    if(integrated){
+      const historySelect=document.createElement("select");
+      historySelect.ariaLabel="Reabrir entrega editorial";
+      historySelect.add(new Option("Reabrir entrega editorial",""));
+      historySelect.hidden=true;
+      get("director-create").after(historySelect);
+      editorialHistory(controller.signal).then(({jobs})=>{
+        for(const job of jobs){
+          const option=new Option((job.operation==="review"?"Revisão":"Primeiro corte")+" · "+new Date(job.createdAt).toLocaleString("pt-BR")+(job.status==="ready"?"":" · processando"),job.id);
+          option.dataset.project=job.projectId;
+          option.disabled=job.status!=="ready";
+          historySelect.add(option);
+        }
+        historySelect.hidden=!jobs.length;
+      }).catch(()=>{});
+      historySelect.onchange=async()=>{
+        const option=historySelect.selectedOptions[0];
+        if(!option?.value)return;
+        clear();
+        const rev=session.inspect().revision,run=generation;
+        const active=new AbortController();editorialController=active;
+        try {
+          const recovered=await readEditorial(option.value,session,rev,active.signal);
+          if(run!==generation)return;
+          const video=document.createElement("video");
+          video.controls=true;
+          video.style.cssText="display:block;max-height:36vh;max-width:100%";
+          video.src=URL.createObjectURL(recovered.movie);
+          downloads.push(video.src);detail.append(video);
+          report.textContent=recovered.review?.assessment||recovered.script?.title||"Entrega editorial recuperada";
+          plan={proposal:recovered.proposal};apply.disabled=false;
+          if(recovered.script){
+            const button=document.createElement("button");button.className="btn";button.textContent="Revisar este primeiro corte";detail.append(button);
+            button.onclick=async()=>{
+              button.disabled=true;apply.disabled=true;
+              try{
+                const updated=await cloudReview(session,recovered.jobId,rev,active.signal,option.dataset.project);
+                if(run!==generation)return;
+                report.textContent=updated.review.assessment;
+                video.src=URL.createObjectURL(updated.movie);downloads.push(video.src);plan={proposal:updated.proposal};
+              }catch(error){report.textContent=error.message;button.disabled=false;}
+              finally{if(run===generation)apply.disabled=false;}
+            };
+          }
+        }catch(error){if(run===generation)report.textContent=error.message;}
+      };
+    }
     for (const id of ["director-files", "director-seconds", "director-cta"])
       get(id).oninput = () => {
         clear();
@@ -208,7 +291,7 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
       }
       try {
         const { createEditorialCut } = await import("./editorial-run.js");
-        const result = await createEditorialCut({
+        const result = await (integrated?cloudFirstCut:createEditorialCut)({
           session,
           signal: active.signal,
           brief: prompt.value,
@@ -274,7 +357,7 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
           report.textContent = "Revisando a prévia renderizada…";
           try {
             const { reviewEditorialCut } = await import("./editorial-review.js");
-            const review = await reviewEditorialCut({
+            const review = integrated ? await cloudReview(session,result.jobId,result.proposal.revision,active.signal) : await reviewEditorialCut({
               target: result.proposal,
               brief: prompt.value,
               cta: get("director-cta").value.trim(),
@@ -313,8 +396,7 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
       }
     };
   }
-  get("assistant-plan").onclick = () => prepare(false);
-  model.onclick = () => prepare(true);
+  get("assistant-plan").onclick = () => prepare();
   apply.onclick = async () => {
     if (!plan) return;
     const current = plan,
@@ -403,5 +485,5 @@ export function openProjectAssistant({ session, showDialog, dialog, esc, initial
   );
   prompt.value = initialRequest;
   prompt.focus();
-  if (initialRequest) prepare(false);
+  if (initialRequest) prepare();
 }

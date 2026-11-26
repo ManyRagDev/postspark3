@@ -169,7 +169,7 @@ export default function FamilyCatalog() {
     <div className="min-h-screen" style={{ background: "oklch(0.10 0.02 280)", color: "oklch(0.9 0.01 280)" }}>
       {/* ── Controles ───────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-20 border-b backdrop-blur"
+        className="md:sticky md:top-0 z-20 border-b backdrop-blur"
         style={{ background: "oklch(0.12 0.025 280 / 92%)", borderColor: "oklch(1 0 0 / 8%)" }}
       >
         <div className="mx-auto max-w-[1600px] px-6 py-4 space-y-4">
@@ -322,8 +322,8 @@ export default function FamilyCatalog() {
           {composed.map(({ family, variation }) => {
             const requirements = fitRequirements(family.fit);
             return (
-              <div key={family.id} className="w-[360px]">
-                <div style={{ width: 360 }}>
+              <div key={family.id} className="w-full max-w-[360px] min-w-0">
+                <div className="w-full">
                   <PostCardV2
                     mode="preview"
                     snapshot={variation}

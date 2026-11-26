@@ -74,3 +74,12 @@ it("reports a missing session without synchronizing an empty credential", async 
   await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/?auth_error=no_token"));
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it("reopens the pending payment after Google identifies a customer without Studio access", async () => {
+  sessionStorage.setItem("postspark.payment-return", "/billing/success?session_id=cs_demo");
+  window.history.replaceState({}, "", "/auth/google-callback?payment=1");
+  await act(async () => root.render(<GoogleAuthCallback />));
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/billing/success?session_id=cs_demo"));
+  expect(fetch).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem("postspark.payment-return")).toBeNull();
+});
